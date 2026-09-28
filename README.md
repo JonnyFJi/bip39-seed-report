@@ -1,4 +1,4 @@
-# Offline BIP39 Bitcoin Wallet Report
+# Offline BIP39 Bitcoin Seed Report
 
 **PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA.**
 **NO SE RECOMIENDA USAR CON FONDOS REALES.**
