@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Offline BIP39 Bitcoin Wallet Report
+Offline BIP39 Bitcoin Seed Report
 PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA
 
 Uso seguro recomendado:
