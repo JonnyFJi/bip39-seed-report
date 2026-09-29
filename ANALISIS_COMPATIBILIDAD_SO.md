@@ -16,37 +16,21 @@ Determinar si el script tiene limitaciones de sistema operativo o si puede usars
 
 ## ✅ Análisis detallado por componente
 
-### 1. `os.urandom()` - Generación de entropía
-
-**Funciona en todos los sistemas:**
-
-| Sistema | Implementación | Calidad |
-|---------|---------------|---------|
-| Linux | `/dev/urandom` o syscall `getrandom()` (Linux 3.17+) | ✅ Excelente |
-| Windows | `BCryptGenRandom()` (Python 3.11+) o `CryptGenRandom()` (versiones anteriores) | ✅ Excelente |
-| macOS | `getentropy()` o `/dev/urandom` | ✅ Excelente |
-| BSD | `/dev/urandom` | ✅ Excelente |
-
-**Documentación oficial de Python:**
-> "On a Unix-like system this will query /dev/urandom, and on Windows it will use CryptGenRandom()."
-
-Todas las implementaciones son criptográficamente seguras.
-
-### 2. `mnemonic` library (Trezor)
+### 1. `mnemonic` library (Trezor)
 
 **Cross-platform:**
 - ✅ **Python puro**: No tiene dependencias nativas
 - ✅ **Funciona en**: Windows, macOS, Linux, BSD
 - ✅ **Requisito**: Python 3.7+
 
-### 3. `bip-utils` library
+### 2. `bip-utils` library
 
 **Cross-platform:**
 - ✅ **Python puro**: Implementación nativa de Python
 - ✅ **Funciona en**: Windows, macOS, Linux
 - ✅ **Requisito**: Python 3+
 
-### 4. `cryptography` library
+### 3. `cryptography` library
 
 **Cross-platform con soporte oficial:**
 - ✅ **Windows**: x86-64, 64-bit (wheels preconstruidos)
@@ -61,14 +45,14 @@ pip install cryptography
 
 ---
 
-## ✅ Pruebas de compatibilidad
+## ✅ Instalación en cada sistema
 
 ### Linux (cualquier distribución)
 
 ```bash
 # Ubuntu, Debian, Fedora, CentOS, Arch, etc.
 python3 -m pip install mnemonic bip-utils cryptography
-python3 wallet_bip39_off_line.py -w 12
+python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
 ```
 
 ### Windows (10, 11)
@@ -76,7 +60,7 @@ python3 wallet_bip39_off_line.py -w 12
 ```powershell
 # PowerShell o CMD
 python -m pip install mnemonic bip-utils cryptography
-python wallet_bip39_off_line.py -w 12
+python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
 ```
 
 ### macOS (Intel y Apple Silicon)
@@ -84,7 +68,7 @@ python wallet_bip39_off_line.py -w 12
 ```bash
 # Terminal
 python3 -m pip install mnemonic bip-utils cryptography
-python3 wallet_bip39_off_line.py -w 12
+python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
 ```
 
 ---
@@ -93,16 +77,19 @@ python3 wallet_bip39_off_line.py -w 12
 
 ### `os.urandom()` por sistema
 
-| Sistema | Implementación | Calidad |
+| Sistema | Implementación | Fuente |
 |---------|---------------|---------|
-| Linux 3.17+ | `getrandom()` syscall | ✅ Excelente |
-| Linux <3.17 | `/dev/urandom` | ✅ Excelente |
-| Windows 10+ | `BCryptGenRandom()` | ✅ Excelente |
-| Windows 7-8 | `CryptGenRandom()` | ✅ Excelente |
-| macOS 10.12+ | `getentropy()` / `/dev/urandom` | ✅ Excelente |
-| OpenBSD 5.6+ | `getentropy()` | ✅ Excelente |
+| Linux 3.17+ | `getrandom()` syscall | ✅ CSPRNG del sistema |
+| Linux <3.17 | `/dev/urandom` | ✅ CSPRNG del sistema |
+| Windows 10+ | `BCryptGenRandom()` | ✅ CSPRNG del sistema |
+| Windows 7-8 | `CryptGenRandom()` | ✅ CSPRNG del sistema |
+| macOS 10.12+ | `getentropy()` / `/dev/urandom` | ✅ CSPRNG del sistema |
+| OpenBSD 5.6+ | `getentropy()` | ✅ CSPRNG del sistema |
 
-**Todas son criptográficamente seguras.**
+**Documentación oficial de Python:**
+> "On a Unix-like system this will query /dev/urandom, and on Windows it will use CryptGenRandom()."
+
+**Depende de que el sistema operativo no esté comprometido**
 
 ### `tempfile.mkstemp()` - Archivos temporales
 
