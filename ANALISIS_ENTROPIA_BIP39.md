@@ -4,8 +4,7 @@
 Agosto 10, 2026
 
 ## Objetivo
-Determinar si el script genera entropía criptográfica suficiente y si la seed cumple con el estándar BIP39 y los vectores de seguridad de Trezor.
-
+Documentar cómo el script obtiene la entropía y qué comprobaciones BIP39 realiza.
 ---
 
 ## ✅ Generación de Entropía
@@ -18,6 +17,10 @@ def generate_entropy(words):
         raise ValueError("BIP39 solo admite 12, 15, 18, 21 o 24 palabras.")
     return os.urandom({12: 16, 15: 20, 18: 24, 21: 28, 24: 32}[words])
 ```
+
+### Filtro posterior por palabras repetidas (limitación conocida)
+
+`generate_entropy()` usa `os.urandom()` sin filtros. Sin embargo, la versión publicada del script, tras convertir la entropía en mnemonic, vuelve a generar hasta 1.000 veces si alguna palabra se repite. Esto excluye mnemonics válidas y altera la distribución uniforme del origen. No aumenta la seguridad. Se eliminará en una versión futura.
 
 ### Análisis de seguridad
 
