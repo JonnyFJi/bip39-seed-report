@@ -290,7 +290,7 @@ python3 wallet_bip39_off_line.py -i
    - Seleccionar longitud (12 o 24 palabras)
    - Seleccionar red (mainnet o testnet)
    - Ingresar passphrase (opcional)
-3. Genera wallet
+3. Genera mnemonic
 4. Realiza análisis de seguridad
 5. Guarda archivo encriptado
 
@@ -538,7 +538,7 @@ Limitaciones conocidas de esta versión:
 - La ejecución offline en un entorno confiable es una condición necesaria, no una garantía de seguridad
 - **Use el script con prudencia**
 - **NUNCA uses mnemonics reales en máquinas conectadas a internet**
-- **SIEMPRE verifica las addresses generadas en una wallet hardware antes de usar**
+- **SIEMPRE verifica las addresses generadas en una wallet de hardware antes de usar**
 - **No auditado para producción**: Este es un proyecto educativo. No ha sido auditado por firmas de seguridad independientes. Si consideras usarlo con fondos reales (*no recomendado*), entiende los riesgos documentados y se repite la **advertencia**, verifica siempre las addresses en una hardware wallet antes de utilizar.
 - **El análisis de seguridad es una guía estadística**: Un score alto no garantiza seguridad absoluta, pero un score bajo indica problemas potenciales.
 
