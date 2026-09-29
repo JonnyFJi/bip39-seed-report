@@ -125,7 +125,7 @@ def run_bip39_test_vectors(vectors_path):
 - ✅ **24 casos oficiales**: Todos pasan
 - ✅ **Mnemonic generation**: Coincide exactamente
 - ✅ **Seed derivation**: Coincide con passphrase "TREZOR"
-- ✅ **Round-trip**: entropy → mnemonic → entropy funciona perfectamente
+- ✅ **Round-trip**: entropy → mnemonic → entropy funciona
 
 ---
 
@@ -172,7 +172,7 @@ def run_bip39_test_vectors(vectors_path):
 - ✅ **Sistema limpio**: Usar Live USB (Tails, Ubuntu Live)
 - ✅ **Verificar en hardware wallet**: Siempre verificar addresses antes de usar
 - ✅ **Backup en papel/metal**: Nunca guardar en digital
-- ✅ **Múltiples fuentes**: Para máxima seguridad, combinar con entropía manual (dados, monedas). Advertencia: combinar fuentes exige un procedimiento correcto de mezcla que este script no implementa.
+- ✅ **Múltiples fuentes**: Para mayor seguridad, combinar con entropía manual (dados, monedas). Advertencia: combinar fuentes exige un procedimiento correcto de mezcla que este script no implementa.
 
 ---
 
