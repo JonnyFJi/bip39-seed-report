@@ -26,7 +26,7 @@ Determinar si el script tiene limitaciones de sistema operativo o si puede usars
 ### 2. `bip-utils` library
 
 **Cross-platform:**
-- ✅ **Python puro**: Implementación nativa de Python
+- ✅ **Python puro**: Instalado desde PyPI
 - ✅ **Funciona en**: Windows, macOS, Linux
 - ✅ **Requisito**: Python 3+
 
@@ -103,7 +103,7 @@ python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
 **Funciona en todos los sistemas:**
 - ✅ **Linux/Unix**: `0o600` (solo propietario)
 - ✅ **macOS**: `0o600` (solo propietario)
-- ✅ **Windows**: Permisos NTSC equivalentes (solo propietario)
+- ✅ **Windows**: os.chmod(`0o600`) no equivale de forma fiable a una ACL de NTFS en Windows
 
 ---
 
@@ -149,7 +149,7 @@ python -c "from mnemonic import Mnemonic; from bip_utils import Bip44; from cryp
 | Aspecto | Estado |
 |---------|--------|
 | **Ventaja** | ✅ Wheels preconstruidos, no requiere compilación |
-| **Recomendación** | ✅ Usar PowerShell o CMD como administrador si hay problemas de permisos |
+| **Recomendación** | ✅ Verifica el hash del script antes de ejecutarlo |
 | **Nota** | ⚠️ Windows Defender puede marcar scripts Python como sospechosos (falso positivo) |
 
 ### Linux
@@ -166,20 +166,21 @@ python -c "from mnemonic import Mnemonic; from bip_utils import Bip44; from cryp
 |---------|--------|
 | **Ventaja** | ✅ Sistema Unix-like con buena seguridad |
 | **Recomendación** | ✅ Usar Python oficial de python.org o Homebrew |
-| **Nota** | ⚠️ macOS 13+ solo soporta ARM64, verificar compatibilidad de wheels |
 
 ---
 
 ## ✅ Conclusión
 
-**No hay limitaciones de sistema operativo.** El script es completamente cross-platform:
+El script está pensado para ser multiplataforma, pero la compatibilidad debe
+confirmarse en cada entorno con `--run-tests`. Ejecútalo solo offline, en un
+entorno confiable (por ejemplo un sistema Live USB) y con dependencias de
+versiones conocidas.
 
 | Sistema | Compatibilidad |
 |---------|---------------|
-| Windows 10/11 | ✅ Funciona perfectamente |
+| Windows 10/11 | ✅ Objetivo de compatibilidad; ver matriz de pruebas |
 | macOS (Intel y Apple Silicon) | ✅ Funciona perfectamente |
 | Linux (cualquier distribución) | ✅ Funciona perfectamente |
-| BSD | ✅ Funciona perfectamente (no probado oficialmente pero compatible) |
 
 **Recomendación**: Para máxima seguridad, usar en cualquier sistema pero **siempre offline** en entorno confiable (Live USB, máquina air-gapped, etc.).
 
