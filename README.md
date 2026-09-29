@@ -249,7 +249,7 @@ Expone el valor en el historial y en la lista de procesos. Solo para pruebas con
 
 ### Ejemplos de uso
 
-#### 1. Generar wallet nueva (12 palabras, mainnet)
+#### 1. Generar mnemonic nueva (12 palabras, mainnet)
 
 ```bash
 python3 wallet_bip39_off_line.py -w 12
@@ -263,7 +263,7 @@ python3 wallet_bip39_off_line.py -w 12
 5. Oculta datos sensibles en terminal
 6. Guarda archivo encriptado en `output/bip39_wallet_export.json`
 
-#### 2. Generar wallet nueva (24 palabras, testnet)
+#### 2. Generar mnemonic nueva (24 palabras, testnet)
 
 ```bash
 python3 wallet_bip39_off_line.py -w 24 -n testnet
@@ -367,7 +367,6 @@ python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
 **Resultado esperado:**
 Test vectors BIP39: OK (24 casos)
 
-
 #### 10. Auditoría de passphrase
 
 ```bash
@@ -389,13 +388,11 @@ python3 wallet_bip39_off_line.py -w 12 -p "mi_passphrase" --audit-passphrase
 # 1. Generar mnemonic (modo seguro)
 python3 wallet_bip39_off_line.py -w 12 -i
 
-# 2. Verificar análisis de seguridad (score > 80 recomendado)
+# 2. Verificar con software o dispositivo independiente de confianza
 
-# 3. Verificar mnemonic en wallet (Electrum, BlueWallet, etc.)
+# 3. Guardar mnemonic en papel o metal (NUNCA en digital)
 
-# 4. Guardar mnemonic en papel o metal (NUNCA en digital)
-
-# 5. Borrar archivo encriptado si no es necesario
+# 4. Borrar archivo encriptado si no es necesario
 rm output/bip39_wallet_export.json
 ```
 
@@ -436,7 +433,7 @@ rm output/bip39_wallet_export.json
 - Network: mainnet/testnet
 - Entropy: [OCULTO]
 - Checksum: [OCULTO]
-- **Análisis de seguridad**: Score, clasificación, tests
+- **Análisis de seguridad**: Indicadores informativos
 - Mnemonic: [OCULTO]
 - BIP39 seed: [OCULTO]
 - BIP32 root key: [OCULTO]
@@ -452,6 +449,7 @@ rm output/bip39_wallet_export.json
 - Claves públicas en formato hex
 - Extended public keys completas
 - Análisis de seguridad completo con detalles de cada test
+- Contiene mnemonic, seed, clave raíz y claves privadas WIF. Trátalo como secreto
 
 ## Seguridad operacional
 
@@ -508,161 +506,26 @@ print(decrypted)
 O desde la terminal:
 
 ```bash
-python3 -c "from wallet_bip39_off_line import decrypt_file_content; print(decrypt_file_content(open('output/bip39_wallet_export.json').read(), 'TU_CONTRASEÑA'))"
+python3 -c "import getpass; from wallet_bip39_off_line import decrypt_file_content; print(decrypt_file_content(open('output/bip39_wallet_export.json').read(), getpass.getpass('Contraseña: ')))"
 ```
 
-## Análisis Final del Script
+## Estado y limitaciones conocidas
 
-### ✅ Seguridad
+Implementado: generación con `os.urandom()`, validación de checksum BIP39,
+derivación BIP32/BIP44/49/84/86 con `bip-utils`, vectores de referencia y
+exportación cifrada.
 
-#### Criptografía
-- ✅ **BIP39**: Implementación correcta con `mnemonic` library (Trezor)
-- ✅ **BIP32**: Clave maestra calculada con HMAC-SHA512(Key="Bitcoin seed", Data=seed)
-- ✅ **BIP44/49/84/86**: Derivación correcta con `bip-utils`
-- ✅ **AES-256-GCM**: Encriptación de archivos con nonce aleatorio
-- ✅ **SHA-256**: Derivación de clave desde contraseña
+Limitaciones conocidas de esta versión:
+- La clave del export se deriva con SHA-256 de la contraseña, sin KDF resistente.
+- La generación reintenta si hay palabras repetidas (sesgo; se eliminará).
+- Los indicadores y el score son informativos, sin valor criptográfico.
+- Los secretos pueden pasarse por argumentos de línea de comandos.
+- El export incluye mnemonic, seed, claves raíz y WIF.
+- En modo no interactivo, `--mnemonic-incomplete` elige el primer candidato.
+- Las dependencias no tienen versiones fijadas.
+- No está auditado y no debe usarse con fondos reales.
 
-#### Generación de entropía
-- ✅ `os.urandom()`: Entropía criptográficamente segura del sistema
-- ✅ **Reintento automático**: Hasta obtener mnemonics sin repeticiones
-- ✅ Longitudes válidas: 128, 160, 192, 224, 256 bits
-- ✅ Checksum BIP39: Verificado correctamente
-
-#### Análisis de seguridad
-- ✅ **6 tests implementados**: Unicidad, entropía, secuencias, distribución, repetidas, manipulación
-- ✅ **Score 0-100**: Clasificación automática
-- ✅ **Detección de patrones**: Identifica mnemonics débiles o manipuladas
-- ✅ **Umbrales ajustados**: Considera longitud de mnemonic
-
-#### Protección de datos
-- ✅ **Encriptación**: Siempre activa (AES-256-GCM)
-- ✅ **Ocultamiento**: Datos sensibles ocultos en terminal por defecto
-- ✅ **Input seguro**: `getpass.getpass()` sin eco ni historial
-- ✅ **Permisos**: Archivos con 0o600 (solo propietario)
-- ✅ **Escritura atómica**: `tempfile.mkstemp()` + `os.replace()`
-- ✅ **Limpieza**: `readline.clear_history()` al finalizar
-
-#### Validaciones
-- ✅ Checksum BIP39 en mnemonics
-- ✅ Longitud de palabras (12, 15, 18, 21, 24)
-- ✅ Palabras del diccionario inglés
-- ✅ **Verificación de wordlist**: Hash SHA256 contra lista oficial
-- ✅ Round-trip: entropy ↔ mnemonic ↔ entropy
-- ✅ Test vectors oficiales: 24 casos pasan
-
-### ✅ Flujo de programación
-
-#### Estructura del código
-- ✅ **Separación de responsabilidades**: Cada función hace una cosa
-- ✅ **Manejo de errores**: Mensajes claros y descriptivos
-- ✅ **Validación de entrada**: Exclusión mutua entre métodos
-- ✅ **Código limpio**: Sin duplicación, fácil de mantener
-
-#### Funciones principales
-1. `normalize_text()`: Normalización Unicode NFKD
-2. `bytes_to_binary()`: Conversión a binario
-3. `validate_entropy_length()`: Validación de longitud
-4. `entropy_checksum_bits()`: Cálculo de checksum
-5. `binary_to_bytes()`: Conversión de binario
-6. `hex_to_bytes()`: Conversión de hexadecimal
-7. `generate_entropy()`: Generación aleatoria con reintentos
-8. `entropy_to_mnemonic()`: Conversión a mnemonic
-9. `validate_mnemonic_text()`: Validación de mnemonic
-10. `mnemonic_to_entropy()`: Conversión inversa
-11. `mnemonic_seed()`: Seed BIP39 (PBKDF2)
-12. `bip32_master_key()`: Clave maestra B-32 (HMAC-SHA512)
-13. `select_network()`: Selección de red
-14. `derive_addresses_*()`: Derivación BIP44/49/84/86 con tipos de address
-15. `write_secure_file()`: Escritura segura encriptada
-16. `generate_sequential_path()`: Nombres secuenciales
-17. `audit_passphrase()`: Auditoría de passphrase
-18. `get_secure_input()`: Input seguro
-19. `find_last_word()`: Búsqueda de palabra faltante
-20. `analizar_seguridad_mnemonic()`: **NUEVO** - Análisis de 6 tests
-21. `resolve_input()`: Resolución de entrada
-22. `build_context()`: Construcción de contexto
-23. `format_report()`: Formateo de reporte con tipos de address
-24. `export_wallet()`: Exportación de wallet
-25. `run_bip39_test_vectors()`: Test vectors oficiales
-26. `verify_against_bip39_official()`: **NUEVO** - Verificación de wordlist
-
-#### Manejo de errores
-- ✅ Validación de longitud de entropía
-- ✅ Validación de checksum BIP39
-- ✅ Validación de formato de archivo
-- ✅ Manejo de EOF para input no interactivo
-- ✅ Manejo de contraseñas no coincidentes
-- ✅ **Reintento por repeticiones**: Máximo 1000 intentos
-
-### ✅ Compatibilidad con estándares
-
-#### BIP39
-- ✅ Wordlist inglés (2048 palabras)
-- ✅ Entropy: 128-256 bits
-- ✅ Checksum: entropy_bits // 32
-- ✅ Passphrase: Unicode NFKD, máximo 256 bytes
-- ✅ Seed: PBKDF2-HMAC-SHA512, 2048 iteraciones
-
-#### BIP32
-- ✅ Clave maestra: HMAC-SHA512("Bitcoin seed", seed)
-- ✅ Master key: 32 bytes
-- ✅ Chain code: 32 bytes
-- ✅ Derivación hardendada y normal
-
-#### BIP44/49/84/86
-- ✅ BIP44: m/44'/0'/0'/0/i (Legacy P2PKH)
-- ✅ BIP49: m/49'/0'/0'/0/i (Nested SegWit P2SH-P2WPKH)
-- ✅ BIP84: m/84'/0'/0'/0/i (Native SegWit P2WPKH)
-- ✅ BIP86: m/86'/0'/0'/0/i (Taproot P2TR)
-- ✅ Coin type: 0' (mainnet), 1' (testnet)
-
-### ✅ Test vectors
-
-#### Resultados
-- ✅ **24 casos oficiales de Trezor**: PASAN
-- ✅ **Mnemonic generation**: Correcta
-- ✅ **Seed derivation**: Correcta (passphrase "TREZOR")
-- ✅ **Round-trip**: entropy → mnemonic → entropy
-- ✅ **Wordlist verification**: Hash SHA256 verificado
-
-### ⚠️ Consideraciones
-
-#### Dependencias
-- ⚠️ `cryptography`: Requerida para encriptación
-- ⚠️ `mnemonic`: Requerida para BIP39
-- ⚠️ `bip-utils`: Requerida para derivación
-
-#### Limitaciones documentadas
-- ⚠️ No certifica entropía manual imprevisible
-- ⚠️ No certifica entorno no comprometido
-- ⚠️ No certifica errores de usuario
-- ⚠️ GAP limit: 5 addresses (suficiente para prueba)
-- ⚠️ **Análisis de seguridad es estadístico**: No garantiza seguridad absoluta
-
-#### Mejores prácticas
-- ✅ Solo offline en entorno confiable
-- ✅ Verificar en hardware wallet antes de usar
-- ✅ Guardar mnemonic en papel/metal (nunca digital)
-- ✅ Usar passphrase única y segura
-- ✅ Borrar archivos después de usar
-- ✅ **Verificar score de seguridad > 80**
-
-### ✅ Resumen final
-
-El script está **completo, seguro y listo para uso educativo**. Cumple con:
-
-- ✅ Estándares BIP39, BIP32, BIP44, BIP49, BIP84, BIP86
-- ✅ Seguridad criptográfica adecuada
-- ✅ Protección de datos sensibles
-- ✅ Test vectors oficiales aprobados
-- ✅ **Análisis de seguridad con 6 tests**
-- ✅ **Generación sin repeticiones**
-- ✅ **Verificación de wordlist oficial**
-- ✅ **Tipos de address documentados**
-- ✅ Código limpio y mantenible
-- ✅ Documentación completa (README)
-
-**Recomendación**: El script puede usarse para generación y verificación de wallets Bitcoin en entornos offline seguros, siempre siguiendo las mejores prácticas de seguridad operacional.
+**Recomendación**: El script puede usarse para generación y verificación de mnemonic Bitcoin en entornos offline seguros, siempre siguiendo las mejores prácticas de seguridad operacional.
 
 ## Advertencias finales
 
@@ -672,7 +535,7 @@ El script está **completo, seguro y listo para uso educativo**. Cumple con:
 - No certifica que una entropía manual sea imprevisible
 - No certifica que el entorno no esté comprometido
 - No certifica que no haya errores de usuario
-- El script es seguro solo si se ejecuta offline, en entorno confiable, con entropía correcta
+- La ejecución offline en un entorno confiable es una condición necesaria, no una garantía de seguridad
 - **Use el script con prudencia**
 - **NUNCA uses mnemonics reales en máquinas conectadas a internet**
 - **SIEMPRE verifica las addresses generadas en una wallet hardware antes de usar**
@@ -681,8 +544,9 @@ El script está **completo, seguro y listo para uso educativo**. Cumple con:
 
 ## Licencia
 
-PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA
+Sin licencia declarada: todos los derechos reservados
 
 ## Contacto
 
 **Para reportar errores o sugerencias, usa issues en el repositorio.**
+No publiques mnemonics, passphrases, seeds ni exports en issues
