@@ -1,7 +1,7 @@
-# Análisis de Compatibilidad con Sistemas Operativos
+# Compatibilidad esperada con sistemas operativos
 
 ## Fecha del análisis
-Agosto 10, 2026
+Agosto 10, 2026. Análisis documental; no se ha probado en todas las plataformas.
 
 ## Objetivo
 Determinar si el script tiene limitaciones de sistema operativo o si puede usarse en cualquier sistema (Windows, macOS, Linux).
@@ -10,7 +10,7 @@ Determinar si el script tiene limitaciones de sistema operativo o si puede usars
 
 ## ✅ Respuesta corta
 
-**El script funciona en cualquier sistema operativo moderno: Windows, macOS y Linux, sin limitaciones.**
+**El script está escrito para funcionar en Windows, macOS y Linux con Python 3, pero esta compatibilidad no está verificada en todas las plataformas. Depende de las versiones de Python y de las tres dependencias instaladas..**
 
 ---
 
