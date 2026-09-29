@@ -1,37 +1,42 @@
-# Offline BIP39 Bitcoin Seed Report
+# BIP39 Seed Report (offline)
 
-**PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA.**
-**NO SE RECOMIENDA USAR CON FONDOS REALES.**
-**No es sustituto para una Hot Wallet o una Hardware wallet.**
+PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA.
+NO SE RECOMIENDA USAR CON FONDOS REALES.
+No es una wallet ni sustituye a una hot wallet o a una hardware wallet.
+No ha sido auditado por terceros.
 
 ## Descripción del script
 
-Este script es una herramienta offline para generar y verificar wallets de Bitcoin usando el estándar BIP39. Permite crear mnemonics seguras, calcular la clave maestra BIP-32 correcta, derivar addresses en múltiples rutas de derivación (BIP44, BIP49, BIP84, BIP86), y realizar análisis de seguridad de mnemonics.
+Herramienta offline para generar, validar y reportar material BIP39/BIP32:
+mnemonic, seed, clave raíz, extended public keys y direcciones de ejemplo en
+rutas BIP44, BIP49, BIP84 y BIP86. No consulta la red, no muestra saldos y no
+firma ni transmite transacciones. Su salida contiene material que puede
+controlar fondos; trátalo como secreto.
 
 ## Función del script
 
 El script realiza las siguientes funciones principales:
 
 1. **Generación de entropía**: Usa `os.urandom()` para generar entropía criptográficamente segura
-2. **Generación sin repeticiones**: Reintenta automáticamente hasta obtener mnemonics con todas las palabras únicas
+2. **Generación sin repeticiones**: Nota de estado: la versión publicada reintenta hasta 1.000 veces si hay palabras repetidas. Es una limitación conocida que sesga la distribución y se eliminará; una mnemonic válida con repeticiones no es más débil.
 3. **Conversión a mnemonic**: Transforma la entropía en frases mnemotécnicas de 12, 15, 18, 21 o 24 palabras
 4. **Cálculo de clave maestra BIP-32**: Usa HMAC-SHA512 con Key="Bitcoin seed" para derivar la clave maestra correctamente
 5. **Derivación de seed**: Genera la seed BIP39 usando PBKDF2 con HMAC-SHA512
 6. **Derivación de addresses**: Genera 5 addresses por cada ruta de derivación (GAP limit)
-7. **Análisis de seguridad**: Realiza 6 tests para detectar patrones de baja entropía y posible manipulación manual
+7. **Análisis de seguridad**: "Indicadores informativos de patrón (no estiman entropía criptográfica)".
 8. **Verificación**: Valida checksums, mnemonics y round-trips
-9. **Exportación segura**: Escribe archivos encriptados con AES-256-GCM y permisos restringidos (0o600)
-10. **Verificación de wordlist**: Valida la wordlist embebida contra la lista oficial BIP39 de GitHub
+9. **Exportación segura**: "Exportación cifrada (AES-256-GCM). La clave se deriva con SHA-256 de la contraseña, sin KDF resistente: no usar como respaldo de una seed real".
+10. **Verificación de wordlist**: "Compara la wordlist embebida con un hash SHA-256 esperado, sin acceso a la red".
 
-## 🌟 Modo Interactivo (-i) - Método Recomendado
+## 🌟 Modo interactivo (-i): entrada de secretos recomendada
 
-**El modo interactivo es la forma más segura y fácil de usar el script.** Ideal para usuarios que:
+**El modo interactivo es la forma recomendada de introducir secretos, frente a los argumentos de línea de comandos y la más fácil de usar el script.** Ideal para usuarios que:
 
 - ✅ No quieren memorizar comandos complejos
 - ✅ Prefieren menús guiados paso a paso
 - ✅ Quieren evitar errores de escritura
 - ✅ Necesitan ayuda visual durante el proceso
-- ✅ Desean máxima seguridad (sin historial de comandos)
+- ✅ Desean utilizar el script sin eco en pantalla (Los secretos ingresados con getpass no quedan en el historial del shell. No protege contra malware, keyloggers ni un equipo comprometido)
 
 ### Cómo usar el modo interactivo
 
@@ -58,7 +63,7 @@ Selecciona la red Bitcoin:
 - Mainnet (Bitcoin principal - default)
 - Testnet (Bitcoin de pruebas)
 5. **Pide passphrase** (opcional, oculta)
-6. **Genera wallet** con análisis de seguridad automático
+6. **Genera el reporte** con análisis de seguridad automático
 7. **Muestra reporte** en terminal (datos sensibles ocultos)
 8. **Guarda archivo encriptado** en `output/bip39_wallet_export.json`
 
@@ -72,6 +77,8 @@ Selecciona la red Bitcoin:
 - ✅ **Validación automática**: El script valida cada entrada
 
 ### Ejemplo de sesión interactiva
+
+"Salida de ejemplo de la versión actual (puede cambiar)".
 
 ```bash
 $ python3 wallet_bip39_off_line.py -i
@@ -127,17 +134,17 @@ Passphrase:
 ⚠️  Recuerda la contraseña para desencriptar.
 ⚠️  Si pierdes la contraseña, perderás acceso a los datos.
 ```
-## Características de seguridad
+## Características de seguridad (Características y límites)
 
-- ✅ **Encriptación AES-256-GCM**: Todos los archivos de salida están encriptados
+- ✅ **Encriptación AES-256-GCM**: Todos los archivos de salida están encriptados (clave derivada con SHA-256 de la contraseña; limitación conocida)
 - ✅ **Ocultamiento de datos**: Los datos sensibles se ocultan en terminal por defecto
-- ✅ **Input seguro**: Usa `getpass` para evitar que las contraseñas queden en el historial
+- ✅ **Input seguro**: Usa getpass para evitar eco en terminal; no protege un host comprometido
 - ✅ **Permisos restringidos**: Archivos con permisos 0o600 (solo propietario)
 - ✅ **Escritura atómica**: Usa `tempfile` + `os.replace()` para evitar corrupción
 - ✅ **Limpieza de historial**: Intenta limpiar `readline.clear_history()`
 - ✅ **Bitcoin-only**: Reduce superficie de ataque
-- ✅ **Análisis de seguridad**: 6 tests para detectar mnemonics débiles o manipuladas
-- ✅ **Verificación BIP39**: Wordlist validada contra lista oficial de GitHub
+- ✅ **Análisis de seguridad**: 6 tests Indicadores informativos de patrón, sin valor criptográfico
+- ✅ **Verificación BIP39**: Wordlist validada contra hash SHA-256 embebido
 
 ## Test vectors
 
@@ -146,25 +153,18 @@ Passphrase:
 ✅ **Clave maestra BIP-32 calculada correctamente con HMAC-SHA512**  
 ✅ **Wordlist oficial verificada (2048 palabras)**
 
-El script ha sido verificado con los test vectors oficiales de Trezor, lo que confirma que la implementación es correcta y compatible con el estándar BIP39.
+El script supera los vectores de referencia del proyecto python-mnemonic
+(Trezor) del bloque `english` de `vectors.json`. Esto comprueba la conversión
+entropía-mnemonic-seed; no equivale a una auditoría. El archivo incluye otros
+idiomas, pero el script solo admite la wordlist inglesa.
 
-## Análisis de seguridad de mnemonics
+## Indicadores informativos de patrón
 
-El script incluye un sistema de análisis de seguridad con 6 tests:
-
-1. **Test de unicidad**: Verifica que todas las palabras sean únicas
-2. **Test de entropía de Shannon**: Mide la distribución de frecuencias de palabras
-3. **Test de patrones secuenciales**: Detecta palabras consecutivas en la wordlist
-4. **Test de distribución de índices**: Verifica distribución uniforme en la wordlist
-5. **Test de palabras repetidas**: Detecta repeticiones consecutivas y no consecutivas
-6. **Test de manipulación manual**: Identifica patrones sospechosos de intervención humana
-
-### Score y clasificación
-
-- **100-80**: ✅ FUERTE - Entropía adecuada
-- **79-60**: ⚠️ MODERADA - Posibles patrones menores
-- **59-40**: ⚠️ DÉBIL - Patrones detectados
-- **<40**: ❌ MUY DÉBIL - Alta probabilidad de baja entropía
+El script muestra indicadores superficiales (unicidad, repeticiones, índices
+consecutivos). No estiman entropía criptográfica ni imprevisibilidad, ni
+determinan cómo se generó la mnemonic. Una mnemonic aleatoria válida puede
+contener palabras repetidas o índices consecutivos. No uses estos indicadores
+para aceptar o descartar una seed.
 
 ## Tipos de dirección soportados
 
@@ -174,6 +174,8 @@ El script incluye un sistema de análisis de seguridad con 6 tests:
 | **BIP49** | m/49'/0'/0'/0/i | P2WPKH-P2SH | Nested SegWit (direcciones que empiezan con 3) |
 | **BIP84** | m/84'/0'/0'/0/i | P2WPKH | Native SegWit (direcciones que empiezan con bc1q) |
 | **BIP86** | m/86'/0'/0'/0/i | P2TR | Taproot (direcciones que empiezan con bc1p) |
+
+Cuenta 0, cadena externa (change 0), 5 direcciones por ruta
 
 ## Dependencias
 
@@ -224,6 +226,8 @@ python3 wallet_bip39_off_line.py [OPCIONES]
 ```
 
 #### Opciones de entrada (usar exactamente una):
+
+Expone el valor en el historial y en la lista de procesos. Solo para pruebas con datos sin valor
 
 - `-w, --words {12,15,18,21,24}`: Genera una mnemonic nueva con el número de palabras indicado
 - `--entropy-bin`: Entropía binaria BIP39 (128, 160, 192, 224 o 256 bits)
@@ -311,6 +315,8 @@ python3 wallet_bip39_off_line.py -w 12 --show-all
 python3 wallet_bip39_off_line.py --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" -p "TREZOR"
 ```
 
+Vector de prueba público. Nunca con secretos reales
+
 **Flujo:**
 1. Pide contraseña
 2. Verifica checksum BIP39
@@ -328,7 +334,7 @@ python3 wallet_bip39_off_line.py --mnemonic-incomplete "abandon abandon abandon 
 1. Busca todas las palabras posibles (16 opciones para 11 palabras)
 2. Muestra lista numerada
 3. Pide al usuario seleccionar la correcta
-4. Verifica que la palabra genera addresses correctas
+4. Debes verificar manualmente la palabra elegida. En modo no interactivo (EOF) el script elige el primer candidato; limitación conocida
 5. Genera wallet completa
 6. Realiza análisis de seguridad
 
@@ -373,14 +379,14 @@ python3 wallet_bip39_off_line.py -w 12 -p "mi_passphrase" --audit-passphrase
 - Bytes UTF-8
 - Caracteres distintos
 - Presencia de mayúsculas, minúsculas, dígitos, símbolos, espacios
-- Clasificación de seguridad
+- Nota informativa; no calcula entropía real
 
 ## Flujo de trabajo recomendado
 
-### Para generación de wallet nueva:
+### Para generación mnemonic nueva:
 
 ```bash
-# 1. Generar wallet (modo seguro)
+# 1. Generar mnemonic (modo seguro)
 python3 wallet_bip39_off_line.py -w 12 -i
 
 # 2. Verificar análisis de seguridad (score > 80 recomendado)
@@ -393,7 +399,7 @@ python3 wallet_bip39_off_line.py -w 12 -i
 rm output/bip39_wallet_export.json
 ```
 
-### Para recuperación de wallet:
+### Para recuperación de mnemonic:
 
 ```bash
 # 1. Calcular última palabra (si falta)
@@ -410,7 +416,7 @@ python3 wallet_bip39_off_line.py --mnemonic "word1 word2 ... word24" -i
 ### Para verificación educativa:
 
 ```bash
-# 1. Generar wallet mostrando todo (SOLO en entorno seguro)
+# 1. Generar mnemonic mostrando todo (SOLO en entorno seguro)
 python3 wallet_bip39_off_line.py -w 12 --show-all
 
 # 2. Estudiar análisis de seguridad y derivaciones
