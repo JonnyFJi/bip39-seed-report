@@ -407,7 +407,7 @@ python3 wallet_bip39_off_line.py --mnemonic "word1 word2 ... word24" -i
 
 # 3. Verificar análisis de seguridad
 
-# 4. Comparar addresses generadas con las de tu wallet
+# 4. Comparar addresses generadas con las de tu mnemonic
 ```
 
 ### Para verificación educativa:
@@ -539,7 +539,7 @@ Limitaciones conocidas de esta versión:
 - **Use el script con prudencia**
 - **NUNCA uses mnemonics reales en máquinas conectadas a internet**
 - **SIEMPRE verifica las addresses generadas en una wallet hardware antes de usar**
-- **No auditado para producción**: Este es un proyecto educativo. No ha sido auditado por firmas de seguridad independientes. Si consideras usarlo con fondos reales (*no recomendado*), entiende los riesgos documentados y se repite la **advertencia**, verifica siempre las addresses en una hardware wallet antes de depositar.
+- **No auditado para producción**: Este es un proyecto educativo. No ha sido auditado por firmas de seguridad independientes. Si consideras usarlo con fondos reales (*no recomendado*), entiende los riesgos documentados y se repite la **advertencia**, verifica siempre las addresses en una hardware wallet antes de utilizar.
 - **El análisis de seguridad es una guía estadística**: Un score alto no garantiza seguridad absoluta, pero un score bajo indica problemas potenciales.
 
 ## Licencia
