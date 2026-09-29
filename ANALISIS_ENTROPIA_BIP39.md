@@ -2,6 +2,8 @@
 
 ## Fecha del análisis
 Agosto 10, 2026
+"Actualizado: 29 de septiembre de 2026"
+"Versión analizada: wallet_bip39_off_line.py publicado".
 
 ## Objetivo
 Documentar cómo el script obtiene la entropía y qué comprobaciones BIP39 realiza.
@@ -90,6 +92,8 @@ def mnemonic_seed(mnemonic, passphrase=""):
 
 ### Código analizado
 
+Fragmento ilustrativo simplificado
+
 ```python
 def run_bip39_test_vectors(vectors_path):
     vectors = load_vectors(vectors_path)
@@ -133,19 +137,16 @@ def run_bip39_test_vectors(vectors_path):
 
 - ✅ **Seguridad**: 2^128 combinaciones posibles
 - ✅ **Fuerza bruta**: Imposible con tecnología actual
-- ✅ **Estándar industry**: Usado por la mayoría de wallets
 
 #### 2. 256 bits (24 palabras)
 
 - ✅ **Seguridad**: 2^256 combinaciones posibles
 - ✅ **Máxima seguridad**: Nivel de seguridad de Bitcoin
-- ✅ **Futuro-proof**: Resistente a computación cuántica (por ahora)
 
 #### 3. Comparación con otros métodos
 
-- ✅ **os.urandom()**: Más seguro que `random.random()`
-- ✅ **vs hardware wallets**: Similar seguridad (si el CSPRNG del sistema es bueno)
-- ✅ **vs dados**: Más práctico, misma seguridad teórica
+- ✅ **os.urandom()**: Más seguro que `random.random()`. (Aclaración técnica: random no es criptográfico.)
+- ✅ **vs dados**: La calidad de la entropía con dados depende del procedimiento; esta comparación no se evalúa aquí
 
 ---
 
@@ -155,7 +156,7 @@ def run_bip39_test_vectors(vectors_path):
 
 - ✅ **CSPRNG del sistema**: `os.urandom()` es criptográficamente seguro
 - ✅ **Longitudes estándar**: 128-256 bits según BIP39
-- ✅ **Implementación oficial**: Usa libraries de Trezor
+- ✅ **Implementación oficial**: Usa mnemonic (mantenida por Trezor) para BIP39 y bip-utils para la derivación; la segunda no es de Trezor
 - ✅ **Test vectors**: Pasan los 24 casos oficiales
 - ✅ **Validación completa**: Checksum, palabras, longitud
 
@@ -171,21 +172,15 @@ def run_bip39_test_vectors(vectors_path):
 - ✅ **Sistema limpio**: Usar Live USB (Tails, Ubuntu Live)
 - ✅ **Verificar en hardware wallet**: Siempre verificar addresses antes de usar
 - ✅ **Backup en papel/metal**: Nunca guardar en digital
-- ✅ **Múltiples fuentes**: Para máxima seguridad, combinar con entropía manual (dados, monedas)
+- ✅ **Múltiples fuentes**: Para máxima seguridad, combinar con entropía manual (dados, monedas). Advertencia: combinar fuentes exige un procedimiento correcto de mezcla que este script no implementa.
 
 ---
 
 ## ✅ Conclusión del análisis
 
-**El script genera entropía criptográficamente suficiente y cumple con el estándar BIP39:**
+El script obtiene bytes de `os.urandom()` con longitudes válidas de BIP39 y supera los vectores de referencia del bloque `english`. No puede demostrar la salud del generador aleatorio del sistema, ni que el equipo, el intérprete o las dependencias no estén comprometidos. La versión publicada aplica además un filtro por palabras repetidas que debe eliminarse, y su export cifrado usa una derivación de clave sin KDF resistente. Este proyecto es educativo y no se recomienda con fondos reales.
 
-1. ✅ **Entropía**: `os.urandom()` proporciona entropía criptográficamente segura
-2. ✅ **Longitudes**: 128-256 bits según estándar BIP39
-3. ✅ **Proceso**: Implementación correcta con libraries oficiales de Trezor
-4. ✅ **Test vectors**: Pasan los 24 casos oficiales
-5. ✅ **Seguridad**: 128-256 bits de entropía son suficientes para seguridad criptográfica
-
-**Recomendación final**: El script es seguro para uso en entornos offline confiables. Para máxima seguridad, usar en máquina air-gapped con sistema Live USB y verificar siempre en hardware wallet antes de usar.
+**Recomendación final**: Para máxima seguridad, usar en máquina air-gapped con sistema Live USB y verificar siempre en hardware wallet antes de usar.
 
 ---
 
