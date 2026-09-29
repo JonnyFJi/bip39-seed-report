@@ -335,7 +335,7 @@ python3 wallet_bip39_off_line.py --mnemonic-incomplete "abandon abandon abandon 
 2. Muestra lista numerada
 3. Pide al usuario seleccionar la correcta
 4. Debes verificar manualmente la palabra elegida. En modo no interactivo (EOF) el script elige el primer candidato; limitación conocida
-5. Genera wallet completa
+5. Genera mnemonic completa
 6. Realiza análisis de seguridad
 
 #### 7. Usar entropía hexadecimal
