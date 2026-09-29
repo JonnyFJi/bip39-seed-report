@@ -157,7 +157,7 @@ python -c "from mnemonic import Mnemonic; from bip_utils import Bip44; from cryp
 | Aspecto | Estado |
 |---------|--------|
 | **Ventaja** | ✅ Máximo control y transparencia |
-| **Recomendación** | ✅ Usar en entorno offline para máxima seguridad |
+| **Recomendación** | ✅ Usar en entorno offline para mayor seguridad |
 | **Nota** | ⚠️ Algunas distribuciones pueden requerir instalar `python3-dev` o `libssl-dev` |
 
 ### macOS
@@ -179,10 +179,10 @@ versiones conocidas.
 | Sistema | Compatibilidad |
 |---------|---------------|
 | Windows 10/11 | ✅ Objetivo de compatibilidad; ver matriz de pruebas |
-| macOS (Intel y Apple Silicon) | ✅ Funciona perfectamente |
-| Linux (cualquier distribución) | ✅ Funciona perfectamente |
+| macOS (Intel y Apple Silicon) | ✅ Funciona |
+| Linux (cualquier distribución) | ✅ Funciona |
 
-**Recomendación**: Para máxima seguridad, usar en cualquier sistema pero **siempre offline** en entorno confiable (Live USB, máquina air-gapped, etc.).
+**Recomendación**: Para mayor seguridad, usar en cualquier sistema pero **siempre offline** en entorno confiable (Live USB, máquina air-gapped, etc.).
 
 ---
 
