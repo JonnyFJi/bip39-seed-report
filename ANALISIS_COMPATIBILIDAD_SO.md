@@ -2,6 +2,8 @@
 
 ## Fecha del análisis
 Agosto 10, 2026. Análisis documental; no se ha probado en todas las plataformas.
+Octubre 9, 2026. Análisis documental; no se ha probado en todas las plataformas.
+
 
 ## Objetivo
 Determinar si el script tiene limitaciones de sistema operativo o si puede usarse en cualquier sistema (Windows, macOS, Linux).
@@ -52,7 +54,7 @@ pip install cryptography
 ```bash
 # Ubuntu, Debian, Fedora, CentOS, Arch, etc.
 python3 -m pip install mnemonic bip-utils cryptography
-python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
+python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
 ```
 
 ### Windows (10, 11)
@@ -60,7 +62,7 @@ python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
 ```powershell
 # PowerShell o CMD
 python -m pip install mnemonic bip-utils cryptography
-python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
+python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
 ```
 
 ### macOS (Intel y Apple Silicon)
@@ -68,7 +70,7 @@ python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
 ```bash
 # Terminal
 python3 -m pip install mnemonic bip-utils cryptography
-python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
+python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
 ```
 
 ---
