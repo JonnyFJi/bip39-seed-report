@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """
-Offline BIP39 Bitcoin Seed Report
-PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA
+Offline BIP39 Seed Report
+
+PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA.
+
+Esta herramienta genera, valida y reporta material BIP39/BIP32 offline.
+No es una wallet: no consulta la red, no muestra saldos, no firma
+transacciones y no transmite transacciones.
 
 Uso seguro recomendado:
 - Ejecutar solo offline.
 - Usar un entorno confiable.
-- Proporcionar entropía correcta y verificable.
+- Proporcionar entropy correcta y verificable.
 - Preferir una máquina limpia y no comprometida.
+- No usar con fondos reales: el proyecto no está auditado para producción.
 
 Entrada compatible:
 - -w / --words
@@ -31,9 +37,12 @@ Dependencias:
     python3 -m pip install mnemonic bip-utils cryptography
 """
 
+from __future__ import annotations
+
 import argparse
 import base64
 import getpass
+import warnings
 import hashlib
 import hmac
 import json
@@ -42,6 +51,10 @@ import pathlib
 import sys
 import tempfile
 import unicodedata
+
+import time
+from typing import Callable, Collection, TypeVar
+
 from collections import Counter
 import math
 
@@ -59,8 +72,328 @@ from bip_utils import (
     Bip86Coins,
 )
 
+# Integrado desde sensitive_terminal_input.py; ver historial de cambios.
+"""Utilidades genéricas para entradas sensibles en una terminal.
+
+No contiene lógica de wallet, BIP39, claves ni derivación criptográfica.
+Proporciona:
+- Entrada sin eco mediante getpass.
+- Menús temporizados con cancelación segura.
+- Revisión temporal opcional de valores.
+- Confirmación doble de secretos.
+- Entrada visible opcional tras advertencia explícita.
+
+Limitación: la limpieza ANSI solo intenta ocultar la vista actual. No borra
+scrollback, registros de terminal, capturas, memoria, swap ni un sistema
+comprometido.
+"""
+
+import getpass
+import os
+import sys
+import time
+from typing import Callable, Collection, TypeVar
+
+
+DEFAULT_DECISION_TIMEOUT_SECONDS = 360
+T = TypeVar("T")
+
+
+class InputTimeoutError(RuntimeError):
+    """La persona usuaria no tomó una decisión antes del límite."""
+
+
+class InputCancelledError(RuntimeError):
+    """La persona usuaria canceló explícitamente la operación."""
+
+
+def _require_tty() -> None:
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        raise RuntimeError(
+            "Esta operación requiere una terminal interactiva (TTY)."
+        )
+
+def read_hidden_secret(prompt: str) -> str:
+    """Lee un secreto sin aceptar el fallback de getpass con eco."""
+    _require_tty()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", getpass.GetPassWarning)
+
+        try:
+            return getpass.getpass(prompt)
+        except getpass.GetPassWarning as exc:
+            raise RuntimeError(
+                "No se pudo garantizar una entrada sin eco. "
+                "Operación cancelada: utiliza una terminal local compatible."
+            ) from exc
+
+def _normalize_choice(value: str) -> str:
+    return value.strip().lower()
+
+def _read_line_with_timeout_unix(prompt: str, timeout_seconds: int) -> str:
+    import selectors
+
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+
+    selector = selectors.DefaultSelector()
+    try:
+        selector.register(sys.stdin, selectors.EVENT_READ)
+        events = selector.select(timeout_seconds)
+    finally:
+        selector.close()
+
+    if not events:
+        raise InputTimeoutError(
+            f"Tiempo agotado: no hubo respuesta en {timeout_seconds} segundos."
+        )
+
+    line = sys.stdin.readline()
+    if line == "":
+        raise EOFError("Entrada estándar finalizada.")
+    return line.rstrip("\n")
+
+
+def _read_line_with_timeout_windows(prompt: str, timeout_seconds: int) -> str:
+    import msvcrt
+
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+
+    deadline = time.monotonic() + timeout_seconds
+    chars: list[str] = []
+
+    while time.monotonic() < deadline:
+        if not msvcrt.kbhit():
+            time.sleep(0.05)
+            continue
+
+        char = msvcrt.getwch()
+        if char in ("\r", "\n"):
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            return "".join(chars)
+        if char == "\x03":
+            raise KeyboardInterrupt
+        if char == "\x1a":
+            raise EOFError("Entrada estándar finalizada.")
+        if char == "\b":
+            if chars:
+                chars.pop()
+                sys.stdout.write("\b \b")
+                sys.stdout.flush()
+            continue
+        if char in ("\x00", "\xe0"):
+            msvcrt.getwch()
+            continue
+        chars.append(char)
+        sys.stdout.write(char)
+        sys.stdout.flush()
+
+    raise InputTimeoutError(
+        f"Tiempo agotado: no hubo respuesta en {timeout_seconds} segundos."
+    )
+
+
+def timed_input(prompt: str, timeout_seconds: int = DEFAULT_DECISION_TIMEOUT_SECONDS) -> str:
+    """Lee una línea visible con límite de tiempo en una TTY local.
+
+    En Unix usa selectors sobre stdin. En Windows usa msvcrt para la consola.
+    La función se usa solo para decisiones cortas de menú, no para secretos.
+    """
+    _require_tty()
+    if timeout_seconds <= 0:
+        raise ValueError("El timeout debe ser mayor que cero.")
+
+    if os.name == "nt":
+        return _read_line_with_timeout_windows(prompt, timeout_seconds)
+    return _read_line_with_timeout_unix(prompt, timeout_seconds)
+
+
+def timed_menu_choice(
+    prompt: str,
+    choices: Collection[str],
+    timeout_seconds: int = DEFAULT_DECISION_TIMEOUT_SECONDS,
+) -> str:
+    """Solicita una opción visible y devuelve una opción normalizada válida."""
+    normalized_choices = {_normalize_choice(choice) for choice in choices}
+    if not normalized_choices:
+        raise ValueError("Debe proporcionarse al menos una opción válida.")
+
+    while True:
+        value = _normalize_choice(timed_input(prompt, timeout_seconds))
+        if value in normalized_choices:
+            return value
+        print(
+            "❌ Opción inválida. Opciones válidas: "
+            + ", ".join(sorted(normalized_choices)).upper()
+        )
+
+
+def clear_sensitive_display(lines: int = 1) -> bool:
+    """Intenta ocultar líneas recientes de la vista actual mediante ANSI.
+
+    Devuelve True si se emitieron secuencias ANSI. No garantiza eliminación de
+    scrollback o de cualquier registro externo.
+    """
+    if lines < 1 or not sys.stdout.isatty():
+        return False
+
+    try:
+        for _ in range(lines):
+            sys.stdout.write("\x1b[1A\r\x1b[2K")
+        sys.stdout.flush()
+        return True
+    except OSError:
+        return False
+
+
+def show_sensitive_value_temporarily(value: str, label: str) -> None:
+    """Muestra un valor solo tras decisión explícita y luego intenta ocultarlo."""
+    print("\n⚠️  ADVERTENCIA: se mostrará información sensible en esta terminal.")
+    print("   Puede quedar en scrollback, grabaciones o capturas de pantalla.\n")
+    print(f"{label}:\n{value}")
+    input("\nPresiona Enter para intentar ocultar la vista temporal...")
+    cleared = clear_sensitive_display(lines=4)
+    if not cleared:
+        print(
+            "⚠️  No fue posible limpiar visualmente esta consola. "
+            "Limpia el scrollback manualmente si procede."
+        )
+
+
+def _validated_hidden_value(prompt: str, validator: Callable[[str], T]) -> tuple[str, T]:
+    value = read_hidden_secret(prompt)
+    validated = validator(value)
+    return value, validated
+
+
+def get_reviewable_secure_input(
+    prompt: str,
+    validator: Callable[[str], T],
+    description: str,
+    timeout_seconds: int = DEFAULT_DECISION_TIMEOUT_SECONDS,
+    allow_visible_review: bool = True,
+) -> T:
+    """Obtiene un valor sin eco y permite Ver, Confirmar, Reingresar o Cancelar.
+
+    El validador recibe el texto introducido y devuelve el valor normalizado o
+    procesado. Debe lanzar ValueError si la entrada no es válida.
+    """
+    while True:
+        try:
+            raw_value, validated = _validated_hidden_value(prompt, validator)
+        except ValueError as exc:
+            print(f"❌ Entrada inválida: {exc}")
+            continue
+
+        print(f"\nEntrada recibida y validada: {description}.")
+        print("[V] Ver temporalmente  [C] Confirmar y continuar  [R] Reingresar  [Q] Cancelar")
+        print(f"Tienes {timeout_seconds} segundos para seleccionar una opción.")
+        choice = timed_menu_choice(
+            "Opción [V/C/R/Q]: ",
+            {"v", "c", "r", "q"},
+            timeout_seconds,
+        )
+
+        if choice == "c":
+            raw_value = ""
+            return validated
+        if choice == "r":
+            raw_value = ""
+            continue
+        if choice == "q":
+            raw_value = ""
+            raise InputCancelledError("Operación cancelada por el usuario.")
+        if choice == "v" and allow_visible_review:
+            show_sensitive_value_temporarily(raw_value, description)
+            continue
+        print("❌ La revisión visible no está habilitada para esta entrada.")
+
+
+def get_confirmed_secret(
+    prompt: str,
+    confirmation_prompt: str,
+    normalizer: Callable[[str], str] | None = None,
+) -> str:
+    """Solicita un secreto dos veces sin eco y exige coincidencia.
+
+    Si se suministra normalizer, la comparación se efectúa sobre el resultado
+    normalizado y se devuelve esa forma normalizada.
+    """
+    normalize = normalizer or (lambda value: value)
+    while True:
+        first = read_hidden_secret(prompt)
+        second = read_hidden_secret(confirmation_prompt)
+        normalized_first = normalize(first)
+        normalized_second = normalize(second)
+
+        if normalized_first == normalized_second:
+            first = ""
+            second = ""
+            return normalized_first
+
+        first = ""
+        second = ""
+        print("❌ Los valores no coinciden. Intenta nuevamente.")
+
+
+def get_visible_input_with_acknowledgement(
+    prompt: str,
+    validator: Callable[[str], T],
+    description: str,
+    timeout_seconds: int = DEFAULT_DECISION_TIMEOUT_SECONDS,
+) -> T:
+    """Obtiene una entrada visible únicamente tras advertencia y confirmación.
+
+    Se usa para texto largo que la persona necesite editar visualmente. No se
+    aplica a contraseñas ni a otros secretos que deban permanecer ocultos.
+    """
+    print("\n⚠️  MODO DE EDICIÓN VISIBLE")
+    print("El contenido se verá mientras escribes o pegas.")
+    print("Puede quedar en scrollback, grabaciones o capturas de pantalla.")
+    print("Úsalo solo en una terminal local confiable.")
+    print(f"Tienes {timeout_seconds} segundos para decidir.")
+
+    choice = timed_menu_choice(
+        "[C] Entiendo y continuar  [Q] Cancelar: ",
+        {"c", "q"},
+        timeout_seconds,
+    )
+    if choice == "q":
+        raise InputCancelledError("Operación cancelada por el usuario.")
+
+    while True:
+        raw_value = input(prompt)
+        try:
+            validated = validator(raw_value)
+        except ValueError as exc:
+            raw_value = ""
+            print(f"❌ Entrada inválida: {exc}")
+            continue
+
+        print(f"\nEntrada recibida y validada: {description}.")
+        print("[C] Confirmar y continuar  [R] Reingresar  [Q] Cancelar")
+        print(f"Tienes {timeout_seconds} segundos para seleccionar una opción.")
+        choice = timed_menu_choice(
+            "Opción [C/R/Q]: ",
+            {"c", "r", "q"},
+            timeout_seconds,
+        )
+        if choice == "c":
+            raw_value = ""
+            clear_sensitive_display(lines=1)
+            return validated
+        if choice == "r":
+            raw_value = ""
+            continue
+        raw_value = ""
+        raise InputCancelledError("Operación cancelada por el usuario.")
+
 try:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.exceptions import InvalidTag
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
@@ -286,19 +619,34 @@ BIP39_OFFICIAL_SHA256 = "187db04a869dd9bc7be80d21a86497d692c0db6abd3aa8cb6be5d61
 
 
 def verify_against_bip39_official():
-    """Verifica que la wordlist embebida coincida con BIP39 oficial (offline)"""
+    """Comprueba la lista embebida y la lista efectiva de mnemonic, offline."""
     if len(BIP39_OFFICIAL_WORDLIST) != 2048:
-        print(f"\n❌ ERROR: BIP39 oficial embebida tiene {len(BIP39_OFFICIAL_WORDLIST)} palabras")
+        print("ERROR: la wordlist embebida no contiene 2048 palabras.")
         return False
 
-    official_hash = hashlib.sha256("\n".join(BIP39_OFFICIAL_WORDLIST).encode("utf-8")).hexdigest()
+    official_hash = hashlib.sha256(
+        "\n".join(BIP39_OFFICIAL_WORDLIST).encode("utf-8")
+    ).hexdigest()
+
     if official_hash != BIP39_OFFICIAL_SHA256:
-        print(f"\n❌ ERROR: Hash BIP39 oficial incorrecto")
-        print(f"   Esperado: {BIP39_OFFICIAL_SHA256}")
-        print(f"   Obtenido: {official_hash}")
+        print("ERROR: el hash de la wordlist embebida no coincide.")
         return False
 
-    print("✅ BIP39 Oficial (GitHub): VERIFICADA (2048 palabras)")
+    effective_wordlist = list(Mnemonic("english").wordlist)
+
+    if effective_wordlist != list(BIP39_OFFICIAL_WORDLIST):
+        print(
+            "ERROR: la wordlist usada por mnemonic no coincide "
+            "con la lista embebida esperada."
+        )
+        return False
+
+    print(
+        "Wordlist BIP39 embebida: hash local verificado (2048 palabras)."
+    )
+    print(
+        "Wordlist efectiva de mnemonic: contenido y orden verificados."
+    )
     return True
 
 
@@ -307,6 +655,20 @@ VALID_WORD_COUNTS = {12, 15, 18, 21, 24}
 DEFAULT_VECTORS_FILE = "vectors.json"
 GAP_LIMIT = 5
 
+DEFAULT_OUTPUT_PATH = "output/bip39_seed_report.json"
+
+ENCRYPTED_REPORT_FORMAT = "bip39-seed-report-encrypted"
+ENCRYPTED_REPORT_VERSION = 1
+ENCRYPTED_REPORT_CIPHER = "AES-256-GCM"
+ENCRYPTED_REPORT_KDF = "scrypt"
+
+SCRYPT_N = 2**18
+SCRYPT_R = 8
+SCRYPT_P = 1
+SCRYPT_DKLEN = 32
+SCRYPT_SALT_BYTES = 16
+AES_GCM_NONCE_BYTES = 12
+SCRYPT_MAXMEM = 512 * 1024 * 1024
 
 def normalize_text(text):
     return unicodedata.normalize("NFKD", text)
@@ -509,53 +871,348 @@ def derive_addresses_bip86(seed, coin, coin_type, gap_limit=GAP_LIMIT):
     }
 
 
-def write_secure_file(path, content, encrypt=True, password=None):
+def _canonical_encryption_aad(
+    report_format: str,
+    version: int,
+    cipher_name: str,
+    kdf_name: str,
+    n: int,
+    r: int,
+    p: int,
+    dklen: int,
+) -> bytes:
+    metadata = {
+        "cipher": cipher_name,
+        "format": report_format,
+        "kdf": {
+            "dklen": dklen,
+            "n": n,
+            "name": kdf_name,
+            "p": p,
+            "r": r,
+        },
+        "version": version,
+    }
+    return json.dumps(
+        metadata,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+
+
+def _derive_scrypt_key(
+    password: str,
+    salt: bytes,
+    n: int,
+    r: int,
+    p: int,
+    dklen: int,
+) -> bytes:
+    if not isinstance(password, str) or not password:
+        raise ValueError("La contraseña de cifrado no puede estar vacía.")
+
+    if len(salt) != SCRYPT_SALT_BYTES:
+        raise ValueError("El salt del archivo cifrado es inválido.")
+
+    try:
+        return hashlib.scrypt(
+            unicodedata.normalize("NFKD", password).encode("utf-8"),
+            salt=salt,
+            n=n,
+            r=r,
+            p=p,
+            dklen=dklen,
+            maxmem=SCRYPT_MAXMEM,
+        )
+    except ValueError as exc:
+        raise RuntimeError(
+            "No fue posible ejecutar scrypt con los parámetros del archivo."
+        ) from exc
+
+
+def _encrypt_report_content(content: str, password: str) -> str:
+    if not CRYPTO_AVAILABLE:
+        raise RuntimeError(
+            "La librería cryptography es requerida para cifrar archivos."
+        )
+
+    salt = os.urandom(SCRYPT_SALT_BYTES)
+    nonce = os.urandom(AES_GCM_NONCE_BYTES)
+    aad = _canonical_encryption_aad(
+        ENCRYPTED_REPORT_FORMAT,
+        ENCRYPTED_REPORT_VERSION,
+        ENCRYPTED_REPORT_CIPHER,
+        ENCRYPTED_REPORT_KDF,
+        SCRYPT_N,
+        SCRYPT_R,
+        SCRYPT_P,
+        SCRYPT_DKLEN,
+    )
+    key = _derive_scrypt_key(
+        password,
+        salt,
+        SCRYPT_N,
+        SCRYPT_R,
+        SCRYPT_P,
+        SCRYPT_DKLEN,
+    )
+    ciphertext = AESGCM(key).encrypt(
+        nonce,
+        content.encode("utf-8"),
+        aad,
+    )
+
+    container = {
+        "cipher": {
+            "name": ENCRYPTED_REPORT_CIPHER,
+            "nonce_b64": base64.b64encode(nonce).decode("ascii"),
+        },
+        "ciphertext_b64": base64.b64encode(ciphertext).decode("ascii"),
+        "format": ENCRYPTED_REPORT_FORMAT,
+        "kdf": {
+            "dklen": SCRYPT_DKLEN,
+            "n": SCRYPT_N,
+            "name": ENCRYPTED_REPORT_KDF,
+            "p": SCRYPT_P,
+            "r": SCRYPT_R,
+            "salt_b64": base64.b64encode(salt).decode("ascii"),
+        },
+        "version": ENCRYPTED_REPORT_VERSION,
+    }
+    return json.dumps(
+        container,
+        ensure_ascii=True,
+        indent=2,
+        sort_keys=True,
+    ) + "\n"
+
+
+def _decrypt_versioned_report(
+    encrypted_content: str,
+    password: str,
+) -> str:
+    try:
+        container = json.loads(encrypted_content)
+    except json.JSONDecodeError as exc:
+        raise ValueError("El archivo cifrado no contiene JSON válido.") from exc
+
+    if not isinstance(container, dict):
+        raise ValueError("El contenedor cifrado debe ser un objeto JSON.")
+
+    if container.get("format") != ENCRYPTED_REPORT_FORMAT:
+        raise ValueError("Formato de contenedor cifrado no reconocido.")
+
+    version = container.get("version")
+    if type(version) is not int or version != ENCRYPTED_REPORT_VERSION:
+        raise ValueError(
+            f"Versión de contenedor no soportada: {version!r}."
+        )
+
+    cipher_data = container.get("cipher")
+    kdf_data = container.get("kdf")
+    ciphertext_b64 = container.get("ciphertext_b64")
+
+    if not isinstance(cipher_data, dict):
+        raise ValueError("Metadatos de cifrado inválidos.")
+
+    if not isinstance(kdf_data, dict):
+        raise ValueError("Metadatos KDF inválidos.")
+
+    if cipher_data.get("name") != ENCRYPTED_REPORT_CIPHER:
+        raise ValueError("Algoritmo de cifrado no soportado.")
+
+    if kdf_data.get("name") != ENCRYPTED_REPORT_KDF:
+        raise ValueError("KDF no soportada.")
+
+    n = kdf_data.get("n")
+    r = kdf_data.get("r")
+    p = kdf_data.get("p")
+    dklen = kdf_data.get("dklen")
+
+    parameters = (n, r, p, dklen)
+
+    if any(type(value) is not int for value in parameters):
+        raise ValueError("Los parámetros scrypt deben ser enteros.")
+
+    if parameters != (SCRYPT_N, SCRYPT_R, SCRYPT_P, SCRYPT_DKLEN):
+        raise ValueError(
+            "Perfil scrypt no admitido para este formato de reporte."
+        )
+
+    try:
+        salt = base64.b64decode(
+            kdf_data["salt_b64"],
+            validate=True,
+        )
+        nonce = base64.b64decode(
+            cipher_data["nonce_b64"],
+            validate=True,
+        )
+        ciphertext = base64.b64decode(
+            ciphertext_b64,
+            validate=True,
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            "El contenedor cifrado tiene datos base64 inválidos."
+        ) from exc
+
+    if len(nonce) != AES_GCM_NONCE_BYTES:
+        raise ValueError("El nonce AES-GCM tiene longitud inválida.")
+
+    aad = _canonical_encryption_aad(
+        ENCRYPTED_REPORT_FORMAT,
+        version,
+        cipher_data["name"],
+        kdf_data["name"],
+        n,
+        r,
+        p,
+        dklen,
+    )
+    key = _derive_scrypt_key(
+        password,
+        salt,
+        n,
+        r,
+        p,
+        dklen,
+    )
+
+    try:
+        plaintext = AESGCM(key).decrypt(
+            nonce,
+            ciphertext,
+            aad,
+        )
+    except InvalidTag as exc:
+        raise ValueError(
+            "No se pudo descifrar el reporte. La contraseña es incorrecta "
+            "o el archivo fue alterado."
+        ) from exc
+
+    try:
+        return plaintext.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            "El contenido descifrado no es UTF-8 válido."
+        ) from exc
+
+
+def _decrypt_legacy_report(
+    encrypted_content: str,
+    password: str,
+) -> str:
+    print(
+        "ADVERTENCIA: este archivo usa el formato histórico con SHA-256 "
+        "directo de contraseña, sin una KDF resistente. Descífralo solo "
+        "para migrarlo y vuelve a exportarlo en el formato actual."
+    )
+
+    try:
+        encrypted_data = base64.b64decode(
+            encrypted_content[len("ENCRYPTED:"):],
+            validate=True,
+        )
+    except ValueError as exc:
+        raise ValueError(
+            "El archivo histórico tiene base64 inválido."
+        ) from exc
+
+    if len(encrypted_data) <= AES_GCM_NONCE_BYTES:
+        raise ValueError("El archivo histórico está incompleto.")
+
+    nonce = encrypted_data[:AES_GCM_NONCE_BYTES]
+    ciphertext = encrypted_data[AES_GCM_NONCE_BYTES:]
+    legacy_key = hashlib.sha256(password.encode("utf-8")).digest()
+
+    try:
+        plaintext = AESGCM(legacy_key).decrypt(
+            nonce,
+            ciphertext,
+            None,
+        )
+    except InvalidTag as exc:
+        raise ValueError(
+            "No se pudo descifrar el archivo histórico. La contraseña "
+            "es incorrecta o el archivo fue alterado."
+        ) from exc
+
+    try:
+        return plaintext.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            "El contenido histórico descifrado no es UTF-8 válido."
+        ) from exc
+
+
+def decrypt_report_content(encrypted_content: str, password: str) -> str:
+    if not CRYPTO_AVAILABLE:
+        raise RuntimeError(
+            "La librería cryptography es requerida para descifrar archivos."
+        )
+
+    if not isinstance(encrypted_content, str):
+        raise TypeError("El contenido cifrado debe ser texto.")
+
+    if encrypted_content.startswith("ENCRYPTED:"):
+        return _decrypt_legacy_report(encrypted_content, password)
+
+    return _decrypt_versioned_report(encrypted_content, password)
+
+
+def write_secure_file(
+    path: str,
+    content: str,
+    encrypt: bool = True,
+    password: str | None = None,
+) -> None:
     destination = pathlib.Path(path).expanduser().resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
 
-    if CRYPTO_AVAILABLE and password:
-        key = hashlib.sha256(password.encode("utf-8")).digest()
-        nonce = os.urandom(12)
-        aesgcm = AESGCM(key)
-        ciphertext = aesgcm.encrypt(nonce, content.encode("utf-8"), associated_data=None)
-        content_to_write = "ENCRYPTED:" + base64.b64encode(nonce + ciphertext).decode("utf-8")
+    if encrypt:
+        if not password:
+            raise ValueError(
+                "Se requiere una contraseña para cifrar el reporte."
+            )
+        content_to_write = _encrypt_report_content(content, password)
     else:
         content_to_write = content
 
-    fd, tmp_name = tempfile.mkstemp(prefix=destination.name + ".", dir=str(destination.parent))
+    fd, temp_name = tempfile.mkstemp(
+        prefix=destination.name + ".",
+        dir=str(destination.parent),
+    )
+
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(content_to_write)
-            f.flush()
-            os.fsync(f.fileno())
+        with os.fdopen(fd, "w", encoding="utf-8") as file_handle:
+            file_handle.write(content_to_write)
+            file_handle.flush()
+            os.fsync(file_handle.fileno())
+
         try:
-            os.chmod(tmp_name, 0o600)
+            os.chmod(temp_name, 0o600)
         except OSError:
             pass
-        os.replace(tmp_name, destination)
+
+        os.replace(temp_name, destination)
+
         try:
             os.chmod(destination, 0o600)
         except OSError:
             pass
     finally:
-        if os.path.exists(tmp_name):
+        if os.path.exists(temp_name):
             try:
-                os.remove(tmp_name)
+                os.remove(temp_name)
             except OSError:
                 pass
 
 
 def decrypt_file_content(encrypted_content, password):
-    if not CRYPTO_AVAILABLE:
-        raise RuntimeError("La librería 'cryptography' no está instalada.")
-    if not encrypted_content.startswith("ENCRYPTED:"):
-        raise ValueError("El archivo no está encriptado o tiene formato inválido.")
-    encrypted_data = base64.b64decode(encrypted_content[10:])
-    nonce, ciphertext = encrypted_data[:12], encrypted_data[12:]
-    key = hashlib.sha256(password.encode("utf-8")).digest()
-    aesgcm = AESGCM(key)
-    plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data=None)
-    return plaintext.decode("utf-8")
+    """Alias de compatibilidad; delega al descifrador actual."""
+    return decrypt_report_content(encrypted_content, password)
 
 
 def generate_sequential_path(base_path):
@@ -600,7 +1257,7 @@ def attempt_clear_history():
 
 def get_secure_input(prompt, allow_empty=False):
     while True:
-        value = getpass.getpass(prompt)
+        value = read_hidden_secret(prompt)
         if value or allow_empty:
             return value
         print("⚠️  Este campo no puede estar vacío. Intenta nuevamente.")
@@ -649,113 +1306,92 @@ def get_secure_entropy_bin():
 
 def get_secure_passphrase():
     print("\n🔐 Ingresa la passphrase BIP39 (opcional, oculto):")
-    print("   Presiona Enter para dejarla vacía si no quieres usar una.\n")
-    return get_secure_input("Passphrase: ", allow_empty=True)
+    print("   Presiona Enter en ambos campos para dejarla vacía.\n")
 
-
-def analizar_seguridad_mnemonic(mnemonic):
-    mnemo = Mnemonic("english")
-    words = mnemonic.strip().split()
-    word_count = len(words)
-    if word_count not in [12, 15, 18, 21, 24]:
-        return {"valido": False, "error": "Número de palabras inválido", "score": 0}
-    if not mnemo.check(mnemonic):
-        return {"valido": False, "error": "Checksum BIP39 inválido", "score": 0}
-
-    indices = [mnemo.wordlist.index(w) for w in words]
-    unique_words = len(set(words))
-    freq = Counter(words)
-
-    ratio_unicidad = unique_words / word_count
-    score_unicidad = 100 if ratio_unicidad >= 0.9 else (ratio_unicidad * 100)
-
-    entropia_shannon = -sum((c/word_count) * math.log2(c/word_count) for c in freq.values())
-    max_entropia = math.log2(word_count)
-    ratio_entropia = entropia_shannon / max_entropia
-    score_entropia = ratio_entropia * 100
-
-    secuencias = sum(1 for i in range(1, len(indices)) if indices[i] == indices[i-1] + 1)
-    score_secuencias = 100 if secuencias == 0 else max(0, 100 - (secuencias * 20))
-
-    media = sum(indices) / len(indices)
-    varianza = sum((i - media) ** 2 for i in indices) / len(indices)
-    varianza_esperada = (2048 ** 2) / 12
-    score_distribucion = min(varianza / varianza_esperada, 1.0) * 100
-
-    repetidas_consecutivas = sum(1 for i in range(1, len(words)) if words[i] == words[i-1])
-    palabras_repetidas_total = word_count - unique_words
-    palabras_con_repetidos = sum(1 for _, count in freq.items() if count > 1)
-    score_repetidas = 100 if palabras_repetidas_total == 0 else max(0, 100 - (palabras_repetidas_total * 25))
-
-    porcentaje_repeticion = (palabras_repetidas_total / word_count) * 100
-
-    if porcentaje_repeticion > 5:
-        alerta_manipulacion = "ALTA"
-        mensaje_manipulacion = "Posible manipulación manual detectada (repetición inusual)"
-        score_manipulacion = 40
-    elif porcentaje_repeticion > 2:
-        alerta_manipulacion = "MODERADA"
-        mensaje_manipulacion = "Verifica origen de las palabras (repetición moderada)"
-        score_manipulacion = 70
-    else:
-        alerta_manipulacion = "BAJA"
-        mensaje_manipulacion = "Distribución normal esperada"
-        score_manipulacion = 100
-
-    score_final = (
-        score_unicidad * 0.20 +
-        score_entropia * 0.20 +
-        score_secuencias * 0.20 +
-        score_distribucion * 0.15 +
-        score_repetidas * 0.15 +
-        score_manipulacion * 0.10
+    return get_confirmed_secret(
+        prompt="Passphrase: ",
+        confirmation_prompt="Confirmar passphrase: ",
+        normalizer=normalize_text,
     )
 
-    if score_final >= 80 and alerta_manipulacion == "BAJA":
-        clasificacion = "✅ FUERTE - Entropía adecuada"
-        recomendacion = "Esta mnemonic parece tener buena aleatoriedad."
-    elif score_final >= 60 and alerta_manipulacion in ["BAJA", "MODERADA"]:
-        clasificacion = "⚠️  MODERADA - Posibles patrones menores"
-        recomendacion = "Verifica que fue generada con RNG criptográfico."
-    elif score_final >= 40 or alerta_manipulacion == "MODERADA":
-        clasificacion = "⚠️  DÉBIL - Patrones detectados"
-        recomendacion = "Considera generar una nueva mnemonic con mejor entropía."
-    else:
-        clasificacion = "❌ MUY DÉBIL - Alta probabilidad de baja entropía"
-        recomendacion = "NO uses esta mnemonic. Genera una nueva con RNG criptográfico."
 
-    if alerta_manipulacion == "ALTA":
-        clasificacion = "⚠️  DÉBIL - Posible manipulación manual"
-        recomendacion = "Verifica origen de las palabras. Considera generar una nueva mnemonic."
+def analizar_indicadores_mnemonic(mnemonic):
+    """
+    Valida formato BIP39 e informa indicadores superficiales de patrón.
+
+    Esta función no estima entropy criptográfica, no certifica
+    imprevisibilidad y no puede determinar cómo se generó históricamente
+    la mnemonic.
+    """
+    mnemo = Mnemonic("english")
+    phrase = normalize_text(mnemonic.strip())
+    words = phrase.split()
+    word_count = len(words)
+
+    if word_count not in VALID_WORD_COUNTS:
+        return {
+            "valid": False,
+            "error": "Número de palabras inválido",
+        }
+
+    if not mnemo.check(phrase):
+        return {
+            "valid": False,
+            "error": "Checksum BIP39 inválido",
+        }
+
+    indexes = [mnemo.wordlist.index(word) for word in words]
+    unique_words = len(set(words))
+    repeated_total = word_count - unique_words
+    repeated_word_count = sum(
+        1 for count in Counter(words).values() if count > 1
+    )
+    consecutive_indexes = sum(
+        1
+        for index in range(1, len(indexes))
+        if indexes[index] == indexes[index - 1] + 1
+    )
+    consecutive_repetitions = sum(
+        1
+        for index in range(1, len(words))
+        if words[index] == words[index - 1]
+    )
+
+    indicators = []
+
+    if repeated_total:
+        indicators.append(
+            "Se observaron palabras repetidas; esto puede ocurrir "
+            "en una mnemonic aleatoria válida."
+        )
+
+    if consecutive_indexes:
+        indicators.append(
+            "Se observaron índices consecutivos en la wordlist; "
+            "esto por sí solo no determina la calidad de la entropy."
+        )
+
+    if not indicators:
+        indicators.append(
+            "No se detectaron repeticiones ni secuencias consecutivas "
+            "simples."
+        )
 
     return {
-        "valido": True,
-        "palabras": word_count,
-        "entropia_bits": {12: 128, 15: 160, 18: 192, 21: 224, 24: 256}[word_count],
-        "palabras_unicas": unique_words,
-        "ratio_unicidad": f"{ratio_unicidad:.2%}",
-        "entropia_shannon": f"{entropia_shannon:.2f} bits",
-        "ratio_entropia": f"{ratio_entropia:.2%}",
-        "secuencias_detectadas": secuencias,
-        "repetidas_consecutivas": repetidas_consecutivas,
-        "palabras_repetidas_total": palabras_repetidas_total,
-        "palabras_con_repetidos": palabras_con_repetidos,
-        "porcentaje_repeticion": f"{porcentaje_repeticion:.2%}",
-        "alerta_manipulacion": alerta_manipulacion,
-        "mensaje_manipulacion": mensaje_manipulacion,
-        "score": round(score_final, 1),
-        "clasificacion": clasificacion,
-        "recomendacion": recomendacion,
-        "detalles": {
-            "score_unicidad": round(score_unicidad, 1),
-            "score_entropia": round(score_entropia, 1),
-            "score_secuencias": round(score_secuencias, 1),
-            "score_distribucion": round(score_distribucion, 1),
-            "score_repetidas": round(score_repetidas, 1),
-            "score_manipulacion": round(score_manipulacion, 1),
-        }
+        "valid": True,
+        "word_count": word_count,
+        "unique_words": unique_words,
+        "repeated_total": repeated_total,
+        "repeated_word_count": repeated_word_count,
+        "consecutive_indexes": consecutive_indexes,
+        "consecutive_repetitions": consecutive_repetitions,
+        "indicators": indicators,
+        "limitation": (
+            "Estos indicadores son superficiales. No estiman ni "
+            "certifican entropy criptográfica, imprevisibilidad ni la "
+            "calidad histórica de la fuente que generó la mnemonic."
+        ),
     }
-
 
 def resolve_input(args, interactive=False):
     if interactive:
@@ -781,7 +1417,7 @@ def resolve_input(args, interactive=False):
                 if choice == '1':
                     print("\nSelecciona la longitud de la mnemonic:")
                     print("  [1] 12 palabras (128 bits - estándar, recomendado)")
-                    print("  [2] 24 palabras (256 bits - máxima seguridad)")
+                    print("  [2] 24 palabras (256 bits de entropía de entrada)")
                     print()
                     while True:
                         length_choice = input("Opción [1-2]: ").strip()
@@ -809,24 +1445,29 @@ def resolve_input(args, interactive=False):
                 else:
                     print("❌ Opción inválida. Ingresa un número entre 1 y 5.")
 
-        print("\nSelecciona la red Bitcoin:")
-        print("  [1] Mainnet (Bitcoin principal - default)")
-        print("  [2] Testnet (Bitcoin de pruebas)")
-        print()
+        if args.network is None:
+            print("\nSelecciona la red Bitcoin:")
+            print("  [1] Mainnet (Bitcoin principal - predeterminada)")
+            print("  [2] Testnet (Bitcoin de pruebas)")
 
-        while True:
-            network_choice = input("Opción [1-2]: ").strip()
-            if network_choice == '1':
-                args.network = "mainnet"
-                break
-            elif network_choice == '2':
-                args.network = "testnet"
-                break
-            else:
-                print("❌ Opción inválida. Ingresa 1 o 2.")
+            while True:
+                network_choice = input("Opción [1-2]: ").strip()
+
+                if network_choice == "1":
+                    args.network = "mainnet"
+                    break
+                elif network_choice == "2":
+                    args.network = "testnet"
+                    break
+                else:
+                    print("Opción inválida. Ingresa 1 o 2.")
 
         if not args.passphrase:
             args.passphrase = get_secure_passphrase()
+
+    if args.network is None:
+        args.network = "mainnet"
+
 
     if sum(1 for x in [args.words, args.entropy_bin, args.entropy_hex, args.mnemonic, args.mnemonic_incomplete] if x) != 1:
         raise ValueError("Debes proporcionar exactamente una entrada entre -w/--words, --entropy-bin, --entropy-hex, --mnemonic o --mnemonic-incomplete.")
@@ -876,7 +1517,10 @@ def resolve_input(args, interactive=False):
         else:
             print(f"⚠️  Hay {len(candidates)} palabras posibles.\n")
             print("INSTRUCCIONES:")
-            print("1. Prueba cada palabra en tu wallet para encontrar la correcta")
+            print(
+                "1. Compara cada candidato con una fuente de recuperación "
+                "o un verificador independiente de confianza"
+            )
             print("2. Ingresa el número de la palabra correcta (1 al {max_idx})".format(max_idx=len(candidates)))
             print("3. O ingresa 'q' para cancelar\n")
 
@@ -892,38 +1536,27 @@ def resolve_input(args, interactive=False):
                             selected_word = candidates[selection - 1]
                             mnemonic = incomplete_phrase + " " + selected_word
                             print(f"\n✅ Palabra seleccionada: {selected_word}")
-                            print("⚠️  ADVERTENCIA: Verifica que esta palabra genera las addresses correctas en tu wallet.\n")
+                            print(
+                                "ADVERTENCIA: confirma la palabra elegida mediante una fuente "
+                                "independiente antes de tratar el resultado como recuperación válida."
+                            )
                             break
                         else:
                             print(f"❌ Número inválido. Ingresa un número entre 1 y {len(candidates)}.")
                     except ValueError:
-                        print("❌ Entrada inválida. Ingresa un número o 'q' para cancelar.")
-                except EOFError:
-                    print("\n⚠️  Modo no interactivo detectado. Usando la primera palabra.")
-                    print("⚠️  DEBES verificar manualmente cuál es la palabra correcta.\n")
-                    mnemonic = incomplete_phrase + " " + candidates[0]
-                    break
+                        print("❌ Entrada inválida. Ingresa un número o 'q' para cancelar.")                
+                except EOFError as exc:
+                    raise RuntimeError(
+                        "No se puede seleccionar una palabra candidata sin interacción. "
+                        "Ejecuta el proceso en una TTY y selecciona explícitamente un "
+                        "candidato, o cancela la operación."
+                    ) from exc
 
         recovered = mnemonic_to_entropy(mnemonic)
         return recovered["entropy"], mnemonic, recovered, "mnemonic_incomplete"
 
     entropy = generate_entropy(args.words)
     mnemonic = entropy_to_mnemonic(entropy)
-
-    # Reintentar si salen palabras repetidas en la generación
-    max_attempts = 1000
-    if len(set(mnemonic.split())) != len(mnemonic.split()):
-        mnemo = Mnemonic("english")
-        for attempt in range(max_attempts):
-            entropy = generate_entropy(args.words)
-            mnemonic = entropy_to_mnemonic(entropy)
-            if len(set(mnemonic.split())) == len(mnemonic.split()):
-                if attempt > 0:
-                    print(f"✅ Mnemonic sin repeticiones generada en {attempt + 1} intento(s)")
-                break
-        else:
-            print(f"⚠️  ADVERTENCIA: No se pudo generar mnemonic sin repeticiones en {max_attempts} intentos.")
-            print("   Usando la última generación (puede tener repeticiones).")
 
     recovered = {
         "entropy": entropy,
@@ -940,6 +1573,11 @@ def build_context(args, interactive=False):
 
     bip32_master, bip32_chain_code = bip32_master_key(seed)
     bip32_root_key = bip32_master + bip32_chain_code
+
+    if args.network not in ("mainnet", "testnet"):
+        raise RuntimeError(
+            f"Error interno: red no resuelta antes de derivar: {args.network!r}"
+        )
 
     network = select_network(args.network)
 
@@ -970,8 +1608,8 @@ def build_context(args, interactive=False):
         "gap_limit": GAP_LIMIT,
     }
 
-    seguridad = analizar_seguridad_mnemonic(mnemonic)
-    context["seguridad_mnemonic"] = seguridad
+    indicadores = analizar_indicadores_mnemonic(mnemonic)
+    context["indicadores_mnemonic"] = indicadores
 
     if args.audit_passphrase:
         context["passphrase_audit"] = audit_passphrase(args.passphrase)
@@ -984,8 +1622,9 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
         hide_sensitive = False
 
     lines = [
-        "\nOffline BIP39 Bitcoin Wallet Report",
-        "PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA",
+        "\nOffline BIP39 Seed Report",
+        "NO ES UNA WALLET: no consulta red, no firma ni transmite transacciones.",
+        "NO USAR CON FONDOS REALES: el proyecto no está auditado para producción.",
         "========================================",
         f"Coin type       : {data['coin_type_label']}",
         f"Input mode      : {data['input_mode']}",
@@ -1009,25 +1648,60 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
             "Checksum valid  : [OCULTO - ver archivo desencriptado]",
         ])
 
-    if "seguridad_mnemonic" in data:
-        seg = data["seguridad_mnemonic"]
+    if "indicadores_mnemonic" in data:
+        ind = data["indicadores_mnemonic"]
+
         lines.extend([
             "----------------------------------------",
-            "ANÁLISIS DE SEGURIDAD MNEMONIC",
+            "VALIDACIÓN BIP39 E INDICADORES DE PATRÓN",
             "----------------------------------------",
-            f"Score             : {seg['score']}/100",
-            f"Clasificación     : {seg['clasificacion']}",
-            f"Palabras únicas   : {seg['palabras_unicas']}/{seg['palabras']}",
-            f"Ratio unicidad    : {seg['ratio_unicidad']}",
-            f"Entropía Shannon : {seg['entropia_shannon']}",
-            f"Ratio entropía    : {seg['ratio_entropia']}",
-            f"Secuencias        : {seg['secuencias_detectadas']}",
-            f"Palabras repetidas  : {seg['palabras_repetidas_total']} ({seg['palabras_con_repetidos']} palabras con repeticiones)",
-            f"Porcentaje repet. : {seg['porcentaje_repeticion']}",
-            f"Alerta manipulación: {seg['alerta_manipulacion']}",
-            f"  → {seg['mensaje_manipulacion']}",
-            f"Recomendación     : {seg['recomendacion']}",
         ])
+
+        if not ind["valid"]:
+            lines.append(
+                f"Validación BIP39: inválida ({ind['error']})"
+            )
+        else:
+            lines.extend([
+                "Validación BIP39: válida",
+                f"Palabras: {ind['word_count']}",
+                (
+                    f"Palabras únicas: "
+                    f"{ind['unique_words']}/{ind['word_count']}"
+                ),
+                f"Repeticiones totales: {ind['repeated_total']}",
+                (
+                    "Palabras con repeticiones: "
+                    f"{ind['repeated_word_count']}"
+                ),
+                (
+                    "Índices consecutivos observados: "
+                    f"{ind['consecutive_indexes']}"
+                ),
+                (
+                    "Repeticiones consecutivas: "
+                    f"{ind['consecutive_repetitions']}"
+                ),
+                "Indicadores:",
+            ])
+
+            for message in ind["indicators"]:
+                lines.append(f"- {message}")
+
+            lines.extend([
+                "Límite:",
+                ind["limitation"],
+            ])
+
+            if data.get("input_mode") == "mnemonic":
+                lines.extend([
+                    "Origen de entropy: desconocido.",
+                    (
+                        "La validación BIP39 confirma formato y checksum, "
+                        "pero no puede certificar que la mnemonic importada "
+                        "fuera generada con una fuente aleatoria segura."
+                    ),
+                ])
 
     if "passphrase_audit" in data:
         pa = data["passphrase_audit"]
@@ -1126,7 +1800,9 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
         "no puede certificar que una entropía manual ingresada por el usuario sea imprevisible.",
         "no puede certificar que el entorno operativo donde se ejecuta el script no esté comprometido.",
         "no puede certificar que un usuario no haya copiado mal la passphrase o la mnemonic.",
-        "\nel script es seguro solo si se ejecuta offline, sobre un entorno confiable, y con entropía correcta.",
+        "\nLa ejecución offline, un entorno confiable y una fuente de "
+        "entropía adecuada son condiciones necesarias, no una garantía "
+        "de seguridad.",
         "el script intenta limpiar el historial del proceso Python actual.",
         "\n- Use el script con prudencia.",
     ])
@@ -1138,7 +1814,7 @@ def print_report(data, show_all=False):
     print(format_report(data, terminal_mode=True, hide_sensitive=not show_all, show_all=show_all))
 
 
-def export_wallet(data, output_path, output_format, password):
+def export_seed_report(data, output_path, output_format, password):
     if output_format == "json":
         content = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
     else:
@@ -1197,34 +1873,173 @@ def run_bip39_test_vectors(vectors_path):
     print(f"Test vectors BIP39: OK ({len(vectors)} casos)")
 
 
+class SensitiveCLIAction(argparse.Action):
+    """Registra opciones sensibles suministradas explícitamente."""
+
+    def __call__(
+        self,
+        parser,
+        namespace,
+        values,
+        option_string=None,
+    ):
+        supplied = set(
+            getattr(namespace, "_sensitive_cli_options", ())
+        )
+        supplied.add(self.dest)
+
+        setattr(
+            namespace,
+            "_sensitive_cli_options",
+            supplied,
+        )
+        setattr(namespace, self.dest, values)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Offline BIP39 Bitcoin Wallet Report")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Offline BIP39 Seed Report: generación, validación y reporte "
+            "de material BIP39/BIP32 sin conexión."
+        ),
+        allow_abbrev=False,
+    )
     parser.add_argument("-w", "--words", type=int, choices=[12, 15, 18, 21, 24], default=None,
                         help="Genera una mnemonic nueva con el número de palabras indicado.")
-    parser.add_argument("--entropy-bin", default="", help="Entropía binaria BIP39")
-    parser.add_argument("--entropy-hex", default="", help="Entropía hexadecimal BIP39")
-    parser.add_argument("--mnemonic", default="", help="Mnemonic BIP39 existente (completa)")
-    parser.add_argument("--mnemonic-incomplete", default="", help="Mnemonic incompleta (11 o 23 palabras)")
-    parser.add_argument("-p", "--passphrase", default="", help="Passphrase BIP39 opcional")
-    parser.add_argument("-i", "--interactive", action="store_true",
-                        help="Modo interactivo: solicita datos de forma segura (sin historial)")
+    parser.add_argument(
+        "--entropy-bin",
+        default="",
+        action=SensitiveCLIAction,
+        help=(
+            "Entropy binaria de prueba. Requiere "
+            "--allow-insecure-cli-secrets."
+        ),
+    )
+    parser.add_argument(
+        "--entropy-hex",
+        default="",
+        action=SensitiveCLIAction,
+        help=(
+            "Entropy hexadecimal de prueba. Requiere "
+            "--allow-insecure-cli-secrets."
+        ),
+    )
+    parser.add_argument(
+        "--mnemonic",
+        default="",
+        action=SensitiveCLIAction,
+        help=(
+            "Mnemonic de prueba por argumentos. Requiere "
+            "--allow-insecure-cli-secrets."
+        ),
+    )
+    parser.add_argument(
+        "--mnemonic-incomplete",
+        default="",
+        action=SensitiveCLIAction,
+        help=(
+            "Mnemonic incompleta de prueba por argumentos. Requiere "
+            "--allow-insecure-cli-secrets."
+        ),
+    )
+    parser.add_argument(
+        "-p",
+        "--passphrase",
+        default="",
+        action=SensitiveCLIAction,
+        help=(
+            "Passphrase de prueba por argumentos. Requiere "
+            "--allow-insecure-cli-secrets."
+        ),
+    )
+    parser.add_argument(
+        "--allow-insecure-cli-secrets",
+        action="store_true",
+        help=(
+            "Permite opciones sensibles por argumentos exclusivamente "
+            "para pruebas controladas con datos ficticios. "
+            "No evita exposición en historial, procesos o registros."
+        ),
+    )
+    parser.add_argument(
+        "-i",
+        "--interactive",
+        action="store_true",
+        help=(
+            "Modo interactivo: solicita secretos sin eco en una TTY. "
+            "No protege un sistema comprometido ni secretos ya pasados por CLI."
+        ),
+    )
     parser.add_argument("--audit-passphrase", action="store_true",
                         help="Muestra una auditoría descriptiva de la passphrase.")
     parser.add_argument("--run-tests", action="store_true",
                         help="Ejecuta los test vectors BIP39 oficiales y termina.")
     parser.add_argument("--vectors-file", default=DEFAULT_VECTORS_FILE,
                         help="Archivo JSON de test vectors BIP39.")
-    parser.add_argument("-n", "--network", choices=["mainnet", "testnet"], default="mainnet",
-                        help="Red Bitcoin: mainnet (default) o testnet")
+    parser.add_argument("-n", "--network", choices=["mainnet", "testnet"], default=None,
+                        help="Red Bitcoin: mainnet o testnet. Sin -n, se usa mainnet.")
     parser.add_argument("-f", "--format", choices=["txt", "json"], default="json")
-    parser.add_argument("-o", "--output", default="output/bip39_wallet_export.json")
+    parser.add_argument(
+        "-o",
+        "--output",
+        default=DEFAULT_OUTPUT_PATH,
+        help=(
+            "Ruta del reporte cifrado "
+            "(predeterminado: output/bip39_seed_report.json)."
+        ),
+    )
     parser.add_argument("--show-all", action="store_true",
                         help="Muestra TODOS los datos en pantalla (modo educativo)")
     args = parser.parse_args()
 
+    supplied_secret_options = set(
+        getattr(args, "_sensitive_cli_options", ())
+    )
+
+    option_labels = {
+        "entropy_bin": "--entropy-bin",
+        "entropy_hex": "--entropy-hex",
+        "mnemonic": "--mnemonic",
+        "mnemonic_incomplete": "--mnemonic-incomplete",
+        "passphrase": "--passphrase",
+    }
+
+    supplied_labels = ", ".join(
+        option_labels[name]
+        for name in sorted(supplied_secret_options)
+    )
+
+    if args.run_tests and supplied_secret_options:
+        parser.error(
+            "--run-tests no admite opciones sensibles por argumentos. "
+            "Ejecuta los vectores por separado."
+        )
+
+    if (
+        supplied_secret_options
+        and not args.allow_insecure_cli_secrets
+    ):
+        parser.error(
+            "Opciones sensibles por CLI bloqueadas: "
+            + supplied_labels
+            + ". Introduce los valores mediante el modo interactivo. "
+            "Para pruebas con datos ficticios, utiliza "
+            "--allow-insecure-cli-secrets."
+    )
+
     if args.run_tests:
         run_bip39_test_vectors(args.vectors_file)
         return
+
+    if supplied_secret_options:
+        print(
+            "ADVERTENCIA: se autorizó el uso de opciones sensibles "
+            "por argumentos para pruebas: "
+            + supplied_labels
+            + ". Los valores pueden quedar en historial, procesos "
+            "o registros. Usar -i no elimina esa exposición."
+        )
+
 
     if not CRYPTO_AVAILABLE:
         print("\n❌ ERROR: La librería 'cryptography' es requerida pero no está instalada.")
@@ -1236,11 +2051,13 @@ def main():
     print("VERIFICACIÓN DE INTEGRIDAD BIP39")
     print("="*60)
     ok_official = verify_against_bip39_official()
+    
     if not ok_official:
-        print("\n⚠️  ADVERTENCIA: Wordlist BIP39 oficial INCORRECTA")
-        print("   ¡NO uses este script para generar wallets reales!\n")
-        if input("¿Continuar de todos modos? (s/N): ").strip().lower() != 's':
-            sys.exit(0)
+        print(
+            "\nOperación cancelada: falló la verificación "
+            "local de la wordlist BIP39."
+        )
+        sys.exit(1)
 
     print("\n🔐 SEGURIDAD ACTIVADA")
     print("   - El archivo de salida será encriptado con AES-256-GCM")
@@ -1248,44 +2065,101 @@ def main():
         print("   - Los datos sensibles se ocultarán en pantalla")
     print("   - Debes recordar esta contraseña para abrir el archivo\n")
 
-    encrypt_password = get_secure_input("Contraseña para encriptar: ")
-    confirm_password = get_secure_input("Confirmar contraseña: ")
+    try:
+        encrypt_password = get_secure_input(
+            "Contraseña para encriptar: "
+        )
+        confirm_password = get_secure_input(
+            "Confirmar contraseña: "
+        )
 
-    if encrypt_password != confirm_password:
-        print("\n❌ Las contraseñas no coinciden. Saliendo.")
+        if encrypt_password != confirm_password:
+            print("\nLas contraseñas no coinciden. Operación cancelada.")
+            sys.exit(1)
+
+        if len(encrypt_password) < 8:
+            print("\nADVERTENCIA: la contraseña tiene menos de 8 caracteres.")
+            print(
+                "La longitud por sí sola no certifica su fuerza. "
+                "Utiliza una contraseña de cifrado imprevisible."
+            )
+
+            decision = timed_menu_choice(
+                "¿Continuar de todos modos? [y/N]: ",
+                choices={"y", "n", ""},
+            )
+
+            if decision != "y":
+                print("\nOperación cancelada.")
+                sys.exit(1)
+
+    except InputTimeoutError as exc:
+        print(f"\n{exc}")
+        print("Operación cancelada antes de generar el reporte.")
+        sys.exit(1)
+    except (EOFError, KeyboardInterrupt):
+        print("\nOperación cancelada durante la entrada de contraseña.")
+        sys.exit(1)
+    except RuntimeError as exc:
+        print(f"\nError de entrada: {exc}")
+        print("Operación cancelada antes de generar el reporte.")
         sys.exit(1)
 
-    if len(encrypt_password) < 8:
-        print("\n⚠️  ADVERTENCIA: La contraseña es muy corta (< 8 caracteres).")
-        print("    Se recomienda usar una contraseña más larga y segura.")
-        confirm = input("    ¿Continuar de todos modos? [y/N]: ").strip().lower()
-        if confirm != 'y':
-            print("\n❌ Operación cancelada.")
-            sys.exit(1)
     print()
 
     if args.interactive:
-        print("\n🔒 MODO INTERACTIVO SEGURO")
-        print("   Los datos ingresados no se mostrarán en pantalla.")
-        print("   No quedarán en el historial del shell.\n")
-        data = build_context(args, interactive=True)
-    else:
-        data = build_context(args, interactive=False)
+        print("\nMODO INTERACTIVO")
+        print("Los secretos solicitados con getpass se introducen sin eco.")
+        print("Esto no protege contra un sistema comprometido.\n")
+
+    try:
+        data = build_context(args, interactive=args.interactive)
+    except InputTimeoutError as exc:
+        print(f"\n{exc}")
+        print("Operación cancelada; no se exportó ningún resultado.")
+        sys.exit(1)
+    except InputCancelledError as exc:
+        print(f"\nOperación cancelada: {exc}")
+        sys.exit(1)
+    except (EOFError, KeyboardInterrupt):
+        print("\nOperación cancelada por el usuario.")
+        sys.exit(1)
+    except (ValueError, RuntimeError) as exc:
+        print(f"\nError: {exc}")
+        print("No se exportó ningún resultado.")
+        sys.exit(1)
 
     print_report(data, show_all=args.show_all)
 
     attempt_clear_history()
 
-    final_path = export_wallet(data, args.output, args.format, password=encrypt_password)
+    try:
+        final_path = export_seed_report(
+            data,
+            args.output,
+            args.format,
+            password=encrypt_password,
+        )
+    except (ValueError, RuntimeError, OSError) as exc:
+        print(f"\nNo se pudo completar la exportación: {exc}")
+        print("No se confirmó la creación del reporte cifrado.")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nExportación interrumpida.")
+        print("No se confirmó la creación del reporte cifrado.")
+        sys.exit(1)
+
 
     print()
-    print(f"✅ Archivo encriptado guardado: {final_path}")
+    print(f"✅ Reporte cifrado guardado: {final_path}")
     print("   ⚠️  Recuerda la contraseña para desencriptar.")
     print("   ⚠️  Si pierdes la contraseña, perderás acceso a los datos.")
     print("\n📋 Para desencriptar el archivo:")
-    print("   Usa un script separado con la función decrypt_file_content()")
-    print("   O usa: python3 -c \"from wallet_bip39_off_line import decrypt_file_content; print(decrypt_file_content(open('" + str(final_path) + "').read(), 'TU_CONTRASEÑA'))\"")
-
+    print("   Usa un script separado con la función decrypt_report_content()")
+    print(
+        "O usa python3 -c con getpass y decrypt_report_content "
+        "para no exponer la contraseña en el historial."
+    )
 
 if __name__ == "__main__":
     main()
