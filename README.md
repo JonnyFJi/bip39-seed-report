@@ -18,14 +18,14 @@ controlar fondos; trátalo como secreto.
 El script realiza las siguientes funciones principales:
 
 1. **Generación de entropía**: Usa `os.urandom()` para generar entropía criptográficamente segura
-2. **Generación sin repeticiones**: Nota de estado: la versión publicada reintenta hasta 1.000 veces si hay palabras repetidas. Es una limitación conocida que sesga la distribución y se eliminará; una mnemonic válida con repeticiones no es más débil.
+2. **Generación sin repeticiones**: acepta la mnemonic generada sin filtrar palabras repetidas; una mnemonic válida con repeticiones no es más débil.
 3. **Conversión a mnemonic**: Transforma la entropía en frases mnemotécnicas de 12, 15, 18, 21 o 24 palabras
 4. **Cálculo de clave maestra BIP-32**: Usa HMAC-SHA512 con Key="Bitcoin seed" para derivar la clave maestra correctamente
 5. **Derivación de seed**: Genera la seed BIP39 usando PBKDF2 con HMAC-SHA512
 6. **Derivación de addresses**: Genera 5 addresses por cada ruta de derivación (GAP limit)
 7. **Análisis de seguridad**: "Indicadores informativos de patrón (no estiman entropía criptográfica)".
 8. **Verificación**: Valida checksums, mnemonics y round-trips
-9. **Exportación segura**: "Exportación cifrada (AES-256-GCM). La clave se deriva con SHA-256 de la contraseña, sin KDF resistente: no usar como respaldo de una seed real".
+9. **Exportación segura**: "Exportación cifrada scrypt + AES-GCM; SHA-256 solo para descifrado histórico".
 10. **Verificación de wordlist**: "Compara la wordlist embebida con un hash SHA-256 esperado, sin acceso a la red".
 
 ## 🌟 Modo interactivo (-i): entrada de secretos recomendada
@@ -65,7 +65,7 @@ Selecciona la red Bitcoin:
 5. **Pide passphrase** (opcional, oculta)
 6. **Genera el reporte** con análisis de seguridad automático
 7. **Muestra reporte** en terminal (datos sensibles ocultos)
-8. **Guarda archivo encriptado** en `output/bip39_wallet_export.json`
+8. **Guarda archivo encriptado** en `output/bip39_seed_report.json`
 
 ### Ventajas del modo interactivo
 
@@ -86,7 +86,7 @@ $ python3 bip39_seed_report.py -i
 ============================================================
 VERIFICACIÓN DE INTEGRIDAD BIP39
 ============================================================
-✅ BIP39 Oficial (GitHub): VERIFICADA (2048 palabras)
+✅ BIP39 Oficial (Embebida): VERIFICADA (2048 palabras)
 
 🔐 SEGURIDAD ACTIVADA
 - El archivo de salida será encriptado con AES-256-GCM
@@ -136,7 +136,7 @@ Passphrase:
 ```
 ## Características de seguridad (Características y límites)
 
-- ✅ **Encriptación AES-256-GCM**: Todos los archivos de salida están encriptados (clave derivada con SHA-256 de la contraseña; limitación conocida)
+- ✅ **Encriptación scrypt + AES-GCM**: Todos los archivos de salida están encriptados (clave derivada con scrypt + AES-GCM de la contraseña; SHA-256 solo para descifrado histórico)
 - ✅ **Ocultamiento de datos**: Los datos sensibles se ocultan en terminal por defecto
 - ✅ **Input seguro**: Usa getpass para evitar eco en terminal; no protege un host comprometido
 - ✅ **Permisos restringidos**: Archivos con permisos 0o600 (solo propietario)
@@ -241,7 +241,7 @@ Expone el valor en el historial y en la lista de procesos. Solo para pruebas con
 - `-i, --interactive`: Modo interactivo (solicita datos de forma segura, sin historial)
 - `-n, --network {mainnet,testnet}`: Red Bitcoin (default: mainnet)
 - `-f, --format {txt,json}`: Formato de salida (default: json)
-- `-o, --output`: Ruta del archivo de salida (default: output/bip39_wallet_export.json)
+- `-o, --output`: Ruta del archivo de salida (default: output/bip39_seed_report.json)
 - `--show-all`: Muestra TODOS los datos en pantalla (modo educativo)
 - `--audit-passphrase`: Muestra auditoría descriptiva de la passphrase
 - `--run-tests`: Ejecuta los test vectors BIP39 oficiales
@@ -261,7 +261,7 @@ python3 bip39_seed_report.py -w 12
 3. Realiza análisis de seguridad de la mnemonic
 4. Usa red mainnet (default)
 5. Oculta datos sensibles en terminal
-6. Guarda archivo encriptado en `output/bip39_wallet_export.json`
+6. Guarda archivo encriptado en `output/bip39_seed_report.json`
 
 #### 2. Generar mnemonic nueva (24 palabras, testnet)
 
@@ -393,7 +393,7 @@ python3 bip39_seed_report.py -w 12 -i
 # 3. Guardar mnemonic en papel o metal (NUNCA en digital)
 
 # 4. Borrar archivo encriptado si no es necesario
-rm output/bip39_wallet_export.json
+rm output/bip39_seed_report.json
 ```
 
 ### Para recuperación de mnemonic:
@@ -421,7 +421,7 @@ python3 bip39_seed_report.py -w 12 --show-all
 # 3. Estudiar estructura BIP32/BIP39
 
 # 4. Borrar archivo después de estudiar
-rm output/bip39_wallet_export.json
+rm output/bip39_seed_report.json
 ```
 
 ## Salida del script
@@ -494,7 +494,7 @@ Para desencriptar el archivo de salida:
 from wallet_bip39_off_line import decrypt_file_content
 
 # Leer archivo encriptado
-encrypted_content = open('output/bip39_wallet_export.json').read()
+encrypted_content = open('output/bip39_seed_report.json').read()
 
 # Desencriptar con contraseña
 decrypted = decrypt_file_content(encrypted_content, 'TU_CONTRASEÑA')
@@ -506,7 +506,7 @@ print(decrypted)
 O desde la terminal:
 
 ```bash
-python3 -c "import getpass; from wallet_bip39_off_line import decrypt_file_content; print(decrypt_file_content(open('output/bip39_wallet_export.json').read(), getpass.getpass('Contraseña: ')))"
+python3 -c "import getpass; from wallet_bip39_off_line import decrypt_file_content; print(decrypt_file_content(open('output/bip39_seed_report.json').read(), getpass.getpass('Contraseña: ')))"
 ```
 
 ## Estado y limitaciones conocidas
