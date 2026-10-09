@@ -3,7 +3,8 @@
 ## Fecha del análisis
 Agosto 10, 2026
 "Actualizado: 29 de septiembre de 2026"
-"Versión analizada: wallet_bip39_off_line.py publicado".
+"Actualizado: 9 de octubre de 2026"
+"Versión analizada: bip39_seed_report.py publicado".
 
 ## Objetivo
 Documentar cómo el script obtiene la entropía y qué comprobaciones BIP39 realiza.
