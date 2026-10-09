@@ -41,7 +41,7 @@ El script realiza las siguientes funciones principales:
 ### Cómo usar el modo interactivo
 
 ```bash
-python3 wallet_bip39_off_line.py -i
+python3 bip39_seed_report.py -i
 ```
 
 **Flujo completo:**
@@ -81,7 +81,7 @@ Selecciona la red Bitcoin:
 "Salida de ejemplo de la versión actual (puede cambiar)".
 
 ```bash
-$ python3 wallet_bip39_off_line.py -i
+$ python3 bip39_seed_report.py -i
 
 ============================================================
 VERIFICACIÓN DE INTEGRIDAD BIP39
@@ -222,7 +222,7 @@ wget -O vectors.json https://raw.githubusercontent.com/trezor/python-mnemonic/re
 ### Comandos y banderas
 
 ```bash
-python3 wallet_bip39_off_line.py [OPCIONES]
+python3 bip39_seed_report.py [OPCIONES]
 ```
 
 #### Opciones de entrada (usar exactamente una):
@@ -252,7 +252,7 @@ Expone el valor en el historial y en la lista de procesos. Solo para pruebas con
 #### 1. Generar mnemonic nueva (12 palabras, mainnet)
 
 ```bash
-python3 wallet_bip39_off_line.py -w 12
+python3 bip39_seed_report.py -w 12
 ```
 
 **Flujo:**
@@ -266,7 +266,7 @@ python3 wallet_bip39_off_line.py -w 12
 #### 2. Generar mnemonic nueva (24 palabras, testnet)
 
 ```bash
-python3 wallet_bip39_off_line.py -w 24 -n testnet
+python3 bip39_seed_report.py -w 24 -n testnet
 ```
 
 **Flujo:**
@@ -280,7 +280,7 @@ python3 wallet_bip39_off_line.py -w 24 -n testnet
 #### 3. Modo interactivo (menú guiado)
 
 ```bash
-python3 wallet_bip39_off_line.py -i
+python3 bip39_seed_report.py -i
 ```
 
 **Flujo:**
@@ -297,7 +297,7 @@ python3 wallet_bip39_off_line.py -i
 #### 4. Modo educativo (muestra todo en pantalla)
 
 ```bash
-python3 wallet_bip39_off_line.py -w 12 --show-all
+python3 bip39_seed_report.py -w 12 --show-all
 ```
 
 **Flujo:**
@@ -312,7 +312,7 @@ python3 wallet_bip39_off_line.py -w 12 --show-all
 #### 5. Verificar mnemonic existente
 
 ```bash
-python3 wallet_bip39_off_line.py --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" -p "TREZOR"
+python3 bip39_seed_report.py --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" -p "TREZOR"
 ```
 
 Vector de prueba público. Nunca con secretos reales
@@ -327,7 +327,7 @@ Vector de prueba público. Nunca con secretos reales
 #### 6. Calcular última palabra (recuperación)
 
 ```bash
-python3 wallet_bip39_off_line.py --mnemonic-incomplete "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
+python3 bip39_seed_report.py --mnemonic-incomplete "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
 ```
 
 **Flujo:**
@@ -341,7 +341,7 @@ python3 wallet_bip39_off_line.py --mnemonic-incomplete "abandon abandon abandon 
 #### 7. Usar entropía hexadecimal
 
 ```bash
-python3 wallet_bip39_off_line.py --entropy-hex 00000000000000000000000000000000
+python3 bip39_seed_report.py --entropy-hex 00000000000000000000000000000000
 ```
 
 **Requisitos:**
@@ -351,7 +351,7 @@ python3 wallet_bip39_off_line.py --entropy-hex 00000000000000000000000000000000
 #### 8. Usar entropía binaria
 
 ```bash
-python3 wallet_bip39_off_line.py --entropy-bin 00000000000000000000000000000000
+python3 bip39_seed_report.py --entropy-bin 00000000000000000000000000000000
 ```
 
 **Requisitos:**
@@ -361,7 +361,7 @@ python3 wallet_bip39_off_line.py --entropy-bin 00000000000000000000000000000000
 #### 9. Ejecutar test vectors oficiales
 
 ```bash
-python3 wallet_bip39_off_line.py --run-tests --vectors-file vectors.json
+python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
 ```
 
 **Resultado esperado:**
@@ -370,7 +370,7 @@ Test vectors BIP39: OK (24 casos)
 #### 10. Auditoría de passphrase
 
 ```bash
-python3 wallet_bip39_off_line.py -w 12 -p "mi_passphrase" --audit-passphrase
+python3 bip39_seed_report.py -w 12 -p "mi_passphrase" --audit-passphrase
 ```
 
 **Muestra:**
@@ -386,7 +386,7 @@ python3 wallet_bip39_off_line.py -w 12 -p "mi_passphrase" --audit-passphrase
 
 ```bash
 # 1. Generar mnemonic (modo seguro)
-python3 wallet_bip39_off_line.py -w 12 -i
+python3 bip39_seed_report.py -w 12 -i
 
 # 2. Verificar con software o dispositivo independiente de confianza
 
@@ -400,10 +400,10 @@ rm output/bip39_wallet_export.json
 
 ```bash
 # 1. Calcular última palabra (si falta)
-python3 wallet_bip39_off_line.py --mnemonic-incomplete "word1 word2 ... word23" -i
+python3 bip39_seed_report.py --mnemonic-incomplete "word1 word2 ... word23" -i
 
 # 2. Verificar mnemonic completa
-python3 wallet_bip39_off_line.py --mnemonic "word1 word2 ... word24" -i
+python3 bip39_seed_report.py --mnemonic "word1 word2 ... word24" -i
 
 # 3. Verificar análisis de seguridad
 
@@ -414,7 +414,7 @@ python3 wallet_bip39_off_line.py --mnemonic "word1 word2 ... word24" -i
 
 ```bash
 # 1. Generar mnemonic mostrando todo (SOLO en entorno seguro)
-python3 wallet_bip39_off_line.py -w 12 --show-all
+python3 bip39_seed_report.py -w 12 --show-all
 
 # 2. Estudiar análisis de seguridad y derivaciones
 
