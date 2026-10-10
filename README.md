@@ -1,162 +1,165 @@
 # BIP39 Seed Report (offline)
 
-PROGRAMA SOLO CON FINES EDUCATIVOS Y DE PRUEBA.
-NO SE RECOMIENDA USAR CON FONDOS REALES.
-No es una wallet ni sustituye a una hot wallet o a una hardware wallet.
-No ha sido auditado por terceros.
+Proyecto educativo y experimental para generar, validar, derivar
+y reportar material BIP39/BIP32.
+
+No se recomienda usar con fondos reales. No es una wallet ni sustituye
+a una hot wallet o una hardware wallet. No ha sido auditado de forma
+independiente para uso en producción.
 
 ## Descripción del script
 
-Herramienta offline para generar, validar y reportar material BIP39/BIP32:
-mnemonic, seed, clave raíz, extended public keys y direcciones de ejemplo en
-rutas BIP44, BIP49, BIP84 y BIP86. No consulta la red, no muestra saldos y no
-firma ni transmite transacciones. Su salida contiene material que puede
-controlar fondos; trátalo como secreto.
+El programa permite generar o importar una mnemonic BIP39 inglesa,
+obtener su seed y derivar material BIP32 y direcciones de ejemplo
+en rutas BIP44, BIP49, BIP84 y BIP86, para mainnet o testnet.
 
-## Función del script
+No consulta la red Bitcoin, no obtiene saldos ni UTXO y no construye,
+firma o transmite transacciones.
 
-El script realiza las siguientes funciones principales:
+El reporte privado incluye material que puede controlar fondos.
+Debe tratarse como secreto, incluso cuando esté cifrado.
 
-1. **Generación de entropía**: Usa `os.urandom()` para generar entropía criptográficamente segura
-2. **Generación sin repeticiones**: acepta la mnemonic generada sin filtrar palabras repetidas; una mnemonic válida con repeticiones no es más débil.
-3. **Conversión a mnemonic**: Transforma la entropía en frases mnemotécnicas de 12, 15, 18, 21 o 24 palabras
-4. **Cálculo de clave maestra BIP-32**: Usa HMAC-SHA512 con Key="Bitcoin seed" para derivar la clave maestra correctamente
-5. **Derivación de seed**: Genera la seed BIP39 usando PBKDF2 con HMAC-SHA512
-6. **Derivación de addresses**: Genera 5 addresses por cada ruta de derivación (GAP limit)
-7. **Análisis de seguridad**: "Indicadores informativos de patrón (no estiman entropía criptográfica)".
-8. **Verificación**: Valida checksums, mnemonics y round-trips
-9. **Exportación segura**: "Exportación cifrada scrypt + AES-GCM; SHA-256 solo para descifrado histórico".
-10. **Verificación de wordlist**: "Compara la wordlist embebida con un hash SHA-256 esperado, sin acceso a la red".
+## Funciones implementadas
 
-## 🌟 Modo interactivo (-i): entrada de secretos recomendada
+- Generación de entropy mediante os.urandom() en longitudes BIP39 válidas.
+- Conversión a mnemonics inglesas de 12, 15, 18, 21 o 24 palabras.
+- Aceptación del resultado generado sin filtrar palabras repetidas.
+- Importación de entropy hexadecimal, entropy binaria o mnemonic existente.
+- Enumeración de candidatos para completar mnemonics de 11 o 23 palabras.
+- Validación de longitud, wordlist y checksum BIP39.
+- Conversión inversa de mnemonic a entropy.
+- Derivación de seed con passphrase BIP39 y normalización Unicode NFKD.
+- Derivación de material BIP32 y direcciones BIP44, BIP49, BIP84 y BIP86.
+- Selección de mainnet o testnet.
+- Indicadores descriptivos de patrón, sin score de seguridad.
+- Exportación cifrada mediante scrypt y AES-256-GCM.
+- Descifrado del formato histórico para compatibilidad.
+- Entrada oculta centralizada con comprobación de TTY.
+- Confirmación doble de passphrase y cancelación controlada.
+- Bloqueo predeterminado de secretos por argumentos CLI.
+- Comprobación local de la wordlist embebida y de la lista efectiva
+  utilizada por mnemonic.
 
-**El modo interactivo es la forma recomendada de introducir secretos, frente a los argumentos de línea de comandos y la más fácil de usar el script.** Ideal para usuarios que:
+## Modo interactivo recomendado
 
-- ✅ No quieren memorizar comandos complejos
-- ✅ Prefieren menús guiados paso a paso
-- ✅ Quieren evitar errores de escritura
-- ✅ Necesitan ayuda visual durante el proceso
-- ✅ Desean utilizar el script sin eco en pantalla (Los secretos ingresados con getpass no quedan en el historial del shell. No protege contra malware, keyloggers ni un equipo comprometido)
-
-### Cómo usar el modo interactivo
+Desde la carpeta del proyecto:
 
 ```bash
 python3 bip39_seed_report.py -i
 ```
 
-**Flujo completo:**
+Flujo:
 
-1. **Pide contraseña para encriptar** (oculta, sin eco)
-2. **Muestra menú de tipo de entrada:**
-Selecciona el tipo de entrada:
-- Generar nueva mnemonic aleatoria
-- Ingresar entropía hexadecimal
-- Ingresar entropía binaria
-- Ingresar mnemonic existente
-- Calcular última palabra (11 o 23 palabras)
-3. **Si seleccionas [1], pregunta longitud:**
-Selecciona la longitud de la mnemonic:
-- 12 palabras (128 bits - estándar, recomendado)
-- 24 palabras (256 bits - máxima seguridad)
-4. **Pregunta red Bitcoin:**
-Selecciona la red Bitcoin:
-- Mainnet (Bitcoin principal - default)
-- Testnet (Bitcoin de pruebas)
-5. **Pide passphrase** (opcional, oculta)
-6. **Genera el reporte** con análisis de seguridad automático
-7. **Muestra reporte** en terminal (datos sensibles ocultos)
-8. **Guarda archivo encriptado** en `output/bip39_seed_report.json`
+1. Verifica localmente la wordlist.
+2. Solicita y confirma la contraseña del reporte cifrado.
+3. Permite elegir generación o importación del material de entrada.
+4. En generación interactiva, permite elegir 12 o 24 palabras.
+5. Solicita la red cuando no se proporcionó -n/--network.
+6. Solicita y confirma la passphrase BIP39; puede quedar vacía.
+7. Valida y deriva el material.
+8. Muestra un reporte con secretos privados ocultos por defecto.
+9. Guarda un reporte cifrado.
 
-### Ventajas del modo interactivo
+La ruta predeterminada es:
 
-- 🎯 **Sin errores de sintaxis**: No necesitas recordar banderas ni comandos
-- 🔒 **Máxima seguridad**: Todo el input es oculto (getpass)
-- 📋 **Guía visual**: Menús claros en cada paso
-- ⚡ **Rápido**: Flujo optimizado en 5-6 pasos
-- 🛡️ **Sin historial**: Las contraseñas no quedan en el shell
-- ✅ **Validación automática**: El script valida cada entrada
+```text
+output/bip39_seed_report.json
+```
 
-### Ejemplo de sesión interactiva
+Si ya existe, el programa busca un nombre secuencial. Este mecanismo
+todavía no garantiza ausencia de sobrescritura entre procesos concurrentes.
 
-"Salida de ejemplo de la versión actual (puede cambiar)".
+La entrada oculta exige una terminal interactiva en stdin y stdout.
+El programa rechaza el fallback de getpass que no puede garantizar
+ausencia de eco.
+
+Esto no protege contra malware, keyloggers, capturas, registros externos
+o un sistema comprometido. Los menús son visibles; no toda la entrada
+del programa es oculta.
+
+Las decisiones que utilizan la capa temporizada pueden cancelar tras
+360 segundos sin respuesta. No existe un timeout global para todo el
+flujo ni para todas las lecturas de secretos.
+
+## Contraseñas diferentes
+
+La passphrase BIP39 modifica la seed y las derivaciones.
+
+La contraseña de exportación protege el archivo cifrado y no modifica
+la seed BIP39.
+
+Son valores distintos. No se sustituyen ni se recuperan mutuamente.
+
+## Cifrado y protección de datos
+
+Los exports nuevos utilizan:
+
+- KDF: scrypt.
+- Parámetros: N=2**18, r=8, p=1, dklen=32.
+- Salt aleatorio de 16 bytes.
+- Cifrado autenticado AES-256-GCM.
+- Nonce aleatorio de 12 bytes.
+- Contenedor JSON versionado con parámetros KDF.
+- Metadatos definidos autenticados mediante AAD.
+
+El parámetro maxmem de scrypt se configura en 512 MiB. Es un límite
+permitido por la implementación, no una reserva automática de toda
+esa memoria. El perfil debe probarse en el equipo objetivo.
+
+El flujo normal cifra el contenido antes de escribirlo en un temporal,
+sincroniza el archivo y lo coloca en el destino mediante os.replace().
+
+Se intenta aplicar el modo 0o600. Esta medida no certifica las ACL de
+Windows ni protege contra un sistema comprometido.
+
+El formato histórico ENCRYPTED: puede descifrarse por compatibilidad
+y muestra una advertencia. Los exports nuevos no utilizan el método
+histórico de SHA-256 directo de contraseña.
+
+Descifrar un archivo histórico no lo fortalece automáticamente:
+para migrarlo debe volver a cifrarse con el formato actual.
+
+La limpieza del historial del proceso Python no borra el historial
+del shell, scrollback, capturas, memoria, swap ni backups.
+
+## Pruebas
+
+Desde la raíz del proyecto:
 
 ```bash
-$ python3 bip39_seed_report.py -i
-
-============================================================
-VERIFICACIÓN DE INTEGRIDAD BIP39
-============================================================
-✅ BIP39 Oficial (Embebida): VERIFICADA (2048 palabras)
-
-🔐 SEGURIDAD ACTIVADA
-- El archivo de salida será encriptado con AES-256-GCM
-- Los datos sensibles se ocultarán en pantalla
-- Debes recordar esta contraseña para abrir el archivo
-
-Contraseña para encriptar: **
-Confirmar contraseña: **
-
-🔒 MODO INTERACTIVO SEGURO
-Los datos ingresados no se mostrarán en pantalla.
-No quedarán en el historial del shell.
-
-Selecciona el tipo de entrada:
-Generar nueva mnemonic aleatoria[1]
-Ingresar entropía hexadecimal[2]
-Ingresar entropía binaria[3]
-Ingresar mnemonic existente[4]
-Calcular última palabra (11 o 23 palabras)[5]
-
-Opción [1-5]: 1
-
-Selecciona la longitud de la mnemonic:
-12 palabras (128 bits - estándar, recomendado)[1]
-24 palabras (256 bits - máxima seguridad)[2]
-
-Opción [1-2]: 1
-
-Selecciona la red Bitcoin:
-Mainnet (Bitcoin principal - default)[1]
-Testnet (Bitcoin de pruebas)[2]
-
-Opción [1-2]: 1
-
-🔐 Ingresa la passphrase BIP39 (opcional, oculto):
-Presiona Enter para dejarla vacía si no quieres usar una.
-
-Passphrase: 
-
-✅ Mnemonic sin repeticiones generada en 3 intento(s)
-
-[Reporte completo con análisis de seguridad...]
-
-✅ Archivo encriptado guardado: output/bip39_wallet_export_001.json
-⚠️  Recuerda la contraseña para desencriptar.
-⚠️  Si pierdes la contraseña, perderás acceso a los datos.
+python3 -m py_compile bip39_seed_report.py
+python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
 ```
-## Características de seguridad (Características y límites)
 
-- ✅ **Encriptación scrypt + AES-GCM**: Todos los archivos de salida están encriptados (clave derivada con scrypt + AES-GCM de la contraseña; SHA-256 solo para descifrado histórico)
-- ✅ **Ocultamiento de datos**: Los datos sensibles se ocultan en terminal por defecto
-- ✅ **Input seguro**: Usa getpass para evitar eco en terminal; no protege un host comprometido
-- ✅ **Permisos restringidos**: Archivos con permisos 0o600 (solo propietario)
-- ✅ **Escritura atómica**: Usa `tempfile` + `os.replace()` para evitar corrupción
-- ✅ **Limpieza de historial**: Intenta limpiar `readline.clear_history()`
-- ✅ **Bitcoin-only**: Reduce superficie de ataque
-- ✅ **Análisis de seguridad**: 6 tests Indicadores informativos de patrón, sin valor criptográfico
-- ✅ **Verificación BIP39**: Wordlist validada contra hash SHA-256 embebido
+Resultado esperado con la suite distribuida:
 
-## Test vectors
+```text
+Test vectors BIP39: OK (24 casos)
+```
 
-✅ **Pasaron los 24 casos oficiales de Trezor**  
-✅ **Compatible con BIP39 estándar**  
-✅ **Clave maestra BIP-32 calculada correctamente con HMAC-SHA512**  
-✅ **Wordlist oficial verificada (2048 palabras)**
+Las pruebas adicionales están en la carpeta test.
 
-El script supera los vectores de referencia del proyecto python-mnemonic
-(Trezor) del bloque `english` de `vectors.json`. Esto comprueba la conversión
-entropía-mnemonic-seed; no equivale a una auditoría. El archivo incluye otros
-idiomas, pero el script solo admite la wordlist inglesa.
+Desde la raíz del proyecto, en Linux/macOS y utilizando una copia local de confianza:
+
+```bash
+PYTHONPATH="$PWD" python3 test/test_cifrado_report.py
+PYTHONPATH="$PWD" python3 test/test_entrada_segura.py
+```
+
+Ejecuta esos comandos desde la raíz y compruébalos en una descarga limpia.
+
+Los vectores BIP39 verifican los casos ejecutados de conversión
+entropy-mnemonic, derivación de seed y round-trip. No constituyen una
+auditoría ni verifican todas las derivaciones o claves extendidas.
+
+La prueba de cifrado comprueba recuperación, rechazo de contraseña
+incorrecta, alteraciones, perfil KDF y compatibilidad histórica.
+
+La prueba de entrada segura comprueba el rechazo simulado de
+GetPassWarning y la confirmación/normalización Unicode.
+
+Las pruebas usan exclusivamente material ficticio. No introduzcas
+secrets reales en los tests.
 
 ## Indicadores informativos de patrón
 
@@ -177,6 +180,16 @@ para aceptar o descartar una seed.
 
 Cuenta 0, cadena externa (change 0), 5 direcciones por ruta
 
+La tabla muestra ejemplos de mainnet. En testnet se utiliza coin_type=1'
+en lugar de 0' y las codificaciones correspondientes a esa red.
+
+El programa deriva cuenta 0, cadena externa 0 y cinco direcciones por
+familia, con índices 0 a 4.
+
+El rótulo GAP limit del reporte representa actualmente la cantidad
+de direcciones derivadas. No implica descubrimiento de actividad:
+el programa no consulta blockchain ni busca direcciones usadas.
+
 ## Dependencias
 
 ```bash
@@ -191,7 +204,12 @@ python3 -m pip install mnemonic bip-utils cryptography
 python3 --version
 ```
 
-Deberías tener Python 3.8 o superior.
+Utiliza una versión de Python y dependencias que hayas probado con
+este proyecto. El mínimo de compatibilidad y la matriz de plataformas
+todavía no están formalmente establecidos.
+
+Registra la versión del intérprete y de las dependencias al ejecutar
+las pruebas. La instalación exitosa no certifica todos los flujos.
 
 ### 2. Instalar librerías requeridas
 
@@ -205,47 +223,67 @@ python3 -m pip install mnemonic bip-utils cryptography
 python3 -c "from mnemonic import Mnemonic; from bip_utils import Bip44; from cryptography.hazmat.primitives.ciphers.aead import AESGCM; print('✅ Todas las dependencias instaladas')"
 ```
 
-### 4. Descargar test vectors oficiales (opcional)
+### 4. Vectores distribuidos
 
-```bash
-curl -o vectors.json https://raw.githubusercontent.com/trezor/python-mnemonic/refs/heads/master/vectors.json
-```
+El repositorio incluye vectors.json. Conserva la copia que corresponde
+a la versión analizada; no la reemplaces automáticamente desde una rama
+remota mutable.
 
-O usa wget:
-
-```bash
-wget -O vectors.json https://raw.githubusercontent.com/trezor/python-mnemonic/refs/heads/master/vectors.json
-```
+Puedes indicar otra suite explícitamente con --vectors-file.
+Actualmente sigue pendiente endurecer el manejo de archivos ausentes,
+JSON inválido y suites vacías.
 
 ## Uso del script
 
-### Comandos y banderas
+### Comandos y opciones
 
 ```bash
-python3 bip39_seed_report.py [OPCIONES]
+python3 bip39_seed_report.py --help
 ```
 
-#### Opciones de entrada (usar exactamente una):
+Entradas disponibles:
 
-Expone el valor en el historial y en la lista de procesos. Solo para pruebas con datos sin valor
+- -w/--words: genera una mnemonic de 12, 15, 18, 21 o 24 palabras.
+- --entropy-bin: importa entropy binaria.
+- --entropy-hex: importa entropy hexadecimal.
+- --mnemonic: importa una mnemonic completa.
+- --mnemonic-incomplete: enumera candidatos para 11 o 23 palabras.
 
-- `-w, --words {12,15,18,21,24}`: Genera una mnemonic nueva con el número de palabras indicado
-- `--entropy-bin`: Entropía binaria BIP39 (128, 160, 192, 224 o 256 bits)
-- `--entropy-hex`: Entropía hexadecimal BIP39 (32, 40, 48, 56 o 64 caracteres hex)
-- `--mnemonic`: Mnemonic BIP39 existente (completa, 12-24 palabras)
-- `--mnemonic-incomplete`: Mnemonic incompleta (11 o 23 palabras) para calcular la última
+Debe resolverse una sola entrada. El modo -i ofrece un menú cuando
+no se proporcionó una entrada.
 
-#### Opciones generales:
+Opciones generales:
 
-- `-p, --passphrase`: Passphrase BIP39 opcional
-- `-i, --interactive`: Modo interactivo (solicita datos de forma segura, sin historial)
-- `-n, --network {mainnet,testnet}`: Red Bitcoin (default: mainnet)
-- `-f, --format {txt,json}`: Formato de salida (default: json)
-- `-o, --output`: Ruta del archivo de salida (default: output/bip39_seed_report.json)
-- `--show-all`: Muestra TODOS los datos en pantalla (modo educativo)
-- `--audit-passphrase`: Muestra auditoría descriptiva de la passphrase
-- `--run-tests`: Ejecuta los test vectors BIP39 oficiales
-- `--vectors-file`: Archivo JSON de test vectors BIP39 (default: vectors.json)
+- -i/--interactive: lectura interactiva de secretos sin eco en una TTY.
+- -n/--network: mainnet o testnet.
+- -f/--format: contenido interno JSON o texto.
+- -o/--output: destino; por defecto output/bip39_seed_report.json.
+- --audit-passphrase: descripción de la passphrase, sin estimar
+  su entropy real.
+- --show-all: revela material privado en terminal; solo para pruebas.
+- --run-tests: ejecuta la suite indicada y termina sin exportar.
+- --vectors-file: ruta de la suite; por defecto vectors.json.
+- --allow-insecure-cli-secrets: permiso explícito para argumentos
+  sensibles exclusivamente en pruebas controladas.
+
+### Política de secretos CLI
+
+--entropy-bin, --entropy-hex, --mnemonic, --mnemonic-incomplete y
+-p/--passphrase están bloqueados por defecto.
+
+El bloqueo reconoce presencia explícita, incluso un valor vacío
+como -p "". Usar -i no evita el bloqueo.
+
+Para pruebas ficticias puede habilitarse
+--allow-insecure-cli-secrets. No evita exposición en historial,
+argumentos del proceso o registros.
+
+--run-tests no admite opciones sensibles por argumentos, aunque
+se proporcione el permiso.
+
+El bloqueo no borra un valor que ya llegó al shell o al proceso.
+Los mensajes estándar de errores sintácticos del parser no tienen
+una política completa de redacción.
 
 ### Ejemplos de uso
 
@@ -257,11 +295,15 @@ python3 bip39_seed_report.py -w 12
 
 **Flujo:**
 1. Pide contraseña para encriptar
-2. Genera 12 palabras aleatorias (reintenta si hay repeticiones)
-3. Realiza análisis de seguridad de la mnemonic
+2. Genera 12 palabras aleatorias
+3. Realiza validación e indicadores informativos de la mnemonic
 4. Usa red mainnet (default)
 5. Oculta datos sensibles en terminal
 6. Guarda archivo encriptado en `output/bip39_seed_report.json`
+
+Sin -i, una passphrase BIP39 no se solicita interactivamente.
+Si no se suministra, se utiliza la passphrase vacía.
+Para introducirla sin eco, utiliza el modo -i.
 
 #### 2. Generar mnemonic nueva (24 palabras, testnet)
 
@@ -271,11 +313,15 @@ python3 bip39_seed_report.py -w 24 -n testnet
 
 **Flujo:**
 1. Pide contraseña para encriptar
-2. Genera 24 palabras aleatorias (reintenta si hay repeticiones)
-3. Realiza análisis de seguridad
+2. Genera 24 palabras aleatorias
+3. Realiza validación e indicadores informativos
 4. Usa red testnet
 5. Oculta datos sensibles en terminal
 6. Guarda archivo encriptado
+
+Sin -i, una passphrase BIP39 no se solicita interactivamente.
+Si no se suministra, se utiliza la passphrase vacía.
+Para introducirla sin eco, utiliza el modo -i.
 
 #### 3. Modo interactivo (menú guiado)
 
@@ -291,7 +337,7 @@ python3 bip39_seed_report.py -i
    - Seleccionar red (mainnet o testnet)
    - Ingresar passphrase (opcional)
 3. Genera mnemonic
-4. Realiza análisis de seguridad
+4. Realiza Validación e indicadores
 5. Guarda archivo encriptado
 
 #### 4. Modo educativo (muestra todo en pantalla)
@@ -304,59 +350,87 @@ python3 bip39_seed_report.py -w 12 --show-all
 1. Pide contraseña
 2. Genera 12 palabras
 3. **Muestra TODOS los datos en pantalla** (entropy, mnemonic, seed, keys, addresses)
-4. Muestra análisis de seguridad completo con score y clasificación
+4. Muestra validación e indicadores descriptivos de patrón, sin score de seguridad
 5. Guarda archivo encriptado
+
+La salida de terminal no necesariamente reproduce todos los campos
+del JSON privado. Puede revelar mnemonic, seed y claves privadas.
+No la redirijas a logs ni la compartas.
 
 ⚠️ **ADVERTENCIA**: No usar `--show-all` en producción. Solo para fines educativos.
 
 #### 5. Verificar mnemonic existente
 
 ```bash
-python3 bip39_seed_report.py --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" -p "TREZOR"
+python3 bip39_seed_report.py \
+  --allow-insecure-cli-secrets \
+  --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" \
+  -p "TREZOR" \
+  -n testnet
 ```
 
-Vector de prueba público. Nunca con secretos reales
+Vector público de prueba; nunca utilizar este material para fondos.
+El programa todavía solicita una contraseña de exportación en una TTY.
 
 **Flujo:**
 1. Pide contraseña
 2. Verifica checksum BIP39
-3. Realiza análisis de seguridad (6 tests)
+3. Valida la mnemonic y muestra indicadores descriptivos.
 4. Calcula seed y derivaciones
 5. Guarda archivo encriptado
 
 #### 6. Calcular última palabra (recuperación)
 
 ```bash
-python3 bip39_seed_report.py --mnemonic-incomplete "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
+python3 bip39_seed_report.py \
+  --allow-insecure-cli-secrets \
+  --mnemonic-incomplete "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon" \
+  -n testnet
 ```
 
 **Flujo:**
-1. Busca todas las palabras posibles (16 opciones para 11 palabras)
+1. Busca todas las palabras posibles
 2. Muestra lista numerada
 3. Pide al usuario seleccionar la correcta
-4. Debes verificar manualmente la palabra elegida. En modo no interactivo (EOF) el script elige el primer candidato; limitación conocida
+4. Debes verificar manualmente la palabra elegida.
 5. Genera mnemonic completa
-6. Realiza análisis de seguridad
+6. Realiza Validación e indicadores
+
+Enumera candidatos que producen una mnemonic BIP39 válida y solicita una selección explícita.
+
+El checksum no identifica por sí solo la palabra originalmente utilizada.
+Si ocurre EOF durante la selección, la operación aborta; no toma automáticamente el primer candidato.
+
+La recuperación debe contrastarse con una referencia independiente.
 
 #### 7. Usar entropía hexadecimal
 
 ```bash
-python3 bip39_seed_report.py --entropy-hex 00000000000000000000000000000000
+python3 bip39_seed_report.py \
+  --allow-insecure-cli-secrets \
+  --entropy-hex 00000000000000000000000000000000 \
+  -n testnet
 ```
 
 **Requisitos:**
 - 32, 40, 48, 56 o 64 caracteres hexadecimales
 - Formato: solo 0-9, a-f (sin espacios)
 
+Los ceros son datos públicos completamente predecibles.
+
 #### 8. Usar entropía binaria
 
 ```bash
-python3 bip39_seed_report.py --entropy-bin 00000000000000000000000000000000
+python3 bip39_seed_report.py --allow-insecure-cli-secrets --entropy-bin 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 -n testnet
 ```
 
 **Requisitos:**
 - 128, 160, 192, 224 o 256 bits
 - Formato: solo 0 y 1 (sin espacios)
+
+Para pruebas, puedes usar una secuencia conocida; no atribuyas seguridad a una entrada manual por tener la longitud y checksum correctos.
+Esta secuencia de ceros es pública y completamente predecible.
+El ejemplo no debe utilizarse para proteger fondos.
 
 #### 9. Ejecutar test vectors oficiales
 
@@ -370,7 +444,7 @@ Test vectors BIP39: OK (24 casos)
 #### 10. Auditoría de passphrase
 
 ```bash
-python3 bip39_seed_report.py -w 12 -p "mi_passphrase" --audit-passphrase
+python3 bip39_seed_report.py -i --audit-passphrase -n testnet
 ```
 
 **Muestra:**
@@ -380,60 +454,34 @@ python3 bip39_seed_report.py -w 12 -p "mi_passphrase" --audit-passphrase
 - Presencia de mayúsculas, minúsculas, dígitos, símbolos, espacios
 - Nota informativa; no calcula entropía real
 
-## Flujo de trabajo recomendado
+## Flujo de trabajo de prueba recomendado
 
-### Para generación mnemonic nueva:
-
-```bash
-# 1. Generar mnemonic (modo seguro)
-python3 bip39_seed_report.py -w 12 -i
-
-# 2. Verificar con software o dispositivo independiente de confianza
-
-# 3. Guardar mnemonic en papel o metal (NUNCA en digital)
-
-# 4. Borrar archivo encriptado si no es necesario
-rm output/bip39_seed_report.json
-```
-
-### Para recuperación de mnemonic:
+1. Ejecutar los tests desde una copia limpia.
+2. Ejecutar el modo interactivo:
 
 ```bash
-# 1. Calcular última palabra (si falta)
-python3 bip39_seed_report.py --mnemonic-incomplete "word1 word2 ... word23" -i
-
-# 2. Verificar mnemonic completa
-python3 bip39_seed_report.py --mnemonic "word1 word2 ... word24" -i
-
-# 3. Verificar análisis de seguridad
-
-# 4. Comparar addresses generadas con las de tu mnemonic
+python3 bip39_seed_report.py -i -n testnet
 ```
 
-### Para verificación educativa:
+3. Utilizar exclusivamente material ficticio.
+4. Revisar el resumen del reporte.
+5. Comprobar el descifrado del archivo realmente escrito.
+6. Registrar versión, hashes y resultados, sin secrets.
+7. Conservar el archivo original cifrado mientras se verifica la prueba.
 
-```bash
-# 1. Generar mnemonic mostrando todo (SOLO en entorno seguro)
-python3 bip39_seed_report.py -w 12 --show-all
-
-# 2. Estudiar análisis de seguridad y derivaciones
-
-# 3. Estudiar estructura BIP32/BIP39
-
-# 4. Borrar archivo después de estudiar
-rm output/bip39_seed_report.json
-```
+Eliminar archivos no garantiza borrado irrecuperable. No mezclar
+pruebas con material de recuperación real.
 
 ## Salida del script
 
 ### En terminal (por defecto):
 
 - Coin type: Bitcoin
-- Input mode: (words, entropy-bin, entropy-hex, mnemonic, mnemonic-incomplete)
+- Input mode: (words, entropy_bin, entropy_hex, mnemonic, mnemonic_incomplete)
 - Network: mainnet/testnet
 - Entropy: [OCULTO]
 - Checksum: [OCULTO]
-- **Análisis de seguridad**: Indicadores informativos
+- **Validación e indicadores**: Indicadores informativos
 - Mnemonic: [OCULTO]
 - BIP39 seed: [OCULTO]
 - BIP32 root key: [OCULTO]
@@ -443,104 +491,96 @@ rm output/bip39_seed_report.json
 
 ### En archivo (desencriptado):
 
-- TODOS los datos sensibles visibles
+- Material privado del reporte visible al descifrarlo.
 - 5 addresses por ruta (índices 0-4)
 - Claves privadas en formato WIF
 - Claves públicas en formato hex
 - Extended public keys completas
-- Análisis de seguridad completo con detalles de cada test
+- Resultado de validación e indicadores descriptivos.
 - Contiene mnemonic, seed, clave raíz y claves privadas WIF. Trátalo como secreto
+- passphrase_used indica si se utilizó una passphrase BIP39. La passphrase no se guarda en claro como campo del contexto actual.
+- bip32_root_key contiene la concatenación hexadecimal de la clave privada maestra y el chain code; no es una clave extendida serializada xprv/tprv.
 
 ## Seguridad operacional
 
-### Ejecución OFF-LINE (Recomendado)
+Trabajar sin red reduce vías de exposición, pero no prueba que el
+equipo, el intérprete o las dependencias sean confiables.
 
-**Ventajas:**
-- ✅ Sin riesgo de exposición por red
-- ✅ Sin riesgo de MITM (Man-in-the-Middle)
-- ✅ Sin riesgo de DNS spoofing
-- ✅ Control total del entorno
+Una máquina virtual, un sistema Live USB o un firewall no certifican
+por sí solos ausencia de malware, capturas o persistencia de secretos.
 
-**Recomendaciones:**
-- Usar máquina air-gapped (nunca conectada a internet)
-- Usar sistema Live USB (Tails, Ubuntu Live)
-- Verificar hashes de descargas antes de transferir
-- Usar hardware wallet para almacenar las keys generadas
-- Imprimir o escribir en papel la mnemonic generada
-- Borrar todos los archivos después de usar
+No usar material real en estas pruebas. No copiar secrets automáticamente,
+no publicar exports y no tratar limpiar pantalla o borrar archivos como
+borrado seguro.
 
-### Ejecución ON-LINE (No recomendado para producción)
+Las direcciones y extended public keys no son claves privadas,
+pero pueden facilitar correlación. Trátalas con cautela.
 
-**Riesgos:**
-- ⚠️ Posible exposición de datos por red
-- ⚠️ Riesgo de malware remoto
-- ⚠️ Posible keylogger
-- ⚠️ Riesgo de DNS spoofing
-- ⚠️ Riesgo de MITM
+## Revisar un reporte cifrado
 
-**Si debes ejecutar on-line:**
-- Usa una máquina virtual desechable
-- No uses mnemonics reales (solo pruebas)
-- Usa redes seguras (evita WiFi público)
-- Verifica que el firewall esté activo
-- No guardes archivos sensibles permanentemente
-- Borra todo después de usar
+La contraseña requerida es la contraseña de exportación, no la passphrase BIP39.
 
-## Desencriptar archivo
+El archivo JSON exterior contiene metadatos y ciphertext.
+Leer ese JSON no revela el contenido privado.
 
-Para desencriptar el archivo de salida:
+La función de descifrado del módulo es:
 
 ```python
-from wallet_bip39_off_line import decrypt_file_content
-
-# Leer archivo encriptado
-encrypted_content = open('output/bip39_seed_report.json').read()
-
-# Desencriptar con contraseña
-decrypted = decrypt_file_content(encrypted_content, 'TU_CONTRASEÑA')
-
-# Mostrar contenido
-print(decrypted)
+decrypt_report_content(encrypted_content, password)
 ```
 
-O desde la terminal:
+Para verificar un export JSON sin mostrar secrets, ejecuta desde la raíz del proyecto y desde una terminal interactiva:
 
 ```bash
-python3 -c "import getpass; from wallet_bip39_off_line import decrypt_file_content; print(decrypt_file_content(open('output/bip39_seed_report.json').read(), getpass.getpass('Contraseña: ')))"
+python3 -c 'from pathlib import Path; import json; import bip39_seed_report as r; c=Path("output/bip39_seed_report.json").read_text(encoding="utf-8"); p=r.read_hidden_secret("Contraseña del reporte: "); d=json.loads(r.decrypt_report_content(c,p)); print("OK: reporte autenticado y JSON interno válido"); print("network:", d.get("network")); print("input_mode:", d.get("input_mode"))'
 ```
 
-## Estado y limitaciones conocidas
+Ajusta la ruta al archivo exacto. El comando anterior corresponde a contenido interno JSON; no a un export con formato interno texto.
 
-Implementado: generación con `os.urandom()`, validación de checksum BIP39,
-derivación BIP32/BIP44/49/84/86 con `bip-utils`, vectores de referencia y
-exportación cifrada.
+No publiques una copia descifrada, seed o WIF. Si utilizas el visor local revisar_reporte.py, colócalo junto a bip39_seed_report.py. No se presupone que ese visor forme parte de la distribución.
 
-Limitaciones conocidas de esta versión:
-- La clave del export se deriva con SHA-256 de la contraseña, sin KDF resistente.
-- La generación reintenta si hay palabras repetidas (sesgo; se eliminará).
-- Los indicadores y el score son informativos, sin valor criptográfico.
-- Los secretos pueden pasarse por argumentos de línea de comandos.
-- El export incluye mnemonic, seed, claves raíz y WIF.
-- En modo no interactivo, `--mnemonic-incomplete` elige el primer candidato.
-- Las dependencias no tienen versiones fijadas.
-- No está auditado y no debe usarse con fondos reales.
+La revelación completa puede quedar en scrollback o registros.
+Crear una copia descifrada en disco se reserva para material ficticio.
 
-**Recomendación**: El script puede usarse para generación y verificación de mnemonic Bitcoin en entornos offline seguros, siempre siguiendo las mejores prácticas de seguridad operacional.
+## Estado y trabajo pendiente
+
+Implementado y probado en los ensayos registrados:
+
+- Generación sin filtro de palabras repetidas.
+- Indicadores sin score criptográfico.
+- Verificación de wordlist embebida y efectiva.
+- Entrada oculta con TTY y rechazo de GetPassWarning.
+- Confirmación NFKD de passphrase y cancelación inicial.
+- Exportación nueva con scrypt y AES-256-GCM.
+- Compatibilidad de descifrado histórico.
+- Permiso explícito para secretos CLI.
+- Suite BIP39 y pruebas de cifrado y entrada segura.
+
+Pendiente:
+
+- Validación estricta del contenedor, límites de tamaño y claves JSON duplicadas.
+- Protección y pruebas de escritura concurrente.
+- Perfiles de recuperación, auditoría y laboratorio.
+- Revelación granular de secrets.
+- Vectores independientes de BIP32 y todas las derivaciones.
+- Manejo robusto de archivos de vectores y suites vacías.
+- Dependencias fijadas, matriz de plataformas e identidad de release.
+
+Estos resultados no constituyen una auditoría independiente ni
+una certificación para custodiar fondos.
 
 ## Advertencias finales
 
-**IMPORTANTE:**
-- Este script es solo para fines educativos y de prueba
-- No certifica que el sistema tiene suficiente entropía acumulada
-- No certifica que una entropía manual sea imprevisible
-- No certifica que el entorno no esté comprometido
-- No certifica que no haya errores de usuario
-- La ejecución offline en un entorno confiable es una condición necesaria, no una garantía de seguridad
-- **Use el script con prudencia**
-- **NUNCA uses mnemonics reales en máquinas conectadas a internet**
-- **SIEMPRE verifica las addresses generadas en una wallet de hardware antes de usar**
-- **No auditado para producción**: Este es un proyecto educativo. No ha sido auditado por firmas de seguridad independientes. Si consideras usarlo con fondos reales (*no recomendado*), entiende los riesgos documentados y se repite la **advertencia**, verifica siempre las addresses en una hardware wallet antes de utilizar.
-- **El análisis de seguridad es una guía estadística**: Un score alto no garantiza seguridad absoluta, pero un score bajo indica problemas potenciales.
+La validación BIP39 confirma formato y checksum, no imprevisibilidad.
+
+Los indicadores son descriptivos y no clasifican la seguridad
+criptográfica de una mnemonic.
+
+La ejecución offline no garantiza seguridad del entorno.
+
+El proyecto permanece educativo y no se recomienda con fondos reales.
+La revisión de código y las pruebas registradas no constituyen
+una auditoría independiente para producción.
 
 ## Licencia
 
