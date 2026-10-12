@@ -84,15 +84,16 @@ normalización; no recrean todos los comportamientos de una terminal real.
 Ejecutar desde la raíz de una copia local de confianza.
 
 La instalación de dependencias debe prepararse antes de trasladar
-el proyecto a un entorno offline. Los comandos siguientes no constituyen
-una instalación reproducible mientras las versiones y hashes no estén fijados.
+el proyecto a un entorno offline. Los comandos usan las versiones directas de requirements.txt.
+Todavía no constituyen una instalación completamente reproducible:
+faltan bloqueo transitivo, hashes de artefactos y validación del entorno.
 
 ### Linux/macOS: ejemplo con entorno virtual
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install mnemonic bip-utils cryptography
+python -m pip install -r requirements.txt
 python --version
 ```
 
@@ -105,7 +106,7 @@ Utiliza el comando de Python disponible y verificado en tu equipo.
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install mnemonic bip-utils cryptography
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe --version
 ```
 

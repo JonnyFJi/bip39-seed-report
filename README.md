@@ -606,6 +606,10 @@ si se conservan los avisos y condiciones de la licencia.
 
 El material de terceros conserva sus licencias y avisos correspondientes.
 
+Consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) para el inventario
+de material externo, los avisos conservados y las verificaciones de
+procedencia que todavía están pendientes.
+
 La licencia no constituye una auditoría ni una garantía de seguridad.
 El proyecto sigue siendo educativo y no se recomienda con fondos reales.
 
