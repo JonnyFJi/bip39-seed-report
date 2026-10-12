@@ -235,7 +235,7 @@ python3 -c "from mnemonic import Mnemonic; from bip_utils import Bip44; from cry
 
 ### 4. Vectores distribuidos
 
-El repositorio incluye vectors.json. Conserva la copia que corresponde
+El repositorio incluye la suite en test/vectors.json. Conserva la copia que corresponde
 a la versión analizada; no la reemplaces automáticamente desde una rama
 remota mutable.
 
@@ -272,7 +272,7 @@ Opciones generales:
   su entropy real.
 - --show-all: revela material privado en terminal; solo para pruebas.
 - --run-tests: ejecuta la suite indicada y termina sin exportar.
-- --vectors-file: ruta de la suite; por defecto test/vectors.json.
+- --vectors-file: ruta explícita de la suite. Si se omite, utiliza test/vectors.json respecto de la carpeta del script.
 - --allow-insecure-cli-secrets: permiso explícito para argumentos
   sensibles exclusivamente en pruebas controladas.
 
