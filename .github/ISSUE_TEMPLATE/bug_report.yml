@@ -1,0 +1,37 @@
+name: Error reproducible
+description: Informar un fallo usando exclusivamente datos ficticios
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        No publiques mnemonic, passphrase, seed, WIF, contraseñas
+        ni exports privados. Para un problema sensible, consulta SECURITY.md.
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción
+      description: Qué ocurrió y qué esperabas
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproducción con datos ficticios
+      description: Pasos mínimos sin secrets
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Entorno
+      description: Python, paquetes, sistema y commit o hash
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Confirmación
+      options:
+        - label: Revisé el informe y no contiene material sensible.
+          required: true
