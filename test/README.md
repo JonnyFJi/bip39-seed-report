@@ -29,7 +29,9 @@ las derivaciones, plataformas o condiciones de escritura.
 ## Datos de referencia
 
 vectors.json conserva los bytes de la suite previamente probada.
-Su procedencia exacta, licencia aplicable y referencia upstream deben
-documentarse antes de redistribuirlo como parte de una release formal.
+La procedencia y los avisos de los datos de referencia se registran en
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+
+La identificación del origen histórico exacto sigue pendiente.
 
 No reemplazarlo automáticamente desde una rama remota mutable.
