@@ -128,7 +128,17 @@ Desde la raíz del proyecto:
 
 ```bash
 python3 -m py_compile bip39_seed_report.py
-python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
+python3 bip39_seed_report.py --run-tests --vectors-file test/vectors.json
+```
+
+La suite distribuida está en test/vectors.json.
+
+Sin --vectors-file, el script localiza esa suite respecto de la carpeta
+del propio script. Una ruta indicada explícitamente conserva la
+resolución habitual de rutas de la ejecución.
+
+```bash
+python3 bip39_seed_report.py --run-tests
 ```
 
 Resultado esperado con la suite distribuida:
@@ -262,7 +272,7 @@ Opciones generales:
   su entropy real.
 - --show-all: revela material privado en terminal; solo para pruebas.
 - --run-tests: ejecuta la suite indicada y termina sin exportar.
-- --vectors-file: ruta de la suite; por defecto vectors.json.
+- --vectors-file: ruta de la suite; por defecto test/vectors.json.
 - --allow-insecure-cli-secrets: permiso explícito para argumentos
   sensibles exclusivamente en pruebas controladas.
 
@@ -435,7 +445,7 @@ El ejemplo no debe utilizarse para proteger fondos.
 #### 9. Ejecutar test vectors oficiales
 
 ```bash
-python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
+python3 bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 ```
 
 **Resultado esperado:**

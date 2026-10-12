@@ -652,7 +652,9 @@ def verify_against_bip39_official():
 
 VALID_ENTROPY_BITS = {128, 160, 192, 224, 256}
 VALID_WORD_COUNTS = {12, 15, 18, 21, 24}
-DEFAULT_VECTORS_FILE = "vectors.json"
+DEFAULT_VECTORS_FILE = str(
+    pathlib.Path(__file__).resolve().parent / "test" / "vectors.json"
+)
 GAP_LIMIT = 5
 
 DEFAULT_OUTPUT_PATH = "output/bip39_seed_report.json"

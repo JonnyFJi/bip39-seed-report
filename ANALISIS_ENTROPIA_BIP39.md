@@ -107,12 +107,12 @@ Las derivaciones de direcciones utilizan bip-utils.
 
 ## Vectores de referencia y alcance de las pruebas
 
-El repositorio distribuye vectors.json. El script utiliza el bloque english cuando está presente.
+El repositorio distribuye test/vectors.json. El script utiliza el bloque english cuando está presente.
 
 Desde la raíz del proyecto:
 
 ```bash
-python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
+python3 bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 ```
 
 Resultado registrado con la suite distribuida:
