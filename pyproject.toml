@@ -1,0 +1,6 @@
+[tool.bip39_seed_report]
+program_name = "Offline BIP39 Seed Report"
+development_status = "educational-experimental"
+entry_file = "bip39_seed_report.py"
+test_directory = "test"
+vectors_file = "test/vectors.json"
