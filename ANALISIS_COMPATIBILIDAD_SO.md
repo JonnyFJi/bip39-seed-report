@@ -56,8 +56,13 @@ de referencia.
 Todavía no existe un bloqueo completo de dependencias transitivas
 ni una instalación con verificación de hashes.
 
-Las versiones fijadas deben probarse en un entorno limpio y registrarse
-junto con Python, plataforma y resultados.
+El 12 de octubre de 2026, el mantenedor comunicó una instalación
+satisfactoria en .venv-verificacion y resultados correctos de pip check,
+compilación, 24 vectores BIP39, 12 comprobaciones de cifrado y las
+pruebas de GetPassWarning y normalización Unicode.
+
+La evidencia corresponde a ese entorno Linux. No establece soporte
+universal ni una instalación reproducible con hashes.
 
 ---
 
