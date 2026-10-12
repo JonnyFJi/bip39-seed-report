@@ -203,8 +203,12 @@ el programa no consulta blockchain ni busca direcciones usadas.
 ## Dependencias
 
 ```bash
-python3 -m pip install mnemonic bip-utils cryptography
+python3 -m pip install -r requirements.txt
 ```
+
+`requirements.txt` fija las dependencias directas del entorno de referencia.
+Todavía no representa un bloqueo completo de dependencias transitivas
+ni una instalación con verificación de hashes.
 
 ## Instalación
 
@@ -594,7 +598,34 @@ una auditoría independiente para producción.
 
 ## Licencia
 
-Sin licencia declarada: todos los derechos reservados
+El código original del proyecto se distribuye bajo la licencia MIT.
+Consulta el archivo LICENSE.
+
+MIT permite uso, modificación y redistribución, incluido uso comercial,
+si se conservan los avisos y condiciones de la licencia.
+
+El material de terceros conserva sus licencias y avisos correspondientes.
+
+La licencia no constituye una auditoría ni una garantía de seguridad.
+El proyecto sigue siendo educativo y no se recomienda con fondos reales.
+
+Consulta [LICENSE](LICENSE).
+
+## Auditoría y contribuciones
+
+Se aceptan revisiones de código, issues y pull requests con propuestas
+de corrección y mejora.
+
+Antes de proponer un cambio:
+
+- Utiliza exclusivamente datos ficticios.
+- No publiques mnemonic, passphrase, seed, WIF o exports privados.
+- Explica el cambio y su impacto.
+- Conserva las funciones existentes o justifica cualquier cambio de contrato.
+- Ejecuta las pruebas del área afectada y las suites de regresión.
+- Documenta el entorno y el commit de referencia.
+
+Las propuestas se revisan antes de integrarlas.
 
 ## Contacto
 
