@@ -578,7 +578,7 @@ Pendiente:
 - Revelación granular de secrets.
 - Vectores independientes de BIP32 y todas las derivaciones.
 - Manejo robusto de archivos de vectores y suites vacías.
-Bloqueo transitivo, hashes de artefactos y ampliación de la matriz de entornos y flujos probados.
+- Bloqueo transitivo, hashes de artefactos y ampliación de la matriz de entornos y flujos probados.
 
 Estos resultados no constituyen una auditoría independiente ni
 una certificación para custodiar fondos.

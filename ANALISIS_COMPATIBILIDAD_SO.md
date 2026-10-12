@@ -70,7 +70,8 @@ universal ni una instalación reproducible con hashes.
 
 | Entorno | Python y dependencias | Evidencia | Estado |
 |---|---|---|---|
-| Entorno local Linux comunicado por el usuario | Versiones exactas pendientes de registrar | Vectores BIP39, cifrado, entrada segura y flujos manuales | Probado para esos ensayos |
+| Entorno local Linux inicial | Registro completo pendiente | Ensayos anteriores comunicados, incluidos flujos manuales | Limitado a esos ensayos |
+| Entorno virtual Linux .venv-verificacion | mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3. Python exacto, distribución y arquitectura pendientes de registrar | Instalación, pip check, compilación, 24 vectores BIP39, 12 comprobaciones de cifrado y pruebas de entrada segura | Satisfactorio para las comprobaciones comunicadas |
 | Windows | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar |
 | macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar |
 | BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
@@ -91,7 +92,9 @@ Ejecutar desde la raíz de una copia local de confianza.
 La instalación de dependencias debe prepararse antes de trasladar
 el proyecto a un entorno offline. Los comandos usan las versiones directas de requirements.txt.
 Todavía no constituyen una instalación completamente reproducible:
-faltan bloqueo transitivo, hashes de artefactos y validación del entorno.
+faltan bloqueo transitivo y hashes de artefactos. La instalación y las
+suites indicadas se comprobaron en el entorno Linux comunicado; otros
+entornos requieren validación específica.
 
 ### Linux/macOS: ejemplo con entorno virtual
 

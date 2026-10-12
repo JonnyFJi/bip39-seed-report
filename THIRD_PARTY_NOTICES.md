@@ -2,8 +2,8 @@
 
 Fecha de revisión: 12 de octubre de 2026.
 Repositorio revisado: JonnyFJi/bip39-seed-report.
-Commit: c2300751fb56f8a9873612798347c15a47a6ac9a.
 Commit base de la revisión inicial:
+`c2300751fb56f8a9873612798347c15a47a6ac9a`.
 
 ## Alcance y estado
 

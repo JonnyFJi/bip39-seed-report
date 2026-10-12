@@ -7,9 +7,6 @@ __pycache__/
 .venv-*/
 venv/
 
-# Entornos virtuales locales de verificación
-.venv-*/
-
 # Reportes y datos de ejecución
 output/
 local-private/
