@@ -3,6 +3,7 @@
 Fecha de revisión: 12 de octubre de 2026.
 Repositorio revisado: JonnyFJi/bip39-seed-report.
 Commit: c2300751fb56f8a9873612798347c15a47a6ac9a.
+Commit base de la revisión inicial:
 
 ## Alcance y estado
 
@@ -81,6 +82,16 @@ El log del entorno del usuario registró cbor2, crcmod, ecdsa, pycryptodome, PyN
 Este listado no es un bloqueo ni un inventario completo. Los wheels o componentes nativos pueden incluir otros materiales (por ejemplo bibliotecas criptográficas) con avisos propios. Licencias y copyright exactos de cada artefacto: pendientes de inventariar antes de redistribuir el entorno o binarios.
 
 La salida 'Requirement already satisfied' refleja paquetes existentes, incluidos paquetes de usuario y del sistema, no una instalación limpia.
+
+El listado anterior corresponde al entorno existente comunicado
+inicialmente, no al entorno virtual de verificación.
+
+Posteriormente se comunicó una instalación en .venv-verificacion
+con versiones transitivas diferentes y suites satisfactorias.
+asn1crypto no aparece en ese segundo log.
+
+Los registros describen entornos observados; no constituyen un
+bloqueo de dependencias ni un inventario exhaustivo de licencias.
 
 ## 5. Verificación pendiente y mantenimiento
 
