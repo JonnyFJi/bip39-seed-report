@@ -3,14 +3,14 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental: 10 de octubre de 2026.
+- Actualización documental: 12 de octubre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio de referencia: JonnyFJi/bip39-seed-report.
-- Commit consultado:
-  `73d5a64dcf01d773439c0f7364b481c787d45ce1`.
+- Commit de referencia:
+  `bbcff63daf5ca10b5a0f94218a660fc007e93b72`.
 - El SHA-256 siguiente identifica el script analizado, no este documento.
 - SHA-256 del script de referencia:
-  cd58e2cc0c32a00f2087e8cb43a39e54b4a14380b4a46e41b402a99b771c6184
+  `365fafdfa71f9c0a91c088c4428335a5b96fbbce99434bff112d7152736bf55e`.
 
 Los números de línea y las conclusiones deben revisarse cuando cambie el código de referencia. El hash identifica los bytes del archivo; no certifica su procedencia ni la seguridad del entorno.
 
