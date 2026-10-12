@@ -240,7 +240,7 @@ Desde la raíz, con el intérprete del entorno preparado:
 ```bash
 python -m py_compile bip39_seed_report.py
 python bip39_seed_report.py --help
-python bip39_seed_report.py --run-tests --vectors-file vectors.json
+python bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 PYTHONPATH="$PWD" python test/test_cifrado_report.py
 PYTHONPATH="$PWD" python test/test_entrada_segura.py
 ```
@@ -255,7 +255,7 @@ Desde la raíz, con el entorno virtual del ejemplo anterior:
 ```powershell
 .\.venv\Scripts\python.exe -m py_compile bip39_seed_report.py
 .\.venv\Scripts\python.exe bip39_seed_report.py --help
-.\.venv\Scripts\python.exe bip39_seed_report.py --run-tests --vectors-file vectors.json
+.\.venv\Scripts\python.exe bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 ```
 
 Para los tests situados en test, puede usarse temporalmente la raíz
