@@ -2,14 +2,21 @@
 
 ## Unreleased
 
-### Organización en preparación
+### Organización aplicada en la rama principal
 
 - Movimiento de la suite a test/vectors.json.
 - Ruta predeterminada relativa a la ubicación del script.
 - Documentación de seguridad y mantenimiento.
 - Registro de versiones directas del entorno utilizado para las pruebas.
-- Validación en un entorno limpio: pendiente.
+- Instalación y suites verificadas en el entorno virtual Linux comunicado
+  por el mantenedor el 12 de octubre de 2026.
 - Plantillas de issues y pull requests.
+- Licencia MIT para el código original del proyecto.
+- Advertencias y procedimiento de contribuciones en README.
+- SECURITY.md y exclusiones locales mediante .gitignore.
+- Configuración descriptiva mínima en pyproject.toml.
+- Versiones directas declaradas en requirements.txt.
+- Inventario inicial y avisos de terceros en THIRD_PARTY_NOTICES.md.
 
 Esta sección no representa una release formal.
 
