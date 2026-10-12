@@ -50,15 +50,14 @@ el cifrado, los permisos ni la escritura de archivos.
 | Terminal | Lectura oculta y decisiones | TTY, ausencia de eco, cancelación y timeout |
 | Sistema de archivos | Temporales, reemplazo y permisos | Comportamiento y pruebas en el destino real |
 
-Las dependencias no están fijadas mediante un archivo de versiones y
-hashes en la distribución revisada. No se establece aquí una versión
-mínima universal a partir de declaraciones históricas de los paquetes.
+`requirements.txt` fija las tres dependencias directas del entorno
+de referencia.
 
-La disponibilidad de paquetes precompilados o la necesidad de compilar
-depende de la combinación de paquete, versión, plataforma y arquitectura.
+Todavía no existe un bloqueo completo de dependencias transitivas
+ni una instalación con verificación de hashes.
 
-No ejecutar la herramienta con privilegios de administrador para
-resolver automáticamente un problema de instalación.
+Las versiones fijadas deben probarse en un entorno limpio y registrarse
+junto con Python, plataforma y resultados.
 
 ---
 

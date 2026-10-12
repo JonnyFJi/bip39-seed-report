@@ -578,7 +578,7 @@ Pendiente:
 - Revelación granular de secrets.
 - Vectores independientes de BIP32 y todas las derivaciones.
 - Manejo robusto de archivos de vectores y suites vacías.
-- Dependencias fijadas, matriz de plataformas e identidad de release.
+- Bloqueo transitivo, hashes de dependencias y validación de la combinación en un entorno limpio.
 
 Estos resultados no constituyen una auditoría independiente ni
 una certificación para custodiar fondos.
