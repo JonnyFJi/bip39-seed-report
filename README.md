@@ -228,7 +228,7 @@ las pruebas. La instalación exitosa no certifica todos los flujos.
 ### 2. Instalar librerías requeridas
 
 ```bash
-python3 -m pip install mnemonic bip-utils cryptography
+python3 -m pip install -r requirements.txt
 ```
 
 ### 3. Verificar instalación
