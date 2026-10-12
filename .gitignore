@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Entornos locales
+.venv/
+venv/
+
+# Reportes y datos de ejecución
+output/
+local-private/
+*.decrypted.json
+*.decrypted.txt
+reporte_prueba_descifrado*.json
+reporte_prueba_descifrado*.txt
+
+# Backups
+*.backup.*
+*_backup.py
+*.bak
+
+# Editores y temporales
+*.swp
+*.swo
+*.tmp
+*~
+
+# Credenciales y configuración privada
+.env
+.env.*
+!.env.example
+
+# Resultados locales de pruebas
+Resultado-*.txt
+Resultado*.txt
+
+# Herramientas
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
