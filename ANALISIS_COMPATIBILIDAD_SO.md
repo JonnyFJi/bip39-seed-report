@@ -1,190 +1,338 @@
-# Compatibilidad esperada con sistemas operativos
+# Compatibilidad esperada y comprobaciones por entorno
 
-## Fecha del análisis
-Agosto 10, 2026. Análisis documental; no se ha probado en todas las plataformas.
-Octubre 9, 2026. Análisis documental; no se ha probado en todas las plataformas.
+## Referencia del análisis
 
+- Creación del documento: 10 de agosto de 2026.
+- Actualización documental: 12 de octubre de 2026.
+- Archivo analizado: bip39_seed_report.py.
+- Repositorio: JonnyFJi/bip39-seed-report.
+- Commit consultado:
+  `179616efbcf1942806d7793ba2a3f0f68e1801f6`.
+- SHA-256 del script de referencia:
+  `cd58e2cc0c32a00f2087e8cb43a39e54b4a14380b4a46e41b402a99b771c6184`.
 
-## Objetivo
-Determinar si el script tiene limitaciones de sistema operativo o si puede usarse en cualquier sistema (Windows, macOS, Linux).
+El hash identifica el script analizado, no este documento.
+No certifica procedencia ni seguridad del entorno.
+
+## Objetivo y alcance
+
+Documentar las condiciones necesarias para instalar, probar y ejecutar
+el programa, separando compatibilidad esperada de resultados realmente
+observados.
+
+Este análisis no certifica todas las versiones de Python, sistemas
+operativos, arquitecturas, terminales o dependencias.
+
+## Resumen
+
+El proyecto está pensado para ejecutarse en distintos sistemas, pero el
+soporte debe comprobarse para una combinación concreta de sistema,
+arquitectura, Python, dependencias y terminal.
+
+Los resultados comunicados hasta ahora corresponden al entorno local
+del usuario. No permiten declarar soporte completo de Windows, macOS,
+BSD o de todas las distribuciones Linux.
+
+Pasar los vectores BIP39 no prueba por sí solo la entrada de terminal,
+el cifrado, los permisos ni la escritura de archivos.
 
 ---
 
-## ✅ Respuesta corta
+## Componentes que condicionan la compatibilidad
 
-**El script está escrito para funcionar en Windows, macOS y Linux con Python 3, pero esta compatibilidad no está verificada en todas las plataformas. Depende de las versiones de Python y de las tres dependencias instaladas..**
+| Componente | Uso en el proyecto | Qué debe verificarse |
+|---|---|---|
+| Python | Intérprete, biblioteca estándar, terminal y archivos | Versión concreta y ejecución de todos los flujos |
+| mnemonic | Wordlist y conversiones BIP39 | Versión instalada, lista efectiva y vectores |
+| bip-utils | Seed y derivaciones | Versión instalada y resultados de referencia |
+| cryptography | AES-256-GCM | Importación y ensayos de cifrado/autenticación |
+| hashlib.scrypt | KDF del export | Disponibilidad y ejecución del perfil configurado |
+| Terminal | Lectura oculta y decisiones | TTY, ausencia de eco, cancelación y timeout |
+| Sistema de archivos | Temporales, reemplazo y permisos | Comportamiento y pruebas en el destino real |
+
+Las dependencias no están fijadas mediante un archivo de versiones y
+hashes en la distribución revisada. No se establece aquí una versión
+mínima universal a partir de declaraciones históricas de los paquetes.
+
+La disponibilidad de paquetes precompilados o la necesidad de compilar
+depende de la combinación de paquete, versión, plataforma y arquitectura.
+
+No ejecutar la herramienta con privilegios de administrador para
+resolver automáticamente un problema de instalación.
 
 ---
 
-## ✅ Análisis detallado por componente
+## Matriz de resultados registrados
 
-### 1. `mnemonic` library (Trezor)
+| Entorno | Python y dependencias | Evidencia | Estado |
+|---|---|---|---|
+| Entorno local Linux comunicado por el usuario | Versiones exactas pendientes de registrar | Vectores BIP39, cifrado, entrada segura y flujos manuales | Probado para esos ensayos |
+| Windows | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar |
+| macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar |
+| BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
 
-**Cross-platform:**
-- ✅ **Python puro**: No tiene dependencias nativas
-- ✅ **Funciona en**: Windows, macOS, Linux, BSD
-- ✅ **Requisito**: Python 3.7+
+La fila Linux no representa todas las distribuciones ni todas las
+arquitecturas. Deben añadirse distribución, versión, arquitectura,
+Python y versiones de paquetes antes de usarla como matriz reproducible.
 
-### 2. `bip-utils` library
+Los tests con mocks comprueban la política programada de rechazo y
+normalización; no recrean todos los comportamientos de una terminal real.
 
-**Cross-platform:**
-- ✅ **Python puro**: Instalado desde PyPI
-- ✅ **Funciona en**: Windows, macOS, Linux
-- ✅ **Requisito**: Python 3+
+---
 
-### 3. `cryptography` library
+## Preparación del entorno
 
-**Cross-platform con soporte oficial:**
-- ✅ **Windows**: x86-64, 64-bit (wheels preconstruidos)
-- ✅ **macOS**: ARM64 (Apple Silicon), x86-64 (Intel)
-- ✅ **Linux**: x86-64, ARM64, múltiples distribuciones
-- ✅ **Requisito**: Python 3.7+
+Ejecutar desde la raíz de una copia local de confianza.
 
-**Instalación automática:**
+La instalación de dependencias debe prepararse antes de trasladar
+el proyecto a un entorno offline. Los comandos siguientes no constituyen
+una instalación reproducible mientras las versiones y hashes no estén fijados.
+
+### Linux/macOS: ejemplo con entorno virtual
+
 ```bash
-pip install cryptography
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install mnemonic bip-utils cryptography
+python --version
 ```
 
----
+Estos comandos son una propuesta de preparación, no evidencia de que
+todas las plataformas o versiones funcionen.
 
-## ✅ Instalación en cada sistema
+### Windows PowerShell: ejemplo con entorno virtual
 
-### Linux (cualquier distribución)
-
-```bash
-# Ubuntu, Debian, Fedora, CentOS, Arch, etc.
-python3 -m pip install mnemonic bip-utils cryptography
-python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
-```
-
-### Windows (10, 11)
+Utiliza el comando de Python disponible y verificado en tu equipo.
 
 ```powershell
-# PowerShell o CMD
-python -m pip install mnemonic bip-utils cryptography
-python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install mnemonic bip-utils cryptography
+.\.venv\Scripts\python.exe --version
 ```
 
-### macOS (Intel y Apple Silicon)
+No es necesario activar el entorno para utilizar su ejecutable explícito.
+No desactives controles de seguridad ni eleves privilegios como paso
+automático de esta guía.
+
+---
+
+## Generador del sistema y operaciones de archivo
+
+### os.urandom()
+
+El script solicita bytes mediante os.urandom(). La implementación
+concreta depende de Python y del sistema operativo.
+
+Este documento no atribuye una API interna únicamente a partir del
+nombre o versión del sistema. Tampoco certifica la salud del generador,
+la ausencia de compromisos ni un comportamiento siempre no bloqueante.
+
+### Archivos temporales
+
+write_secure_file() utiliza tempfile.mkstemp() indicando como directorio
+la carpeta del destino.
+
+Por tanto, el temporal no se crea necesariamente en /tmp o %TEMP%:
+se crea junto al archivo de salida, según la ruta configurada.
+
+En el flujo normal, el contenido se cifra antes de escribir el temporal.
+Se realizan flush y fsync sobre el archivo y después os.replace().
+
+Este mecanismo no garantiza ausencia de sobrescritura concurrente ni
+todas las propiedades de durabilidad ante pérdida de alimentación.
+Esas pruebas siguen pendientes.
+
+### Permisos
+
+El programa intenta aplicar 0o600. En sistemas que utilizan permisos
+POSIX, ese modo limita los bits de lectura/escritura al propietario.
+
+No equivale a una política completa de ACL de Windows. Tampoco elimina
+riesgos de malware, procesos con privilegios, backups o sincronización.
+
+El código actual ignora algunos errores de chmod; la interfaz puede
+indicar exportación correcta sin certificar la política efectiva
+de permisos.
+
+### Rutas
+
+Las rutas con espacios deben escribirse entre comillas.
+No confundir la raíz del proyecto con la carpeta output.
+
+La política actual de nombres secuenciales no es una reserva exclusiva
+para dos procesos concurrentes.
+
+---
+
+## Requisitos de ejecución de la versión analizada
+
+- Python y dependencias en una combinación probada.
+- hashlib.scrypt disponible y capaz de ejecutar el perfil configurado.
+- Memoria suficiente para la KDF.
+- Carpeta de destino accesible para crear temporales y el archivo final.
+- Terminal compatible cuando se solicitan secretos.
+
+No se declara todavía un mínimo universal de Python. py_compile,
+importación y suites deben ejecutarse con el intérprete objetivo.
+
+### Perfil scrypt
+
+La versión analizada utiliza:
+
+- N = 2**18.
+- r = 8.
+- p = 1.
+- dklen = 32.
+- Salt de 16 bytes.
+- maxmem = 512 MiB.
+
+maxmem es el límite configurado para la implementación; no indica que
+se reserve automáticamente toda esa memoria. La disponibilidad real
+debe comprobarse mediante los tests en el equipo objetivo.
+
+Si scrypt falla, no debe sustituirse automáticamente por SHA-256 directo
+ni reducirse silenciosamente el perfil.
+
+---
+
+## Terminal y entrada sensible
+
+read_hidden_secret() comprueba que stdin y stdout sean TTY.
+Después utiliza getpass y rechaza GetPassWarning.
+
+El flujo que solicita secretos no debe ejecutarse con entrada o salida
+redirigida. Por ejemplo, -i con stdin desde /dev/null se rechaza.
+
+Esto es una política del programa, no una certificación de que cualquier
+TTY esté libre de capturas, malware o registros.
+
+--run-tests y los tests automáticos que no leen secretos no requieren
+esa interacción y pueden registrar su salida.
+
+### Cancelación
+
+La contraseña de exportación se solicita dentro del manejo de
+EOF y Ctrl+C. También se manejan cancelaciones durante la construcción
+del contexto y la exportación.
+
+La cobertura debe comprobarse en cada terminal objetivo.
+
+### Timeout
+
+La decisión sobre contraseña corta usa la capa temporizada, con
+360 segundos predeterminados.
+
+No existe un timeout global para todo el flujo ni para todas las
+lecturas de secretos. La decisión puede reiniciar su espera al recibir
+una opción inválida.
+
+La implementación de decisiones temporizadas utiliza mecanismos
+distintos en Unix y Windows; ambos necesitan pruebas reales por entorno.
+
+---
+
+## Protocolo de comprobación
+
+### Linux/macOS
+
+Desde la raíz, con el intérprete del entorno preparado:
 
 ```bash
-# Terminal
-python3 -m pip install mnemonic bip-utils cryptography
-python3 bip39_seed_report.py --run-tests --vectors-file vectors.json
+python -m py_compile bip39_seed_report.py
+python bip39_seed_report.py --help
+python bip39_seed_report.py --run-tests --vectors-file vectors.json
+PYTHONPATH="$PWD" python test/test_cifrado_report.py
+PYTHONPATH="$PWD" python test/test_entrada_segura.py
 ```
 
----
+La invocación con PYTHONPATH está comprobada en el entorno Linux
+comunicado. No debe generalizarse como prueba realizada en macOS.
 
-## ✅ Funciones específicas del sistema
+### Windows PowerShell
 
-### `os.urandom()` por sistema
+Desde la raíz, con el entorno virtual del ejemplo anterior:
 
-| Sistema | Implementación | Fuente |
-|---------|---------------|---------|
-| Linux 3.17+ | `getrandom()` syscall | ✅ CSPRNG del sistema |
-| Linux <3.17 | `/dev/urandom` | ✅ CSPRNG del sistema |
-| Windows 10+ | `BCryptGenRandom()` | ✅ CSPRNG del sistema |
-| Windows 7-8 | `CryptGenRandom()` | ✅ CSPRNG del sistema |
-| macOS 10.12+ | `getentropy()` / `/dev/urandom` | ✅ CSPRNG del sistema |
-| OpenBSD 5.6+ | `getentropy()` | ✅ CSPRNG del sistema |
+```powershell
+.\.venv\Scripts\python.exe -m py_compile bip39_seed_report.py
+.\.venv\Scripts\python.exe bip39_seed_report.py --help
+.\.venv\Scripts\python.exe bip39_seed_report.py --run-tests --vectors-file vectors.json
+```
 
-**Documentación oficial de Python:**
-> "On a Unix-like system this will query /dev/urandom, and on Windows it will use CryptGenRandom()."
+Para los tests situados en test, puede usarse temporalmente la raíz
+como ruta de importación. Esta propuesta debe probarse en Windows:
 
-**Depende de que el sistema operativo no esté comprometido**
+```powershell
+$anterior = $env:PYTHONPATH
+try {
+    $env:PYTHONPATH = (Get-Location).Path
+    .\.venv\Scripts\python.exe test/test_cifrado_report.py
+    .\.venv\Scripts\python.exe test/test_entrada_segura.py
+}
+finally {
+    $env:PYTHONPATH = $anterior
+}
+```
 
-### `tempfile.mkstemp()` - Archivos temporales
+### Flujos manuales
 
-**Funciona en todos los sistemas:**
-- ✅ **Linux/Unix**: `/tmp/` o directorio temporal del sistema
-- ✅ **Windows**: `%TEMP%` o directorio temporal del usuario
-- ✅ **macOS**: `/tmp/` o directorio temporal del sistema
+Con material ficticio, comprobar:
 
-### `os.chmod()` - Permisos de archivo
+- Contraseña vacía y confirmación diferente.
+- Ctrl+C en primera contraseña y confirmación.
+- Decisiones y/n/Enter/inválida/timeout.
+- Rechazo sin TTY.
+- Lectores de mnemonic, entropy binaria y hexadecimal.
+- Passphrase vacía, discrepancia y reingreso.
+- Mainnet/testnet y precedencia de -n.
+- Exportación y descifrado del archivo realmente escrito.
+- Permisos efectivos y fallos de escritura.
 
-**Funciona en todos los sistemas:**
-- ✅ **Linux/Unix**: `0o600` (solo propietario)
-- ✅ **macOS**: `0o600` (solo propietario)
-- ✅ **Windows**: os.chmod(`0o600`) no equivale de forma fiable a una ACL de NTFS en Windows
-
----
-
-## ✅ Requisitos mínimos por sistema
-
-### Linux
-- ✅ Python 3.7+
-- ✅ pip3
-- ✅ (Opcional) OpenSSL para `cryptography`
-
-### Windows
-- ✅ Python 3.7+ (64-bit recomendado)
-- ✅ pip
-- ✅ No requiere OpenSSL adicional (wheels preconstruidos)
-
-### macOS
-- ✅ Python 3.7+
-- ✅ pip3
-- ✅ Xcode Command Line Tools (para compilar dependencias si es necesario)
+Las pruebas automáticas y manuales son complementarias.
 
 ---
 
-## ✅ Instalación en todos los sistemas
+## Datos que deben acompañar a cada resultado
+
+Registrar:
+
+- Fecha y commit o hash del script.
+- Distribución y versión del sistema.
+- Arquitectura.
+- Python e implementación.
+- Versiones de mnemonic, bip-utils y cryptography.
+- Terminal utilizada.
+- Suites y flujos ejecutados.
+- Fallos y limitaciones observadas.
+
+Comando para registrar Python y paquetes, usando el intérprete probado:
 
 ```bash
-# 1. Verificar Python
-python --version  # o python3 --version
-
-# 2. Instalar dependencias
-python -m pip install mnemonic bip-utils cryptography  # Windows
-python3 -m pip install mnemonic bip-utils cryptography  # Linux/macOS
-
-# 3. Verificar instalación
-python -c "from mnemonic import Mnemonic; from bip_utils import Bip44; from cryptography.hazmat.primitives.ciphers.aead import AESGCM; print('✅ Todo instalado')"
+python -c 'import sys, platform; from importlib.metadata import version; print("Python:", sys.version); print("Implementación:", platform.python_implementation()); print("Arquitectura:", platform.machine()); print("Sistema:", platform.system(), platform.release()); print("Paquetes:", {n: version(n) for n in ("mnemonic", "bip-utils", "cryptography")})'
 ```
 
----
+La versión del kernel no sustituye la distribución. En Linux, registrar
+también los campos pertinentes de /etc/os-release.
 
-## ⚠️ Consideraciones por sistema
-
-### Windows
-
-| Aspecto | Estado |
-|---------|--------|
-| **Ventaja** | ✅ Wheels preconstruidos, no requiere compilación |
-| **Recomendación** | ✅ Verifica el hash del script antes de ejecutarlo |
-| **Nota** | ⚠️ Windows Defender puede marcar scripts Python como sospechosos (falso positivo) |
-
-### Linux
-
-| Aspecto | Estado |
-|---------|--------|
-| **Ventaja** | ✅ Máximo control y transparencia |
-| **Recomendación** | ✅ Usar en entorno offline para mayor seguridad |
-| **Nota** | ⚠️ Algunas distribuciones pueden requerir instalar `python3-dev` o `libssl-dev` |
-
-### macOS
-
-| Aspecto | Estado |
-|---------|--------|
-| **Ventaja** | ✅ Sistema Unix-like con buena seguridad |
-| **Recomendación** | ✅ Usar Python oficial de python.org o Homebrew |
+No incluir secretos, exports privados o información innecesaria del
+equipo en los logs publicados.
 
 ---
 
-## ✅ Conclusión
+## Conclusión
 
-El script está pensado para ser multiplataforma, pero la compatibilidad debe
-confirmarse en cada entorno con `--run-tests`. Ejecútalo solo offline, en un
-entorno confiable (por ejemplo un sistema Live USB) y con dependencias de
-versiones conocidas.
+La versión analizada tiene resultados satisfactorios en los ensayos
+comunicados del entorno local, pero no una matriz completa de soporte.
 
-| Sistema | Compatibilidad |
-|---------|---------------|
-| Windows 10/11 | ✅ Objetivo de compatibilidad; ver matriz de pruebas |
-| macOS (Intel y Apple Silicon) | ✅ Funciona |
-| Linux (cualquier distribución) | ✅ Funciona |
+La compatibilidad se establece para una combinación concreta de sistema,
+arquitectura, intérprete, dependencias, terminal y sistema de archivos.
 
-**Recomendación**: Para mayor seguridad, usar en cualquier sistema pero **siempre offline** en entorno confiable (Live USB, máquina air-gapped, etc.).
+Pasar los vectores BIP39 no certifica todos los flujos. Windows, macOS,
+BSD y otras combinaciones requieren pruebas específicas antes de
+declararlas compatibles.
+
+Ejecutar offline y sobre un entorno controlado reduce exposición, pero
+no certifica seguridad. El proyecto permanece educativo y no se
+recomienda con fondos reales.
 
 ---
 
