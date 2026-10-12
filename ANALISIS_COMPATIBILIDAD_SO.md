@@ -6,10 +6,10 @@
 - Actualización documental: 12 de octubre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio: JonnyFJi/bip39-seed-report.
-- Commit consultado:
-  `179616efbcf1942806d7793ba2a3f0f68e1801f6`.
+- Commit de referencia:
+  `bbcff63daf5ca10b5a0f94218a660fc007e93b72`.
 - SHA-256 del script de referencia:
-  `cd58e2cc0c32a00f2087e8cb43a39e54b4a14380b4a46e41b402a99b771c6184`.
+  `365fafdfa71f9c0a91c088c4428335a5b96fbbce99434bff112d7152736bf55e`.
 
 El hash identifica el script analizado, no este documento.
 No certifica procedencia ni seguridad del entorno.
