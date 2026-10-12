@@ -4,7 +4,11 @@ __pycache__/
 
 # Entornos locales
 .venv/
+.venv-*/
 venv/
+
+# Entornos virtuales locales de verificación
+.venv-*/
 
 # Reportes y datos de ejecución
 output/
