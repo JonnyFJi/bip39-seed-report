@@ -873,6 +873,58 @@ def derive_addresses_bip86(seed, coin, coin_type, gap_limit=GAP_LIMIT):
     }
 
 
+# Limites de la politica local; no cambian el formato version 1.
+MAX_ENCRYPTED_REPORT_BYTES = 16 * 1024 * 1024
+MAX_REPORT_PLAINTEXT_BYTES = 8 * 1024 * 1024
+AES_GCM_TAG_BYTES = 16
+
+
+def _check_encrypted_text_size(value: str) -> None:
+    if not isinstance(value, str):
+        raise TypeError("El contenido cifrado debe ser texto.")
+    if len(value) > MAX_ENCRYPTED_REPORT_BYTES:
+        raise ValueError("El contenedor cifrado excede el limite admitido.")
+    try:
+        size = len(value.encode("utf-8"))
+    except UnicodeEncodeError:
+        raise ValueError("El contenedor no es texto UTF-8 valido.") from None
+    if size > MAX_ENCRYPTED_REPORT_BYTES:
+        raise ValueError("El contenedor cifrado excede el limite admitido.")
+
+
+def _reject_duplicate_json_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("El contenedor contiene claves JSON duplicadas.")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value):
+    raise ValueError("El contenedor contiene constantes JSON no admitidas.")
+
+
+def _require_exact_keys(value, expected, label):
+    if type(value) is not dict or set(value) != set(expected):
+        raise ValueError("Estructura no admitida en " + label + ".")
+
+
+def _decode_report_b64(value, label, minimum, maximum):
+    if type(value) is not str:
+        raise ValueError("El campo " + label + " debe ser texto base64.")
+    max_chars = 4 * ((maximum + 2) // 3)
+    if len(value) > max_chars:
+        raise ValueError("El campo " + label + " excede el limite admitido.")
+    try:
+        decoded = base64.b64decode(value, validate=True)
+    except (ValueError, TypeError):
+        raise ValueError("Base64 invalido en " + label + ".") from None
+    if not minimum <= len(decoded) <= maximum:
+        raise ValueError("Longitud no admitida en " + label + ".")
+    return decoded
+
+
 def _canonical_encryption_aad(
     report_format: str,
     version: int,
@@ -939,6 +991,17 @@ def _encrypt_report_content(content: str, password: str) -> str:
             "La librería cryptography es requerida para cifrar archivos."
         )
 
+    if not isinstance(content, str):
+        raise TypeError("El contenido del reporte debe ser texto.")
+    if len(content) > MAX_REPORT_PLAINTEXT_BYTES:
+        raise ValueError("El reporte excede el limite admitido.")
+    try:
+        plaintext_bytes = content.encode("utf-8")
+    except UnicodeEncodeError:
+        raise ValueError("El reporte no es texto UTF-8 valido.") from None
+    if len(plaintext_bytes) > MAX_REPORT_PLAINTEXT_BYTES:
+        raise ValueError("El reporte excede el limite admitido.")
+
     salt = os.urandom(SCRYPT_SALT_BYTES)
     nonce = os.urandom(AES_GCM_NONCE_BYTES)
     aad = _canonical_encryption_aad(
@@ -961,7 +1024,7 @@ def _encrypt_report_content(content: str, password: str) -> str:
     )
     ciphertext = AESGCM(key).encrypt(
         nonce,
-        content.encode("utf-8"),
+        plaintext_bytes,
         aad,
     )
 
@@ -990,116 +1053,70 @@ def _encrypt_report_content(content: str, password: str) -> str:
     ) + "\n"
 
 
-def _decrypt_versioned_report(
-    encrypted_content: str,
-    password: str,
-) -> str:
+def _decrypt_versioned_report(encrypted_content: str, password: str) -> str:
+    _check_encrypted_text_size(encrypted_content)
     try:
-        container = json.loads(encrypted_content)
-    except json.JSONDecodeError as exc:
-        raise ValueError("El archivo cifrado no contiene JSON válido.") from exc
+        container = json.loads(
+            encrypted_content,
+            object_pairs_hook=_reject_duplicate_json_keys,
+            parse_constant=_reject_json_constant,
+        )
+    except (json.JSONDecodeError, RecursionError):
+        raise ValueError("El archivo cifrado no contiene JSON admitido.") from None
 
-    if not isinstance(container, dict):
-        raise ValueError("El contenedor cifrado debe ser un objeto JSON.")
-
-    if container.get("format") != ENCRYPTED_REPORT_FORMAT:
+    _require_exact_keys(
+        container, {"format", "version", "cipher", "kdf", "ciphertext_b64"},
+        "el contenedor",
+    )
+    if container["format"] != ENCRYPTED_REPORT_FORMAT:
         raise ValueError("Formato de contenedor cifrado no reconocido.")
-
-    version = container.get("version")
+    version = container["version"]
     if type(version) is not int or version != ENCRYPTED_REPORT_VERSION:
-        raise ValueError(
-            f"Versión de contenedor no soportada: {version!r}."
-        )
+        raise ValueError("Version de contenedor no soportada.")
 
-    cipher_data = container.get("cipher")
-    kdf_data = container.get("kdf")
-    ciphertext_b64 = container.get("ciphertext_b64")
-
-    if not isinstance(cipher_data, dict):
-        raise ValueError("Metadatos de cifrado inválidos.")
-
-    if not isinstance(kdf_data, dict):
-        raise ValueError("Metadatos KDF inválidos.")
-
-    if cipher_data.get("name") != ENCRYPTED_REPORT_CIPHER:
+    cipher_data = container["cipher"]
+    kdf_data = container["kdf"]
+    _require_exact_keys(cipher_data, {"name", "nonce_b64"}, "cipher")
+    _require_exact_keys(
+        kdf_data, {"name", "n", "r", "p", "dklen", "salt_b64"}, "kdf",
+    )
+    if cipher_data["name"] != ENCRYPTED_REPORT_CIPHER:
         raise ValueError("Algoritmo de cifrado no soportado.")
-
-    if kdf_data.get("name") != ENCRYPTED_REPORT_KDF:
+    if kdf_data["name"] != ENCRYPTED_REPORT_KDF:
         raise ValueError("KDF no soportada.")
-
-    n = kdf_data.get("n")
-    r = kdf_data.get("r")
-    p = kdf_data.get("p")
-    dklen = kdf_data.get("dklen")
-
-    parameters = (n, r, p, dklen)
-
+    parameters = tuple(kdf_data[key] for key in ("n", "r", "p", "dklen"))
     if any(type(value) is not int for value in parameters):
-        raise ValueError("Los parámetros scrypt deben ser enteros.")
-
+        raise ValueError("Los parametros scrypt deben ser enteros.")
     if parameters != (SCRYPT_N, SCRYPT_R, SCRYPT_P, SCRYPT_DKLEN):
-        raise ValueError(
-            "Perfil scrypt no admitido para este formato de reporte."
-        )
+        raise ValueError("Perfil scrypt no admitido para este formato de reporte.")
+    n, r, p, dklen = parameters
 
-    try:
-        salt = base64.b64decode(
-            kdf_data["salt_b64"],
-            validate=True,
-        )
-        nonce = base64.b64decode(
-            cipher_data["nonce_b64"],
-            validate=True,
-        )
-        ciphertext = base64.b64decode(
-            ciphertext_b64,
-            validate=True,
-        )
-    except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError(
-            "El contenedor cifrado tiene datos base64 inválidos."
-        ) from exc
-
-    if len(nonce) != AES_GCM_NONCE_BYTES:
-        raise ValueError("El nonce AES-GCM tiene longitud inválida.")
-
+    salt = _decode_report_b64(
+        kdf_data["salt_b64"], "salt", SCRYPT_SALT_BYTES, SCRYPT_SALT_BYTES,
+    )
+    nonce = _decode_report_b64(
+        cipher_data["nonce_b64"], "nonce", AES_GCM_NONCE_BYTES, AES_GCM_NONCE_BYTES,
+    )
+    ciphertext = _decode_report_b64(
+        container["ciphertext_b64"], "ciphertext", AES_GCM_TAG_BYTES,
+        MAX_REPORT_PLAINTEXT_BYTES + AES_GCM_TAG_BYTES,
+    )
     aad = _canonical_encryption_aad(
-        ENCRYPTED_REPORT_FORMAT,
-        version,
-        cipher_data["name"],
-        kdf_data["name"],
-        n,
-        r,
-        p,
-        dklen,
+        ENCRYPTED_REPORT_FORMAT, version, cipher_data["name"],
+        kdf_data["name"], n, r, p, dklen,
     )
-    key = _derive_scrypt_key(
-        password,
-        salt,
-        n,
-        r,
-        p,
-        dklen,
-    )
-
+    key = _derive_scrypt_key(password, salt, n, r, p, dklen)
     try:
-        plaintext = AESGCM(key).decrypt(
-            nonce,
-            ciphertext,
-            aad,
-        )
-    except InvalidTag as exc:
+        plaintext = AESGCM(key).decrypt(nonce, ciphertext, aad)
+    except InvalidTag:
         raise ValueError(
-            "No se pudo descifrar el reporte. La contraseña es incorrecta "
+            "No se pudo descifrar el reporte. La contrasena es incorrecta "
             "o el archivo fue alterado."
-        ) from exc
-
+        ) from None
     try:
         return plaintext.decode("utf-8")
-    except UnicodeDecodeError as exc:
-        raise ValueError(
-            "El contenido descifrado no es UTF-8 válido."
-        ) from exc
+    except UnicodeDecodeError:
+        raise ValueError("El contenido descifrado no es UTF-8 valido.") from None
 
 
 def _decrypt_legacy_report(
@@ -1112,18 +1129,14 @@ def _decrypt_legacy_report(
         "para migrarlo y vuelve a exportarlo en el formato actual."
     )
 
-    try:
-        encrypted_data = base64.b64decode(
-            encrypted_content[len("ENCRYPTED:"):],
-            validate=True,
-        )
-    except ValueError as exc:
-        raise ValueError(
-            "El archivo histórico tiene base64 inválido."
-        ) from exc
-
-    if len(encrypted_data) <= AES_GCM_NONCE_BYTES:
-        raise ValueError("El archivo histórico está incompleto.")
+    _check_encrypted_text_size(encrypted_content)
+    if not encrypted_content.startswith("ENCRYPTED:"):
+        raise ValueError("Cabecera historica invalida.")
+    encrypted_data = _decode_report_b64(
+        encrypted_content[len("ENCRYPTED:"):], "contenedor historico",
+        AES_GCM_NONCE_BYTES + AES_GCM_TAG_BYTES,
+        AES_GCM_NONCE_BYTES + AES_GCM_TAG_BYTES + MAX_REPORT_PLAINTEXT_BYTES,
+    )
 
     nonce = encrypted_data[:AES_GCM_NONCE_BYTES]
     ciphertext = encrypted_data[AES_GCM_NONCE_BYTES:]
@@ -1155,8 +1168,7 @@ def decrypt_report_content(encrypted_content: str, password: str) -> str:
             "La librería cryptography es requerida para descifrar archivos."
         )
 
-    if not isinstance(encrypted_content, str):
-        raise TypeError("El contenido cifrado debe ser texto.")
+    _check_encrypted_text_size(encrypted_content)
 
     if encrypted_content.startswith("ENCRYPTED:"):
         return _decrypt_legacy_report(encrypted_content, password)
