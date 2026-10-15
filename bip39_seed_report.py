@@ -1176,52 +1176,90 @@ def decrypt_report_content(encrypted_content: str, password: str) -> str:
     return _decrypt_versioned_report(encrypted_content, password)
 
 
+MAX_REPORT_PATH_ATTEMPTS = 10000
+
+
+def _report_destination(path) -> pathlib.Path:
+    """Resuelve el padre, pero no sigue un enlace en el nombre final."""
+    requested = pathlib.Path(path).expanduser()
+    return requested.parent.resolve() / requested.name
+
+
+def _report_candidates(destination):
+    yield destination
+    for counter in range(1, MAX_REPORT_PATH_ATTEMPTS):
+        yield destination.parent / (
+            f"{destination.stem}_{counter:03d}{destination.suffix}"
+        )
+
+
+def _write_report_payload(path, payload: str, *, sequential: bool) -> pathlib.Path:
+    """Publica un temporal completo sin reemplazar destinos existentes.
+
+    Requiere enlaces duros y un directorio de confianza. No garantiza
+    durabilidad del directorio ni defensa contra cambios hostiles del padre.
+    """
+    if not isinstance(payload, str):
+        raise TypeError("El contenido a escribir debe ser texto.")
+    destination = _report_destination(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_name = tempfile.mkstemp(
+        prefix=".bip39-report-", suffix=".tmp", dir=str(destination.parent),
+    )
+    published = False
+    try:
+        handle = os.fdopen(fd, "w", encoding="utf-8", newline="\n")
+        fd = None  # El descriptor pertenece ahora a handle.
+        with handle:
+            if os.name == "posix":
+                os.fchmod(handle.fileno(), 0o600)
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+
+        candidates = _report_candidates(destination) if sequential else (destination,)
+        for candidate in candidates:
+            try:
+                os.link(temp_name, candidate)
+            except FileExistsError:
+                if not sequential:
+                    raise
+                continue
+            published = True
+            return candidate
+        raise FileExistsError(
+            "No se encontro un nombre libre dentro del limite de intentos."
+        )
+    finally:
+        if fd is not None:
+            os.close(fd)
+        try:
+            os.unlink(temp_name)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            state = "publicado" if published else "no publicado"
+            print(
+                "ADVERTENCIA: reporte " + state
+                + "; no se pudo eliminar su temporal. Revisar la carpeta de salida.",
+                file=sys.stderr,
+            )
+
+
 def write_secure_file(
     path: str,
     content: str,
     encrypt: bool = True,
     password: str | None = None,
 ) -> None:
-    destination = pathlib.Path(path).expanduser().resolve()
-    destination.parent.mkdir(parents=True, exist_ok=True)
-
+    """Escribe solo en el destino exacto; si existe, falla sin reemplazarlo."""
     if encrypt:
         if not password:
-            raise ValueError(
-                "Se requiere una contraseña para cifrar el reporte."
-            )
-        content_to_write = _encrypt_report_content(content, password)
+            raise ValueError("Se requiere una contrasena para cifrar el reporte.")
+        payload = _encrypt_report_content(content, password)
     else:
-        content_to_write = content
-
-    fd, temp_name = tempfile.mkstemp(
-        prefix=destination.name + ".",
-        dir=str(destination.parent),
-    )
-
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as file_handle:
-            file_handle.write(content_to_write)
-            file_handle.flush()
-            os.fsync(file_handle.fileno())
-
-        try:
-            os.chmod(temp_name, 0o600)
-        except OSError:
-            pass
-
-        os.replace(temp_name, destination)
-
-        try:
-            os.chmod(destination, 0o600)
-        except OSError:
-            pass
-    finally:
-        if os.path.exists(temp_name):
-            try:
-                os.remove(temp_name)
-            except OSError:
-                pass
+        payload = content
+    _write_report_payload(path, payload, sequential=False)
 
 
 def decrypt_file_content(encrypted_content, password):
@@ -1230,17 +1268,13 @@ def decrypt_file_content(encrypted_content, password):
 
 
 def generate_sequential_path(base_path):
-    destination = pathlib.Path(base_path).expanduser().resolve()
+    """Propone un nombre libre; no lo reserva. No usar como garantia concurrente."""
+    destination = _report_destination(base_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    if not destination.exists():
-        return destination
-    stem, suffix, parent = destination.stem, destination.suffix, destination.parent
-    counter = 1
-    while True:
-        new_path = parent / f"{stem}_{counter:03d}{suffix}"
-        if not new_path.exists():
-            return new_path
-        counter += 1
+    for candidate in _report_candidates(destination):
+        if not os.path.lexists(candidate):
+            return candidate
+    raise FileExistsError("No se encontro un nombre libre dentro del limite de intentos.")
 
 
 def audit_passphrase(passphrase):
@@ -1834,9 +1868,8 @@ def export_seed_report(data, output_path, output_format, password):
     else:
         content = format_report(data, terminal_mode=False, hide_sensitive=False) + "\n"
 
-    final_path = generate_sequential_path(output_path)
-    write_secure_file(final_path, content, encrypt=True, password=password)
-    return final_path
+    payload = _encrypt_report_content(content, password)
+    return _write_report_payload(output_path, payload, sequential=True)
 
 
 def load_vectors(vectors_path):
