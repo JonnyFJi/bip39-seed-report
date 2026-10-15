@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental: 12 de octubre de 2026.
+- Actualización documental: 15 de octubre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -90,6 +90,20 @@ universal ni una instalación reproducible con hashes.
 | Windows | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar |
 | macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar |
 | BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
+
+### Actualización del ensayo del contenedor — 15 de octubre de 2026
+
+Para el ensayo del contenedor se registró Python 3.10.12 y el SHA-256
+indicado en la sección «Actualización posterior de referencia».
+La suite test/test_contenedor_report.py terminó con 18 métodos correctos
+y código de salida 0 en las dos ejecuciones comunicadas.
+
+Este resultado corresponde al ensayo del 15 de octubre de 2026.
+No atribuye retrospectivamente esa versión de Python a los ensayos
+anteriores registrados en la matriz.
+
+La distribución y arquitectura exactas de ese ensayo siguen pendientes
+de registrar.
 
 La fila Linux no representa todas las distribuciones ni todas las
 arquitecturas. Deben añadirse distribución, versión, arquitectura,

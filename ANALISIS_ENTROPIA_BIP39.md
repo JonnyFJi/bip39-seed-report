@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental: 12 de octubre de 2026.
+- Actualización documental: 15 de octubre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio de referencia: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
