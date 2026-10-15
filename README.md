@@ -154,6 +154,7 @@ Desde la raíz del proyecto, en Linux/macOS y utilizando una copia local de conf
 ```bash
 PYTHONPATH="$PWD" python3 test/test_cifrado_report.py
 PYTHONPATH="$PWD" python3 test/test_entrada_segura.py
+PYTHONPATH="$PWD" python3 test/test_contenedor_report.py
 ```
 
 Ejecuta esos comandos desde la raíz y compruébalos en una descarga limpia.
@@ -170,6 +171,13 @@ GetPassWarning y la confirmación/normalización Unicode.
 
 Las pruebas usan exclusivamente material ficticio. No introduzcas
 secrets reales en los tests.
+
+La suite del contenedor comprueba estructura, tipos, claves duplicadas,
+base64 y límites. Verifica rechazos antes de ejecutar la KDF e incluye
+casos positivos con scrypt real y compatibilidad histórica.
+
+Consulta test/README.md para los comandos con el entorno virtual
+y el alcance de las pruebas.
 
 ## Indicadores informativos de patrón
 
@@ -569,10 +577,12 @@ Implementado y probado en los ensayos registrados:
 - Compatibilidad de descifrado histórico.
 - Permiso explícito para secretos CLI.
 - Suite BIP39 y pruebas de cifrado y entrada segura.
+- Validación estricta del contenedor versión 1: estructura, tipos, claves duplicadas, base64 y límites de tamaño.
+- Suite del contenedor con rechazos anteriores a la KDF, casos positivos y compatibilidad histórica.
 
 Pendiente:
 
-- Validación estricta del contenedor, límites de tamaño y claves JSON duplicadas.
+- Lectura limitada desde disco antes de cargar el contenedor completo en memoria.
 - Protección y pruebas de escritura concurrente.
 - Perfiles de recuperación, auditoría y laboratorio.
 - Revelación granular de secrets.

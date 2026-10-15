@@ -16,13 +16,22 @@ El reporte privado debe tratarse como secreto, incluso cifrado.
 No publicar esos datos en issues, pull requests, capturas o logs.
 No adjuntar exports privados para comunicar un fallo.
 
+## Controles del contenedor
+
+El formato versión 1 comprueba estructura, tipos, claves JSON duplicadas,
+algoritmos admitidos, perfil scrypt, base64 y longitudes antes de ejecutar
+la KDF cuando la entrada no cumple esas condiciones.
+
+Estos controles no sustituyen la autenticación AES-GCM ni certifican
+seguridad del entorno.
+
 ## Límites conocidos
 
 - El entorno, Python, dependencias y hardware no quedan certificados.
 - El cifrado no compensa una contraseña predecible.
 - La lectura oculta no protege un host comprometido.
 - Limpiar pantalla o borrar archivos no garantiza eliminación segura.
-- La validación estricta del contenedor sigue pendiente.
+- El contenedor aplica validación estructural y límites de tamaño, pero la lectura limitada desde disco antes de cargarlo en memoria sigue pendiente.
 - La protección frente a sobrescritura concurrente sigue pendiente.
 - La separación de perfiles de reporte sigue pendiente.
 - Las suites no cubren todas las derivaciones o plataformas.

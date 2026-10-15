@@ -14,6 +14,21 @@
 
 Los números de línea y las conclusiones deben revisarse cuando cambie el código de referencia. El hash identifica los bytes del archivo; no certifica su procedencia ni la seguridad del entorno.
 
+### Actualización posterior de referencia
+
+Este análisis conserva como base la versión y el hash indicados arriba.
+
+El commit 103c19637ed5b8c50c3117bf937a9c5332196059 incorpora posteriormente
+el endurecimiento del contenedor cifrado y su suite de regresión.
+
+La versión publicada del script tiene SHA-256:
+
+7e108699d9625054fbe2ba3750afa2b932f4b1903bda058a278c255bb23fc21a
+
+Los pendientes históricos deben interpretarse respecto de la base
+analizada. El estado actual del contenedor y sus pruebas se documenta
+en CHANGELOG.md y test/README.md.
+
 ## Objetivo y alcance
 
 Documentar cómo el script obtiene entropy, la transforma en una mnemonic y deriva una seed, y distinguir las comprobaciones implementadas de las propiedades que el programa no puede certificar.
@@ -189,7 +204,12 @@ SHA-256 directo permanece exclusivamente en el descifrado histórico para compat
 
 Los ensayos registrados de cifrado y compatibilidad pasaron, pero no certifican la imprevisibilidad del material BIP39 ni la fuerza de cualquier contraseña elegida por el usuario.
 
-Siguen pendientes la validación estricta del contenedor, límites de tamaño, escritura concurrente y separación de perfiles de reporte.
+En la base histórica analizada estaban pendientes la validación estricta
+del contenedor y los límites de tamaño. Ambos controles se incorporaron
+posteriormente con su suite de regresión.
+
+Siguen pendientes la escritura concurrente y la separación de perfiles
+de reporte.
 
 ### Uso de prueba
 

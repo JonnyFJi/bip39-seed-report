@@ -14,6 +14,21 @@
 El hash identifica el script analizado, no este documento.
 No certifica procedencia ni seguridad del entorno.
 
+### Actualización posterior de referencia
+
+Este análisis conserva como base la versión y el hash indicados arriba.
+
+El commit 103c19637ed5b8c50c3117bf937a9c5332196059 incorpora posteriormente
+el endurecimiento del contenedor cifrado y su suite de regresión.
+
+La versión publicada del script tiene SHA-256:
+
+7e108699d9625054fbe2ba3750afa2b932f4b1903bda058a278c255bb23fc21a
+
+Los pendientes históricos deben interpretarse respecto de la base
+analizada. El estado actual del contenedor y sus pruebas se documenta
+en CHANGELOG.md y test/README.md.
+
 ## Objetivo y alcance
 
 Documentar las condiciones necesarias para instalar, probar y ejecutar
