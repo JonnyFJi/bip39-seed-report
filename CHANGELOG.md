@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### Endurecimiento del contenedor cifrado — octubre de 2026
+
+- Rechazo de claves JSON duplicadas, incluidas claves anidadas,
+  y de constantes NaN e infinitos.
+- Validación de las claves exactas del contenedor versión 1 y de sus
+  objetos cipher y kdf.
+- Comprobaciones de tipos, algoritmos y perfil scrypt admitido.
+- Límites de tamaño para el contenedor, plaintext y datos base64.
+- Validación de longitudes de salt, nonce y ciphertext antes de
+  ejecutar la KDF.
+- Límites equivalentes para la lectura del formato histórico,
+  conservando su derivación de contraseña y su alias de compatibilidad.
+- Conservación de la versión 1 del formato, el perfil scrypt,
+  AES-256-GCM y la construcción de AAD existentes.
+
+### Pruebas del contenedor — 15 de octubre de 2026
+
+- Incorporación de test/test_contenedor_report.py con 18 métodos
+  de prueba y múltiples subcasos.
+- Comprobaciones de rechazo antes de llamar a la KDF y control positivo
+  que confirma su acceso cuando la estructura es admisible.
+- Pruebas de fronteras con límites temporales y mocks.
+- Round-trip con scrypt real y Unicode.
+- Pruebas de compatibilidad histórica y del alias de descifrado.
+- Dos ejecuciones satisfactorias comunicadas por el mantenedor en
+  Linux con Python 3.10.12; ambas finalizaron con código de salida 0.
+- Actualización de test/README.md con ejecución, alcance y limitaciones.
+
+La escritura sin sobrescritura concurrente, los permisos efectivos,
+la durabilidad del directorio y la lectura limitada desde disco
+permanecen pendientes.
+
 ### Organización aplicada en la rama principal
 
 - Movimiento de la suite a test/vectors.json.
