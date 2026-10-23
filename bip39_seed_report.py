@@ -1324,7 +1324,8 @@ def find_last_word(incomplete_phrase):
     checksum_bits = entropy_bits // 32
     valid_candidates = []
     print(f"Buscando palabras para completar mnemonic de {len(words)} palabras...")
-    print(f"Checksum de {checksum_bits} bits = {2**checksum_bits} posibilidades teóricas")
+    print(f"Checksum: {checksum_bits} bits; {2**checksum_bits} valores posibles.")
+    print("Ese número no es la cantidad de palabras candidatas.")
     for candidate_word in wordlist:
         if mnemo.check(incomplete_phrase + " " + candidate_word):
             valid_candidates.append(candidate_word)
@@ -1878,46 +1879,62 @@ def load_vectors(vectors_path):
 
 
 def run_bip39_test_vectors(vectors_path):
-    vectors = load_vectors(vectors_path)
+    """Ejecuta una suite inglesa no vacía; no verifica el cuarto campo BIP32."""
+    try:
+        vectors = load_vectors(vectors_path)
+    except OSError:
+        raise ValueError("No se pudo abrir o leer el archivo de vectores.") from None
+    except UnicodeError:
+        raise ValueError("El archivo de vectores no es UTF-8 válido.") from None
+    except json.JSONDecodeError:
+        raise ValueError("El archivo de vectores no contiene JSON válido.") from None
+
     if isinstance(vectors, dict):
-        if "english" in vectors:
-            vectors = vectors["english"]
-        else:
-            first_key = next(iter(vectors.keys()), None)
-            if first_key and isinstance(vectors[first_key], list):
-                vectors = vectors[first_key]
-            else:
-                raise ValueError("El archivo vectors.json no tiene el formato esperado.")
+        if "english" not in vectors:
+            raise ValueError("La suite debe contener el bloque 'english'.")
+        vectors = vectors["english"]
 
+    if not isinstance(vectors, list) or not vectors:
+        raise ValueError("La suite debe ser una lista no vacía de vectores.")
+
+    hex_digits = set("0123456789abcdefABCDEF")
+    prepared = []
     for i, vector in enumerate(vectors, start=1):
-        if isinstance(vector, list) and len(vector) == 3:
-            entropy_hex, expected_mnemonic, expected_seed = vector
-            entropy = bytes.fromhex(entropy_hex)
-            mnemonic = entropy_to_mnemonic(entropy)
-            if mnemonic != expected_mnemonic:
-                raise AssertionError(f"Vector {i}: mnemonic no coincide.")
-            seed = mnemonic_seed(mnemonic, "TREZOR").hex()
-            if seed != expected_seed:
-                raise AssertionError(f"Vector {i}: seed no coincide.")
-            roundtrip = mnemonic_to_entropy(mnemonic)
-            if roundtrip["entropy"].hex() != entropy_hex:
-                raise AssertionError(f"Vector {i}: entropía no coincide en round-trip.")
-        elif isinstance(vector, list) and len(vector) == 4:
-            entropy_hex, expected_mnemonic, expected_seed, _ = vector
-            entropy = bytes.fromhex(entropy_hex)
-            mnemonic = entropy_to_mnemonic(entropy)
-            if mnemonic != expected_mnemonic:
-                raise AssertionError(f"Vector {i}: mnemonic no coincide.")
-            seed = mnemonic_seed(mnemonic, "TREZOR").hex()
-            if seed != expected_seed:
-                raise AssertionError(f"Vector {i}: seed no coincide.")
-            roundtrip = mnemonic_to_entropy(mnemonic)
-            if roundtrip["entropy"].hex() != entropy_hex:
-                raise AssertionError(f"Vector {i}: entropía no coincide en round-trip.")
-        else:
-            raise ValueError(f"Vector {i}: formato no soportado.")
+        if not isinstance(vector, list) or len(vector) not in (3, 4):
+            raise ValueError(f"Vector {i}: se esperan 3 o 4 campos.")
+        if any(not isinstance(field, str) or not field.strip() for field in vector):
+            raise ValueError(f"Vector {i}: los campos deben ser textos no vacíos.")
 
-    print(f"Test vectors BIP39: OK ({len(vectors)} casos)")
+        entropy_hex, expected_mnemonic, expected_seed = vector[:3]
+        if (
+            len(entropy_hex) * 4 not in VALID_ENTROPY_BITS
+            or any(char not in hex_digits for char in entropy_hex)
+        ):
+            raise ValueError(f"Vector {i}: entropy hexadecimal no válida para BIP39.")
+        if (
+            len(expected_seed) != 128
+            or any(char not in hex_digits for char in expected_seed)
+        ):
+            raise ValueError(f"Vector {i}: la seed debe contener 64 bytes hexadecimales.")
+
+        prepared.append((
+            bytes.fromhex(entropy_hex),
+            expected_mnemonic,
+            bytes.fromhex(expected_seed),
+        ))
+
+    executed = 0
+    for i, (entropy, expected_mnemonic, expected_seed) in enumerate(prepared, start=1):
+        mnemonic = entropy_to_mnemonic(entropy)
+        if mnemonic != expected_mnemonic:
+            raise AssertionError(f"Vector {i}: mnemonic no coincide.")
+        if mnemonic_seed(mnemonic, "TREZOR") != expected_seed:
+            raise AssertionError(f"Vector {i}: seed no coincide.")
+        if mnemonic_to_entropy(mnemonic)["entropy"] != entropy:
+            raise AssertionError(f"Vector {i}: entropía no coincide en round-trip.")
+        executed += 1
+
+    print(f"Test vectors BIP39: OK ({executed} casos)")
 
 
 class SensitiveCLIAction(argparse.Action):
@@ -2075,7 +2092,11 @@ def main():
     )
 
     if args.run_tests:
-        run_bip39_test_vectors(args.vectors_file)
+        try:
+            run_bip39_test_vectors(args.vectors_file)
+        except (ValueError, AssertionError) as exc:
+            print(f"Error en los vectores BIP39: {exc}", file=sys.stderr)
+            sys.exit(1)
         return
 
     if supplied_secret_options:
