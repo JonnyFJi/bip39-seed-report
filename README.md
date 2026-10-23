@@ -177,6 +177,7 @@ PYTHONPATH="$PWD" python3 test/test_cifrado_report.py
 PYTHONPATH="$PWD" python3 test/test_entrada_segura.py
 PYTHONPATH="$PWD" python3 test/test_contenedor_report.py
 PYTHONPATH="$PWD" python3 test/test_escritura_report.py
+PYTHONPATH="$PWD" python3 test/test_regresion_vectores_ultima_palabra.py
 ```
 
 Ejecuta esos comandos desde la raíz y compruébalos en una descarga limpia.
@@ -184,6 +185,11 @@ Ejecuta esos comandos desde la raíz y compruébalos en una descarga limpia.
 Los vectores BIP39 verifican los casos ejecutados de conversión
 entropy-mnemonic, derivación de seed y round-trip. No constituyen una
 auditoría ni verifican todas las derivaciones o claves extendidas.
+
+La suite de regresión del runner y última palabra comprueba rechazo
+de suites vacías y entradas mal formadas, errores previstos, casos
+positivos y búsqueda real de candidatos. Incluye ocho métodos con
+subcasos y no verifica el cuarto campo BIP32.
 
 La prueba de cifrado comprueba recuperación, rechazo de contraseña
 incorrecta, alteraciones, perfil KDF y compatibilidad histórica.
@@ -287,8 +293,17 @@ a la versión analizada; no la reemplaces automáticamente desde una rama
 remota mutable.
 
 Puedes indicar otra suite explícitamente con --vectors-file.
-Actualmente sigue pendiente endurecer el manejo de archivos ausentes,
-JSON inválido y suites vacías.
+
+El runner rechaza suites vacías y valida la estructura completa antes
+de ejecutar las conversiones. Si la raíz es un objeto JSON, exige
+el bloque english; también admite listas directas de vectores ingleses.
+
+Los errores previstos de lectura, UTF-8, JSON y formato, así como
+las discrepancias en los resultados, terminan con un mensaje de error
+y código de salida 1.
+
+Los vectores de cuatro campos siguen sin verificar el campo de clave
+extendida BIP32.
 
 ## Uso del script
 
@@ -621,6 +636,12 @@ Implementado y probado en los ensayos registrados:
   5 omitidos, con verificaciones manuales de exports.
 - Auxiliar manual de laboratorio para autenticar y comprobar reportes
   sin imprimir el contenido privado.
+- Runner BIP39 con validación estructural, rechazo de suites vacías
+  y manejo de errores previstos desde la CLI.
+- Suite de regresión del runner y última palabra: ocho métodos correctos
+  en el ensayo Linux del 23 de octubre de 2026.
+- Mensaje de recuperación que distingue valores del checksum
+  y cantidad de candidatos.
 
 Pendiente:
 
@@ -632,7 +653,6 @@ Pendiente:
 - Perfiles de recuperación, auditoría y laboratorio.
 - Revelación granular de secrets.
 - Vectores independientes de BIP32 y todas las derivaciones.
-- Manejo robusto de archivos de vectores y suites vacías.
 - Bloqueo transitivo, hashes de artefactos y ampliación de la matriz de entornos y flujos probados.
 
 Estos resultados no constituyen una auditoría independiente ni

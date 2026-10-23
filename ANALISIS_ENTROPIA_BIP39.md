@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental: 22 de octubre de 2026.
+- Actualización documental: 23 de octubre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio de referencia: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -52,6 +52,34 @@ ANALISIS_COMPATIBILIDAD_SO.md.
 
 Los controles de escritura y sus resultados no certifican la
 imprevisibilidad de la entropy ni la seguridad del equipo.
+
+### Actualización posterior del runner y última palabra
+
+El 23 de octubre de 2026 se comunicó un ensayo local Linux del parche
+de validación del runner BIP39 y aclaración del mensaje de última palabra.
+
+SHA-256 del script ensayado:
+
+```text
+a0239df849b808f32ee097af7dc1052d3c899e1ceb8f27357b9c323795411538
+```
+
+El parche rechaza suites vacías, exige english cuando la raíz es
+un objeto y valida estructura y campos antes de ejecutar conversiones.
+Los errores previstos se notifican desde la CLI con código de salida 1.
+
+También aclara que los valores posibles del checksum no representan
+la cantidad de palabras candidatas. No modifica el algoritmo de búsqueda,
+la generación de entropy, las conversiones BIP39 ni la derivación de seed.
+
+Pasaron los 24 vectores distribuidos y los ocho métodos nuevos.
+La comprobación CLI de suite vacía terminó con el rechazo previsto.
+
+El detalle del entorno y de las demás suites ejecutadas se registra
+en ANALISIS_COMPATIBILIDAD_SO.md.
+
+El cuarto campo BIP32 sigue sin verificarse y permanecen pendientes
+los vectores independientes de clave maestra y derivaciones.
 
 ## Objetivo y alcance
 
@@ -146,7 +174,9 @@ Las derivaciones de direcciones utilizan bip-utils.
 
 ## Vectores de referencia y alcance de las pruebas
 
-El repositorio distribuye test/vectors.json. El script utiliza el bloque english cuando está presente.
+El repositorio distribuye test/vectors.json. En la base histórica
+analizada, el script utiliza el bloque english cuando está presente.
+El endurecimiento posterior del runner se distingue más abajo.
 
 Desde la raíz del proyecto:
 
@@ -168,12 +198,19 @@ El runner comprueba, para cada caso ejecutado:
 
 El runner admite vectores de tres o cuatro elementos, pero no verifica el cuarto campo de clave extendida. Por tanto, estos resultados no certifican todas las operaciones BIP32 ni las derivaciones BIP44, BIP49, BIP84 y BIP86.
 
-También siguen pendientes:
+En la base histórica analizada estaban pendientes:
 
 - Rechazar suites vacías.
 - Exigir de forma explícita el bloque de idioma esperado.
 - Manejar errores de archivo, permisos, JSON y formato con mensajes claros.
-- Añadir vectores independientes de clave maestra y derivaciones.
+
+Estos controles se incorporaron posteriormente en la versión identificada
+en «Actualización posterior del runner y última palabra», con pruebas
+de regresión y una comprobación negativa desde la CLI.
+
+Continúa pendiente añadir vectores independientes de clave maestra
+y derivaciones. El cuarto campo de los vectores no se verifica como
+clave extendida BIP32.
 
 El modo --run-tests no solicita secretos ni genera un export.
 Las opciones sensibles por CLI no pueden combinarse con ese modo.

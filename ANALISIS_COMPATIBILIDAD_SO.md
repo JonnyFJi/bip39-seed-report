@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental: 22 de octubre de 2026.
+- Actualización documental: 23 de octubre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -108,6 +108,7 @@ universal ni una instalación reproducible con hashes.
 |---|---|---|---|
 | Entorno local Linux inicial | Registro completo pendiente | Ensayos anteriores comunicados, incluidos flujos manuales | Limitado a esos ensayos |
 | Entorno virtual Linux .venv-verificacion | mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3. Python exacto, distribución y arquitectura pendientes de registrar | Instalación, pip check, compilación, 24 vectores BIP39, 12 comprobaciones de cifrado y pruebas de entrada segura | Satisfactorio para las comprobaciones comunicadas |
+| Linux local, ensayo del 23 de octubre de 2026 | Python 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 22.0.2 | Instalación, pip check, sintaxis, 24 vectores, ocho métodos nuevos, cifrado, entrada segura, contenedor, escritura y rechazo CLI de suite vacía | Satisfactorio para los casos ejecutados; script a0239df8…; ver ensayo Linux de esta versión |
 | Windows 10 Home x64, 10.0.19045, compilación registrada 19045 | Python 3.10.11; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 23.0.1 | Vectores BIP39, cifrado, entrada segura, contenedor, escritura y verificación manual de exports | Satisfactorio para los casos ejecutados; escritura: 10 aprobados y 5 omitidos; ver detalle Windows |
 | macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar |
 | BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
@@ -134,6 +135,106 @@ Los tests con mocks comprueban la política programada de rechazo y
 normalización; no recrean todos los comportamientos de una terminal real.
 
 ---
+
+## Resultados Linux: runner y última palabra — 23 de octubre de 2026
+
+### Fuente, entorno e identidad
+
+- Fecha de comunicación de los resultados: 23 de octubre de 2026.
+- Fuente: salidas de terminal proporcionadas por el mantenedor.
+- Sistema comunicado: Linux local.
+- Distribución, versión y arquitectura exactas: no registradas
+  en estas salidas.
+- Intérprete: Python 3.10.12.
+- Entorno virtual: .venv-verificacion, creado en la copia local.
+- pip: 22.0.2.
+- Dependencias directas: mnemonic 0.21, bip-utils 2.9.3
+  y cryptography 44.0.3.
+
+SHA-256 del script adjunto revisado para este ensayo:
+
+```text
+a0239df849b808f32ee097af7dc1052d3c899e1ceb8f27357b9c323795411538
+```
+
+El tamaño del archivo adjunto, 90.540 bytes, coincide con el mostrado
+en la preparación del ensayo. El hash se calculó durante la revisión
+del adjunto; las salidas de ejecución no incluyen una consulta local
+de SHA-256.
+
+La versión se identifica por sus bytes, sin atribuir un commit
+de publicación al momento del ensayo.
+
+### Preparación e incidencia inicial
+
+La primera ejecución falló porque no estaba disponible el intérprete
+en .venv-verificacion/bin/python. Python no llegó a ejecutar el script
+ni las pruebas en esas invocaciones.
+
+Se creó el entorno con python3 -m venv .venv-verificacion.
+La instalación desde requirements.txt terminó correctamente y pip check
+mostró No broken requirements found.
+
+La incidencia inicial pertenece a la preparación del entorno,
+no a un fallo funcional del parche.
+
+### Resultados automáticos
+
+| Comprobación | Resultado observado |
+|---|---|
+| Sintaxis del script | Correcta; código 0 |
+| Sintaxis de la suite nueva | Correcta; código 0 |
+| Vectores BIP39 distribuidos | 24 casos correctos; código 0 |
+| Regresión del runner y última palabra | Ocho métodos correctos, sin omisiones; 0,381 s; código 0 |
+| Cifrado | 12 comprobaciones correctas; código 0 |
+| Entrada segura | GetPassWarning y normalización Unicode correctos; código 0 |
+| Contenedor | 18 métodos correctos, sin omisiones; 2,557 s; código 0 |
+| Escritura | 15 métodos correctos, sin omisiones; 6,843 s; código 0 |
+
+Los conteos representan unidades distintas: vectores, comprobaciones
+y métodos con subcasos. No se suman como una única cantidad de pruebas
+independientes.
+
+Las advertencias del formato histórico aparecieron en los casos
+de compatibilidad y no impidieron que las comprobaciones terminaran
+correctamente.
+
+### Rechazo de suite vacía desde la CLI
+
+Se ejecutó --run-tests con una ruta explícita a un archivo que contenía
+una lista JSON vacía.
+
+Resultado observado:
+
+```text
+Error en los vectores BIP39: La suite debe ser una lista no vacía de vectores.
+```
+
+El código de salida fue 1, esperado para este caso negativo.
+No se anunció éxito con cero casos.
+
+### Alcance y limitaciones
+
+El parche modifica el runner, su manejo de errores desde main()
+y el mensaje de checksum de find_last_word().
+
+La comparación con la base publicada no mostró otros cambios
+en el script. No se modificaron generación, derivaciones, cifrado,
+contenedor ni escritura.
+
+Las pruebas incluyen mocks y casos reales con las dependencias instaladas.
+No verifican el cuarto campo BIP32 de los vectores ni todas
+las derivaciones.
+
+No se registró en este ensayo una nueva batería manual de exports
+ni una ejecución Windows del script con este hash. Los resultados
+Windows anteriores conservan su identidad y sus limitaciones.
+
+Los resultados respaldan las comprobaciones ejecutadas en este entorno;
+no constituyen una auditoría ni soporte universal de Linux.
+
+---
+
 
 ## Resultados Windows 10 Home x64
 
@@ -462,6 +563,7 @@ PYTHONPATH="$PWD" python test/test_cifrado_report.py
 PYTHONPATH="$PWD" python test/test_entrada_segura.py
 PYTHONPATH="$PWD" python test/test_contenedor_report.py
 PYTHONPATH="$PWD" python test/test_escritura_report.py
+PYTHONPATH="$PWD" python test/test_regresion_vectores_ultima_palabra.py
 ```
 
 La invocación con PYTHONPATH está comprobada en el entorno Linux
@@ -560,6 +662,11 @@ equipo en los logs publicados.
 Existen resultados satisfactorios en las combinaciones Linux comunicadas
 y en Windows 10 Home x64, 10.0.19045, con Python 3.10.11 y las dependencias
 descritas. No hay una matriz universal de soporte.
+
+El ensayo Linux comunicado el 23 de octubre de 2026 incorpora
+la regresión del runner y última palabra: ocho métodos correctos,
+24 vectores distribuidos y rechazo CLI de suite vacía. Corresponde
+al hash a0239df8… y no actualiza retrospectivamente el ensayo Windows.
 
 En Windows, las suites de BIP39, cifrado, entrada y contenedor terminaron
 correctamente. Escritura aprobó diez métodos y omitió cinco. La batería

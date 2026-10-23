@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+### Runner BIP39 y recuperación: ensayo Linux — 23 de octubre de 2026
+
+- Rechazo de suites vacías y de raíces o bloques de vectores con tipos
+  incorrectos.
+- Exigencia del bloque english cuando la raíz del archivo es un objeto;
+  se conserva la aceptación de listas directas de vectores ingleses.
+- Eliminación de la selección automática del primer bloque de idioma.
+- Validación de toda la estructura antes de ejecutar las conversiones:
+  vectores de tres o cuatro campos, textos no vacíos, entropy hexadecimal
+  de longitud BIP39 y seed esperada de 64 bytes.
+- Comparación de entropy y seed como bytes, admitiendo hexadecimal
+  en mayúsculas o minúsculas.
+- Manejo de errores de lectura, UTF-8 y JSON mediante errores controlados.
+- Salida CLI por stderr y código 1 ante errores previstos de la suite
+  o discrepancias en los resultados.
+- Mensaje de éxito basado en los casos realmente completados.
+- Aclaración en find_last_word(): los valores posibles del checksum
+  no representan la cantidad de palabras candidatas.
+- Conservación del algoritmo de búsqueda y del flujo de selección
+  de candidatos.
+- Incorporación de test/test_regresion_vectores_ultima_palabra.py:
+  ocho métodos con subcasos y datos ficticios o públicos.
+- Ensayo local Linux con Python 3.10.12: sintaxis correcta, 24 vectores
+  BIP39, ocho métodos nuevos, 12 comprobaciones de cifrado, pruebas
+  de entrada segura, 18 métodos del contenedor y 15 de escritura
+  satisfactorios.
+- Rechazo de una suite vacía desde la CLI con el mensaje previsto
+  y código de salida 1.
+- Sin cambios en generación, derivaciones, cifrado, contenedor o escritura.
+
+SHA-256 del script correspondiente al ensayo:
+
+```text
+a0239df849b808f32ee097af7dc1052d3c899e1ceb8f27357b9c323795411538
+```
+
+El cuarto campo de los vectores se admite como texto no vacío, pero no
+se verifica como clave extendida BIP32. Los resultados de esta versión
+no se extrapolan a Windows ni a otros entornos.
+
 ### Resultados Windows — comunicados el 22 de octubre de 2026
 
 - Ensayo en Windows 10 Home x64, versión 10.0.19045, con Python 3.10.11.
