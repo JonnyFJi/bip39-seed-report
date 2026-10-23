@@ -2,6 +2,49 @@
 
 ## Unreleased
 
+### Resultados Windows — comunicados el 22 de octubre de 2026
+
+- Ensayo en Windows 10 Home x64, versión 10.0.19045, con Python 3.10.11.
+- Instalación satisfactoria de las dependencias directas fijadas y
+  pip check sin requisitos rotos.
+- Vectores BIP39, cifrado, entrada segura y contenedor satisfactorios.
+- Suite de escritura: 10 métodos aprobados y 5 omitidos.
+- Omisiones: dos métodos POSIX, dos de enlaces simbólicos no disponibles
+  y uno multiproceso específico de Linux.
+- Batería manual: 17 exportaciones y 14 verificaciones posteriores
+  satisfactorias; tres exports adicionales sin verificación visible.
+- Preservación del primer export comprobada mediante hash en una
+  ejecución sucesiva con nombre repetido.
+- Los dos errores de consulta de versiones mediante Python -c se
+  atribuyen al comando auxiliar de PowerShell, no al script.
+- Evidencia y límites registrados en ANALISIS_COMPATIBILIDAD_SO.md.
+
+### Escritura sin reemplazo — octubre de 2026
+
+- Sustitución de la publicación mediante os.replace() por os.link()
+  sobre un temporal completo, sincronizado y situado junto al destino.
+- Reintentos secuenciales ante colisiones sin repetir el cifrado.
+- Ausencia de alternativa con reemplazo si fallan los enlaces duros.
+- write_secure_file() falla si su destino exacto ya existe.
+- generate_sequential_path() se conserva como propuesta de nombre,
+  no como reserva exclusiva.
+- Resolución del padre sin seguir el enlace del nombre final.
+- Aplicación de 0o600 mediante fchmod antes de publicar en POSIX,
+  propagando sus errores.
+- Incorporación de test/test_escritura_report.py con 15 métodos.
+- Ensayo Linux comunicado: 15 métodos correctos, sin omisiones,
+  con Python 3.10.12.
+- Dos exports reales sucesivos autenticados y verificados.
+
+### Auxiliar manual de laboratorio
+
+- Incorporación de test/verificar_export_laboratorio.py.
+- Lectura exterior limitada y contraseña de exportación sin eco.
+- Comprobaciones JSON de BIP39, seed y estructura de derivaciones.
+- Comprobaciones de autenticación, cabecera y red para texto.
+- No imprime plaintext ni constituye verificación independiente
+  de todas las direcciones.
+
 ### Endurecimiento del contenedor cifrado — octubre de 2026
 
 - Rechazo de claves JSON duplicadas, incluidas claves anidadas,
@@ -30,9 +73,12 @@
   Linux con Python 3.10.12; ambas finalizaron con código de salida 0.
 - Actualización de test/README.md con ejecución, alcance y limitaciones.
 
-La escritura sin sobrescritura concurrente, los permisos efectivos,
-la durabilidad del directorio y la lectura limitada desde disco
-permanecen pendientes.
+Tras estos cambios permanecen pendientes la durabilidad del directorio,
+la lectura limitada desde disco para todos los consumidores, las ACL
+de Windows y la cobertura de los casos omitidos en esa plataforma.
+
+La publicación sin reemplazo requiere enlaces duros y una carpeta
+de confianza; no protege frente a modificaciones hostiles del padre.
 
 ### Organización aplicada en la rama principal
 

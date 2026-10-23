@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental: 15 de octubre de 2026.
+- Actualización documental: 22 de octubre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio de referencia: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -21,13 +21,37 @@ Este análisis conserva como base la versión y el hash indicados arriba.
 El commit 103c19637ed5b8c50c3117bf937a9c5332196059 incorpora posteriormente
 el endurecimiento del contenedor cifrado y su suite de regresión.
 
-La versión publicada del script tiene SHA-256:
+La versión del parche de contenedor incorporada en ese commit tiene SHA-256:
 
 7e108699d9625054fbe2ba3750afa2b932f4b1903bda058a278c255bb23fc21a
 
 Los pendientes históricos deben interpretarse respecto de la base
 analizada. El estado actual del contenedor y sus pruebas se documenta
 en CHANGELOG.md y test/README.md.
+
+### Actualización posterior de escritura y pruebas Windows
+
+El commit 5df71bc4573d9fbbc57f2c7be466409a30fb67eb identifica la publicación
+del parche de escritura sin reemplazo y sus pruebas.
+
+SHA-256 de esa versión del script:
+
+```text
+df80621c8a2f2adef15c370783319c88ba4593f31ed92c03c08a0d5248cc9d3f
+```
+
+Este parche modifica escritura y exportación, no el procedimiento de
+generación de entropy, las conversiones BIP39 ni la derivación de seed.
+
+La suite Linux de escritura pasó 15 métodos sin omisiones. Los resultados
+Windows comunicados el 22 de octubre de 2026 aprobaron 10 métodos y
+omitieron 5; no demuestran los casos omitidos.
+
+El detalle de entornos, batería manual y limitaciones se conserva en
+ANALISIS_COMPATIBILIDAD_SO.md.
+
+Los controles de escritura y sus resultados no certifican la
+imprevisibilidad de la entropy ni la seguridad del equipo.
 
 ## Objetivo y alcance
 
@@ -208,7 +232,12 @@ En la base histórica analizada estaban pendientes la validación estricta
 del contenedor y los límites de tamaño. Ambos controles se incorporaron
 posteriormente con su suite de regresión.
 
-Siguen pendientes la escritura concurrente y la separación de perfiles
+La escritura sin reemplazo se incorporó posteriormente y cuenta con
+pruebas según el alcance de cada plataforma. Requiere enlaces duros y
+una carpeta de salida de confianza.
+
+Siguen pendientes la durabilidad del directorio, las ACL y los casos
+omitidos de escritura en Windows, además de la separación de perfiles
 de reporte.
 
 ### Uso de prueba

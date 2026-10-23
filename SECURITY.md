@@ -25,16 +25,43 @@ la KDF cuando la entrada no cumple esas condiciones.
 Estos controles no sustituyen la autenticación AES-GCM ni certifican
 seguridad del entorno.
 
+## Controles de escritura
+
+El flujo normal cifra el reporte antes de escribirlo en un temporal
+situado en la carpeta de destino.
+
+Después de completar la escritura, flush y fsync del archivo, publica
+mediante os.link() sin reemplazar destinos existentes. Las colisiones
+provocan reintentos de nombre sin repetir el cifrado.
+
+Si el sistema de archivos no permite esa publicación, el programa falla
+sin recurrir a os.replace() como alternativa.
+
+En POSIX se aplica 0o600 sobre el descriptor antes de publicar y se
+propagan los errores de esa operación. En Windows no se certifican ACL.
+
+Estos controles requieren una carpeta de salida de confianza. No
+garantizan durabilidad del directorio ni protección frente a cambios
+hostiles de la ruta padre.
+
 ## Límites conocidos
 
 - El entorno, Python, dependencias y hardware no quedan certificados.
 - El cifrado no compensa una contraseña predecible.
 - La lectura oculta no protege un host comprometido.
 - Limpiar pantalla o borrar archivos no garantiza eliminación segura.
-- El contenedor aplica validación estructural y límites de tamaño, pero la lectura limitada desde disco antes de cargarlo en memoria sigue pendiente.
-- La protección frente a sobrescritura concurrente sigue pendiente.
+- El contenedor aplica validación estructural y límites, pero la lectura
+  limitada desde disco no queda garantizada para todos sus consumidores.
+- La publicación sin reemplazo requiere enlaces duros y una carpeta
+  de salida de confianza.
+- No se garantiza durabilidad del directorio ante pérdida de alimentación
+  ni protección frente a modificaciones hostiles de la ruta padre.
+- Una interrupción abrupta puede dejar temporales.
+- Permanecen pendientes las ACL de Windows, la concurrencia entre procesos
+  Windows y los casos de enlaces simbólicos omitidos en ese entorno.
 - La separación de perfiles de reporte sigue pendiente.
-- Las suites no cubren todas las derivaciones o plataformas.
+- Las suites no cubren todas las derivaciones, plataformas o condiciones
+  de ejecución.
 
 ## Comunicación de problemas
 

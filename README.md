@@ -66,8 +66,16 @@ La ruta predeterminada es:
 output/bip39_seed_report.json
 ```
 
-Si ya existe, el programa busca un nombre secuencial. Este mecanismo
-todavía no garantiza ausencia de sobrescritura entre procesos concurrentes.
+Si el nombre solicitado está ocupado, el exportador intenta otro nombre
+secuencial sin repetir el cifrado.
+
+La publicación utiliza os.link() para crear el nombre final sin reemplazar
+destinos existentes. La seguridad frente a colisiones no depende de una
+comprobación previa de disponibilidad.
+
+Requiere un sistema de archivos que admita enlaces duros y una carpeta
+de salida de confianza. Las garantías quedan limitadas a las condiciones
+probadas; no protegen frente a modificaciones hostiles de la ruta padre.
 
 La entrada oculta exige una terminal interactiva en stdin y stdout.
 El programa rechaza el fallback de getpass que no puede garantizar
@@ -106,11 +114,24 @@ El parámetro maxmem de scrypt se configura en 512 MiB. Es un límite
 permitido por la implementación, no una reserva automática de toda
 esa memoria. El perfil debe probarse en el equipo objetivo.
 
-El flujo normal cifra el contenido antes de escribirlo en un temporal,
-sincroniza el archivo y lo coloca en el destino mediante os.replace().
+El flujo normal serializa y cifra el reporte una sola vez. Después escribe
+un temporal en la carpeta de destino y completa flush y fsync del archivo
+antes de publicar el nombre final mediante os.link().
 
-Se intenta aplicar el modo 0o600. Esta medida no certifica las ACL de
-Windows ni protege contra un sistema comprometido.
+Si el nombre está ocupado, intenta otro nombre secuencial. No utiliza
+os.replace() como alternativa y no repite la KDF por cada colisión.
+
+En sistemas POSIX se aplica 0o600 mediante fchmod sobre el descriptor antes
+de publicar. Si esa operación falla, la publicación se aborta. Esto no
+equivale a verificar las ACL de Windows ni protege un sistema comprometido.
+
+La publicación requiere enlaces duros y una carpeta de confianza.
+No garantiza durabilidad del directorio ante pérdida de alimentación.
+Una interrupción abrupta puede dejar un temporal que necesite revisión.
+
+La función write_secure_file() conserva el destino exacto y falla si ya
+existe. export_seed_report() utiliza reintentos secuenciales y devuelve
+la ruta realmente publicada.
 
 El formato histórico ENCRYPTED: puede descifrarse por compatibilidad
 y muestra una advertencia. Los exports nuevos no utilizan el método
@@ -155,6 +176,7 @@ Desde la raíz del proyecto, en Linux/macOS y utilizando una copia local de conf
 PYTHONPATH="$PWD" python3 test/test_cifrado_report.py
 PYTHONPATH="$PWD" python3 test/test_entrada_segura.py
 PYTHONPATH="$PWD" python3 test/test_contenedor_report.py
+PYTHONPATH="$PWD" python3 test/test_escritura_report.py
 ```
 
 Ejecuta esos comandos desde la raíz y compruébalos en una descarga limpia.
@@ -176,8 +198,21 @@ La suite del contenedor comprueba estructura, tipos, claves duplicadas,
 base64 y límites. Verifica rechazos antes de ejecutar la KDF e incluye
 casos positivos con scrypt real y compatibilidad histórica.
 
-Consulta test/README.md para los comandos con el entorno virtual
-y el alcance de las pruebas.
+La suite de escritura comprueba preservación de destinos existentes,
+colisiones, fallos simulados, publicación del contenido completo y
+concurrencia con hilos. Incluye pruebas POSIX, enlaces simbólicos y
+una prueba multiproceso específica de Linux.
+
+Las omisiones dependen de la plataforma y deben registrarse: no son
+casos aprobados.
+
+El auxiliar test/verificar_export_laboratorio.py permite verificar
+manualmente un export sin imprimir su contenido privado. Requiere una
+terminal interactiva y no forma parte de las suites automáticas.
+
+Consulta [test/README.md](test/README.md) para ejecución y alcance, y
+[ANALISIS_COMPATIBILIDAD_SO.md](ANALISIS_COMPATIBILIDAD_SO.md) para los
+entornos y resultados registrados.
 
 ## Indicadores informativos de patrón
 
@@ -579,11 +614,21 @@ Implementado y probado en los ensayos registrados:
 - Suite BIP39 y pruebas de cifrado y entrada segura.
 - Validación estricta del contenedor versión 1: estructura, tipos, claves duplicadas, base64 y límites de tamaño.
 - Suite del contenedor con rechazos anteriores a la KDF, casos positivos y compatibilidad histórica.
+- Publicación mediante enlaces duros sin reemplazar destinos existentes,
+  con reintentos secuenciales y cifrado único por export.
+- Suite de escritura: 15 métodos aprobados en el ensayo Linux comunicado.
+- Ensayo Windows 10 Home x64: 10 métodos de escritura aprobados y
+  5 omitidos, con verificaciones manuales de exports.
+- Auxiliar manual de laboratorio para autenticar y comprobar reportes
+  sin imprimir el contenido privado.
 
 Pendiente:
 
 - Lectura limitada desde disco antes de cargar el contenedor completo en memoria.
-- Protección y pruebas de escritura concurrente.
+- Concurrencia entre procesos Windows, casos omitidos de enlaces
+  simbólicos y comprobación de ACL.
+- Durabilidad del directorio y ampliación de pruebas por plataforma
+  y sistema de archivos.
 - Perfiles de recuperación, auditoría y laboratorio.
 - Revelación granular de secrets.
 - Vectores independientes de BIP32 y todas las derivaciones.
