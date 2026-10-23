@@ -22,6 +22,7 @@ Comprobar sintaxis y ejecutar las suites:
 "$PY" -m py_compile bip39_seed_report.py
 "$PY" -m py_compile test/test_contenedor_report.py
 "$PY" -m py_compile test/test_escritura_report.py
+"$PY" -m py_compile test/test_regresion_vectores_ultima_palabra.py
 
 "$PY" bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 
@@ -29,6 +30,7 @@ PYTHONPATH="$PWD" "$PY" test/test_cifrado_report.py
 PYTHONPATH="$PWD" "$PY" test/test_entrada_segura.py
 PYTHONPATH="$PWD" "$PY" test/test_contenedor_report.py
 PYTHONPATH="$PWD" "$PY" test/test_escritura_report.py
+PYTHONPATH="$PWD" "$PY" test/test_regresion_vectores_ultima_palabra.py
 ```
 
 Ejecutar los comandos por separado. Si uno falla, revisar el error antes
@@ -92,6 +94,63 @@ SHA-256 del script correspondiente a ese ensayo:
 Este hash identifica la versión ensayada; no certifica por sí solo
 procedencia ni seguridad. Los resultados no se generalizan a otras
 versiones o entornos.
+
+## Regresión del runner BIP39 y última palabra
+
+test/test_regresion_vectores_ultima_palabra.py contiene ocho métodos
+de prueba con subcasos. Utiliza exclusivamente datos ficticios o públicos.
+
+Comprueba:
+
+- Rechazo de suites vacías, estructuras incorrectas y objetos
+  sin el bloque english.
+- Aceptación de vectores de tres y cuatro campos.
+- Rechazo de campos, entropy hexadecimal y seed mal formados.
+- Validación de toda la estructura antes de iniciar las conversiones.
+- Rechazo de discrepancias en mnemonic, seed y round-trip.
+- Errores de archivo inexistente, JSON inválido y UTF-8 inválido,
+  además de un fallo de permisos simulado.
+- Búsqueda real de candidatos para prefijos de 11 y 23 palabras,
+  con comprobación de cantidad, ausencia de duplicados y validez.
+- Mensajes que distinguen valores del checksum y cantidad de candidatos.
+- Rechazo de cantidades de palabras no admitidas.
+
+Los controles de estructura y fallos incluyen mocks. Los casos positivos
+de vectores y la búsqueda de última palabra utilizan las dependencias
+instaladas en el entorno.
+
+El caso positivo de cuatro campos no verifica BIP32: deja explícito
+que el cuarto campo no se comprueba como clave extendida.
+
+### Resultado registrado — 23 de octubre de 2026
+
+El mantenedor comunicó una ejecución local Linux con Python 3.10.12
+y las dependencias directas mnemonic 0.21, bip-utils 2.9.3
+y cryptography 44.0.3.
+
+La suite terminó con ocho métodos correctos, sin omisiones,
+y código de salida 0:
+
+```text
+Ran 8 tests in 0.381s
+
+OK
+```
+
+SHA-256 del script correspondiente a ese ensayo:
+
+```text
+a0239df849b808f32ee097af7dc1052d3c899e1ceb8f27357b9c323795411538
+```
+
+También se comprobó por separado la CLI con una suite vacía.
+El programa mostró el error controlado y terminó con código 1,
+sin anunciar éxito con cero casos.
+
+Ese código 1 es el resultado esperado de la prueba negativa.
+No representa un fallo del ensayo.
+
+Esta versión no cuenta aquí con una ejecución Windows registrada.
 
 ## Suite de escritura
 
@@ -210,6 +269,8 @@ la seguridad del equipo ni todas las derivaciones.
 ## Alcance
 
 - Vectores BIP39: casos ejecutados de conversión, seed y round-trip.
+- Runner BIP39 y última palabra: validación de suites y campos,
+  errores previstos, casos positivos y búsqueda real de candidatos.
 - Cifrado: recuperación, rechazo de alteraciones y compatibilidad histórica.
 - Entrada: política de GetPassWarning y normalización Unicode.
 - Contenedor: estructura, tipos, duplicados, límites y orden de validación
@@ -221,6 +282,10 @@ la seguridad del equipo ni todas las derivaciones.
 
 Pasar estas suites no constituye una auditoría ni verifica todas
 las derivaciones, plataformas o condiciones de escritura.
+
+La suite nueva no verifica el cuarto campo BIP32 de los vectores
+ni sustituye las pruebas completas del flujo interactivo de recuperación.
+La comprobación CLI de suite vacía se registró por separado.
 
 La suite del contenedor no comprueba escritura concurrente, permisos
 efectivos, durabilidad del sistema de archivos ni lectura limitada
