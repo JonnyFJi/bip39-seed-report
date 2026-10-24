@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### Captura de salida de la suite de regresión — 24 de octubre de 2026
+
+- Corrección de test_05_mismatches_do_not_print_success:
+  captura directamente stdout al ejecutar el runner.
+- Eliminación de la llamada a execute() dentro de esa prueba,
+  evitando que su captura interior deje sin contenido el buffer
+  comprobado por la aserción exterior.
+- Conservación de los tres subcasos de discrepancia:
+  mnemonic, seed y round-trip.
+- Incorporación de test_09_detects_success_printed_before_failure:
+  comprueba que la prueba 05 detecta un runner ficticio que imprime
+  éxito antes de lanzar AssertionError.
+- La prueba de mutación recoge los tres fallos deliberados en un
+  TestResult independiente, sin modificar el runner real.
+- Ensayo local Linux con Python 3.10.12: sintaxis correcta y nueve
+  métodos satisfactorios en 0,570 segundos, con código de salida 0.
+- Vectores BIP39 distribuidos: 24 casos correctos y código de salida 0.
+- Actualización de la descripción actual de la suite a nueve métodos.
+- Conservación del registro histórico de ocho métodos del 23 de octubre.
+- Sin cambios en bip39_seed_report.py, su checksum ni test/vectors.json.
+
+La corrección fortalece una comprobación del test. No corresponde
+a un cambio de lógica del script ni a una reducción de las expectativas
+para aceptar un comportamiento incorrecto.
+
+No se atribuye a este ensayo una nueva ejecución de las demás suites
+ni una comprobación Windows.
+
 ### Runner BIP39 y recuperación: ensayo Linux — 23 de octubre de 2026
 
 - Rechazo de suites vacías y de raíces o bloques de vectores con tipos

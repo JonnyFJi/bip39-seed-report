@@ -188,8 +188,12 @@ auditoría ni verifican todas las derivaciones o claves extendidas.
 
 La suite de regresión del runner y última palabra comprueba rechazo
 de suites vacías y entradas mal formadas, errores previstos, casos
-positivos y búsqueda real de candidatos. Incluye ocho métodos con
+positivos y búsqueda real de candidatos. Incluye nueve métodos con
 subcasos y no verifica el cuarto campo BIP32.
+
+La comprobación de ausencia de éxito captura directamente la salida
+del runner. Una prueba de mutación confirma que detecta un runner
+ficticio que imprime OK antes de fallar, sin modificar el script real.
 
 La prueba de cifrado comprueba recuperación, rechazo de contraseña
 incorrecta, alteraciones, perfil KDF y compatibilidad histórica.
@@ -283,8 +287,15 @@ python3 -m pip install -r requirements.txt
 ### 3. Verificar instalación
 
 ```bash
-python3 -c "from mnemonic import Mnemonic; from bip_utils import Bip44; from cryptography.hazmat.primitives.ciphers.aead import AESGCM; print('✅ Todas las dependencias instaladas')"
+python3 -c "from mnemonic import Mnemonic; from bip_utils import Bip44; from cryptography.hazmat.primitives.ciphers.aead import AESGCM; print('✅ Importaciones principales correctas')"
 ```
+
+Esta comprobación confirma que esas importaciones funcionan con
+el intérprete utilizado. No verifica por sí sola las versiones fijadas,
+la consistencia de todos los requisitos ni los flujos del programa.
+
+Consulta [test/README.md](test/README.md) para la preparación del entorno
+y las pruebas.
 
 ### 4. Vectores distribuidos
 
@@ -408,28 +419,37 @@ python3 bip39_seed_report.py -i
    - Seleccionar longitud (12 o 24 palabras)
    - Seleccionar red (mainnet o testnet)
    - Ingresar passphrase (opcional)
-3. Genera mnemonic
-4. Realiza Validación e indicadores
-5. Guarda archivo encriptado
+3. Genera, importa o reconstruye el material según la opción elegida
+   y valida la entrada.
+4. Deriva la seed, claves y direcciones, y presenta los indicadores.
+5. Guarda el reporte cifrado.
 
-#### 4. Modo educativo (muestra todo en pantalla)
+#### 4. Modo educativo: revelar secretos en terminal
 
 ```bash
 python3 bip39_seed_report.py -w 12 --show-all
 ```
 
-**Flujo:**
-1. Pide contraseña
-2. Genera 12 palabras
-3. **Muestra TODOS los datos en pantalla** (entropy, mnemonic, seed, keys, addresses)
-4. Muestra validación e indicadores descriptivos de patrón, sin score de seguridad
-5. Guarda archivo encriptado
+Flujo:
 
-La salida de terminal no necesariamente reproduce todos los campos
-del JSON privado. Puede revelar mnemonic, seed y claves privadas.
+1. Solicita y confirma la contraseña de exportación.
+2. Genera una mnemonic de 12 palabras.
+3. Revela entropy, mnemonic, seed, clave raíz y las claves privadas
+   incluidas en la vista de terminal.
+4. Muestra validación e indicadores descriptivos de patrón,
+   sin score de seguridad.
+5. Guarda el reporte cifrado.
+
+--show-all desactiva la ocultación de secretos en la vista de terminal,
+pero no convierte esa vista en una reproducción completa del JSON privado.
+Se sigue mostrando solo la primera dirección de cada familia.
+
+La salida puede revelar material suficiente para controlar fondos.
 No la redirijas a logs ni la compartas.
 
-⚠️ **ADVERTENCIA**: No usar `--show-all` en producción. Solo para fines educativos.
+⚠️ **ADVERTENCIA**: utiliza --show-all exclusivamente con material ficticio
+en pruebas educativas. El programa no está auditado para producción
+y no se recomienda usar con fondos reales.
 
 #### 5. Verificar mnemonic existente
 
@@ -484,9 +504,13 @@ python3 bip39_seed_report.py \
   -n testnet
 ```
 
-**Requisitos:**
-- 32, 40, 48, 56 o 64 caracteres hexadecimales
-- Formato: solo 0-9, a-f (sin espacios)
+**Requisitos y formato recomendado:**
+
+- El contenido hexadecimal debe representar 16, 20, 24, 28 o 32 bytes:
+  32, 40, 48, 56 o 64 dígitos hexadecimales, sin contar el prefijo
+  opcional ni los espacios admitidos.
+- Formato recomendado: dígitos 0-9 y a-f, sin espacios ni prefijo.
+- El parser también admite mayúsculas, espacios ASCII y un prefijo 0x.
 
 Los ceros son datos públicos completamente predecibles.
 
@@ -496,15 +520,18 @@ Los ceros son datos públicos completamente predecibles.
 python3 bip39_seed_report.py --allow-insecure-cli-secrets --entropy-bin 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 -n testnet
 ```
 
-**Requisitos:**
-- 128, 160, 192, 224 o 256 bits
-- Formato: solo 0 y 1 (sin espacios)
+**Requisitos y formato recomendado:**
+
+- Longitud válida de 128, 160, 192, 224 o 256 bits.
+- Formato recomendado: una secuencia de 0 y 1 sin espacios.
+- El parser elimina los espacios ASCII antes de validar los bits
+  y su longitud.
 
 Para pruebas, puedes usar una secuencia conocida; no atribuyas seguridad a una entrada manual por tener la longitud y checksum correctos.
 Esta secuencia de ceros es pública y completamente predecible.
 El ejemplo no debe utilizarse para proteger fondos.
 
-#### 9. Ejecutar test vectors oficiales
+#### 9. Ejecutar los vectores BIP39 distribuidos
 
 ```bash
 python3 bip39_seed_report.py --run-tests --vectors-file test/vectors.json
@@ -559,7 +586,8 @@ pruebas con material de recuperación real.
 - BIP32 root key: [OCULTO]
 - Addresses (0): Solo primera address por ruta
 - **Tipos de address**: P2PKH, P2WPKH-P2SH, P2WPKH, P2TR
-- Extended public keys: xpub, ypub, zpub
+- Claves públicas extendidas de cuenta: las incluidas para BIP44,
+  BIP49 y BIP84. Son datos correlacionables y permanecen visibles.
 
 ### En archivo (desencriptado):
 
@@ -567,7 +595,8 @@ pruebas con material de recuperación real.
 - 5 addresses por ruta (índices 0-4)
 - Claves privadas en formato WIF
 - Claves públicas en formato hex
-- Extended public keys completas
+- Claves públicas extendidas de cuenta de BIP44, BIP49 y BIP84,
+  sin truncar. La de cuenta BIP86 todavía no se incluye.
 - Resultado de validación e indicadores descriptivos.
 - Contiene mnemonic, seed, clave raíz y claves privadas WIF. Trátalo como secreto
 - passphrase_used indica si se utilizó una passphrase BIP39. La passphrase no se guarda en claro como campo del contexto actual.
@@ -638,8 +667,10 @@ Implementado y probado en los ensayos registrados:
   sin imprimir el contenido privado.
 - Runner BIP39 con validación estructural, rechazo de suites vacías
   y manejo de errores previstos desde la CLI.
-- Suite de regresión del runner y última palabra: ocho métodos correctos
-  en el ensayo Linux del 23 de octubre de 2026.
+- Suite de regresión del runner y última palabra: nueve métodos correctos
+  en el ensayo Linux del 24 de octubre de 2026, tras corregir la captura
+  de salida y añadir una prueba de mutación. El ensayo anterior,
+  del 23 de octubre, registró ocho métodos.
 - Mensaje de recuperación que distingue valores del checksum
   y cantidad de candidatos.
 
