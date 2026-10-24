@@ -62,10 +62,11 @@ class RegresionVectoresYUltimaPalabra(unittest.TestCase):
                             ("mnemonic_to_entropy", {"entropy": bytes([1]) * 16})]:
             with self.subTest(function=name):
                 output = io.StringIO()
-                with patch.object(report, name, return_value=value):
-                    with contextlib.redirect_stdout(output):
-                        with self.assertRaises(AssertionError):
-                            self.execute([self.vector])
+                with patch.object(report, "load_vectors", return_value=[self.vector]):
+                    with patch.object(report, name, return_value=value):
+                        with contextlib.redirect_stdout(output):
+                            with self.assertRaises(AssertionError):
+                                report.run_bip39_test_vectors("fixture.json")
                 self.assertNotIn("Test vectors BIP39: OK", output.getvalue())
 
     def test_06_file_errors(self):
@@ -97,6 +98,21 @@ class RegresionVectoresYUltimaPalabra(unittest.TestCase):
     def test_08_last_word_invalid_length(self):
         with self.assertRaises(ValueError):
             report.find_last_word("abandon")
+
+
+    def test_09_detects_success_printed_before_failure(self):
+        def faulty_runner(_vectors_path):
+            print("Test vectors BIP39: OK (1 casos)")
+            raise AssertionError("Discrepancia ficticia para probar la captura.")
+
+        case = type(self)("test_05_mismatches_do_not_print_success")
+        result = unittest.TestResult()
+        with patch.object(report, "run_bip39_test_vectors", side_effect=faulty_runner):
+            case.run(result)
+
+        self.assertEqual(result.testsRun, 1)
+        self.assertEqual(len(result.failures), 3)
+        self.assertEqual(result.errors, [])
 
 
 if __name__ == "__main__":

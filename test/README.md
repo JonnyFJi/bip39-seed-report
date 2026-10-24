@@ -97,7 +97,7 @@ versiones o entornos.
 
 ## Regresión del runner BIP39 y última palabra
 
-test/test_regresion_vectores_ultima_palabra.py contiene ocho métodos
+test/test_regresion_vectores_ultima_palabra.py contiene nueve métodos
 de prueba con subcasos. Utiliza exclusivamente datos ficticios o públicos.
 
 Comprueba:
@@ -107,7 +107,10 @@ Comprueba:
 - Aceptación de vectores de tres y cuatro campos.
 - Rechazo de campos, entropy hexadecimal y seed mal formados.
 - Validación de toda la estructura antes de iniciar las conversiones.
-- Rechazo de discrepancias en mnemonic, seed y round-trip.
+- Rechazo de discrepancias en mnemonic, seed y round-trip,
+  sin anunciar éxito.
+- Detección, mediante una prueba de mutación controlada, de un runner
+  ficticio que imprime éxito antes de lanzar una excepción.
 - Errores de archivo inexistente, JSON inválido y UTF-8 inválido,
   además de un fallo de permisos simulado.
 - Búsqueda real de candidatos para prefijos de 11 y 23 palabras,
@@ -121,6 +124,20 @@ instaladas en el entorno.
 
 El caso positivo de cuatro campos no verifica BIP32: deja explícito
 que el cuarto campo no se comprueba como clave extendida.
+
+La prueba 05 captura directamente la salida del runner. No utiliza
+el auxiliar execute(), para evitar que una captura interior impida
+comprobar el contenido del buffer exterior.
+
+La prueba 09 ejecuta esa comprobación contra un runner ficticio que
+imprime OK y después lanza AssertionError. Debe detectar tres fallos
+internos, uno por cada subcaso de discrepancia de la prueba 05.
+
+Esos fallos deliberados se recogen en un TestResult independiente.
+El resultado correcto de la prueba 09 es confirmar su detección,
+no aceptar ese comportamiento en el runner real.
+
+La simulación no modifica el script guardado en disco.
 
 ### Resultado registrado — 23 de octubre de 2026
 
@@ -151,6 +168,53 @@ Ese código 1 es el resultado esperado de la prueba negativa.
 No representa un fallo del ensayo.
 
 Esta versión no cuenta aquí con una ejecución Windows registrada.
+
+### Resultado registrado — 24 de octubre de 2026
+
+El mantenedor comunicó una ejecución local Linux con Python 3.10.12,
+utilizando el entorno .venv-verificacion.
+
+La sintaxis del archivo de pruebas se comprobó correctamente.
+La suite corregida terminó con nueve métodos correctos, sin omisiones
+mostradas, y código de salida 0:
+
+```text
+Ran 9 tests in 0.570s
+
+OK
+```
+
+Pasaron tanto test_05_mismatches_do_not_print_success como
+test_09_detects_success_printed_before_failure.
+
+La ejecución separada de los vectores distribuidos también terminó
+correctamente:
+
+```text
+Test vectors BIP39: OK (24 casos)
+```
+
+Su código de salida fue 0.
+
+La corrección afecta a la captura de salida de la prueba 05 y añade
+la prueba 09. No modifica bip39_seed_report.py, su checksum
+ni test/vectors.json.
+
+SHA-256 del archivo de pruebas corregido revisado:
+
+```text
+d98f58e0d627e63d606eec9ebbe8d7fa1e5d5effbbc30b84cd7e2665274826dc
+```
+
+Este hash identifica el archivo de pruebas, no el script principal.
+
+El resultado histórico de ocho métodos del 23 de octubre se conserva
+como registro de ejecución. No demuestra por sí solo la eficacia
+de la antigua aserción de captura, corregida en esta actualización.
+
+En este ensayo no se comunicó una nueva ejecución de las suites
+de cifrado, entrada segura, contenedor o escritura, ni un ensayo Windows
+de la suite corregida.
 
 ## Suite de escritura
 
@@ -270,7 +334,8 @@ la seguridad del equipo ni todas las derivaciones.
 
 - Vectores BIP39: casos ejecutados de conversión, seed y round-trip.
 - Runner BIP39 y última palabra: validación de suites y campos,
-  errores previstos, casos positivos y búsqueda real de candidatos.
+  errores previstos, casos positivos, búsqueda real de candidatos
+  y comprobación de la captura de salida mediante mutación controlada.
 - Cifrado: recuperación, rechazo de alteraciones y compatibilidad histórica.
 - Entrada: política de GetPassWarning y normalización Unicode.
 - Contenedor: estructura, tipos, duplicados, límites y orden de validación
