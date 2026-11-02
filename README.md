@@ -495,7 +495,8 @@ El programa todavía solicita una contraseña de exportación en una TTY.
 **Flujo:**
 1. Pide contraseña
 2. Verifica checksum BIP39
-3. Valida la mnemonic y muestra indicadores descriptivos.
+3. Valida la mnemonic y conserva los indicadores descriptivos
+   en el reporte privado.
 4. Calcula seed y derivaciones
 5. Guarda archivo encriptado
 
