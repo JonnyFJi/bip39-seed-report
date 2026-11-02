@@ -3,7 +3,11 @@
 Las suites utilizan exclusivamente datos ficticios o vectores públicos.
 No introducir mnemonics, passphrases ni claves de usuario.
 
-## Ejecución en Linux/macOS
+La verificación de esta etapa se realiza en Linux. Windows/macOS quedan
+diferidos a quien ejecute el proyecto allí, sin bloquear este hito.
+Los registros históricos se conservan y no prueban la versión actual.
+
+## Ejecución en Linux
 
 Ejecutar desde la raíz del proyecto, no desde la carpeta test.
 
@@ -23,6 +27,9 @@ Comprobar sintaxis y ejecutar las suites:
 "$PY" -m py_compile test/test_contenedor_report.py
 "$PY" -m py_compile test/test_escritura_report.py
 "$PY" -m py_compile test/test_regresion_vectores_ultima_palabra.py
+"$PY" -m py_compile test/test_ux_terminal_report.py
+"$PY" -m py_compile test/test_revision_integral_report.py
+"$PY" -m py_compile test/ejecutar_bateria_local.py
 
 "$PY" bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 
@@ -31,6 +38,8 @@ PYTHONPATH="$PWD" "$PY" test/test_entrada_segura.py
 PYTHONPATH="$PWD" "$PY" test/test_contenedor_report.py
 PYTHONPATH="$PWD" "$PY" test/test_escritura_report.py
 PYTHONPATH="$PWD" "$PY" test/test_regresion_vectores_ultima_palabra.py
+PYTHONPATH="$PWD" "$PY" test/test_ux_terminal_report.py
+PYTHONPATH="$PWD" "$PY" test/test_revision_integral_report.py
 ```
 
 Ejecutar los comandos por separado. Si uno falla, revisar el error antes
@@ -46,7 +55,16 @@ También existen ensayos Windows, descritos en
 Los resultados no se generalizan a otras versiones o plataformas.
 macOS permanece pendiente.
 
-### Suite del contenedor cifrado
+## Batería local secuencial
+
+Con el entorno preparado:
+
+```bash
+"$PY" test/ejecutar_bateria_local.py
+echo $?
+```
+
+## Suite del contenedor cifrado
 
 test/test_contenedor_report.py contiene 18 métodos de prueba con
 subcasos. Utiliza exclusivamente datos ficticios y no escribe reportes
@@ -259,6 +277,8 @@ finally {
 }
 ```
 
+Referencia histórica; revisión actual diferida y no bloqueante
+
 ### Resultados registrados
 
 - Linux, Python 3.10.12: 15 métodos correctos, sin omisiones;
@@ -281,6 +301,70 @@ SHA-256 de la versión de escritura ensayada:
 ```text
 df80621c8a2f2adef15c370783319c88ba4593f31ed92c03c08a0d5248cc9d3f
 ```
+
+## Suite UX
+
+test/test_ux_terminal_report.py contiene 18 métodos con subcasos.
+Comprueba privacidad de vistas, índice 0, GAP solo en reportes, conservación
+de contexto y exports, avisos, comandos, orden de main, fallos de wordlist,
+errores de publicación y round-trip cifrado JSON/TXT.
+
+Usa fixtures ficticias y mocks de coordinación; no es verificación
+independiente de todas las derivaciones. La prueba PowerShell construye
+una cadena, no ejecuta una consola Windows real.
+
+Referencia histórica; revisión actual diferida y no bloqueante
+
+## Suite complementaria
+
+test/test_revision_integral_report.py contiene 28 métodos con subcasos.
+Incluye entropy y BIP39, NFKD, primitivas maestras, estructura de familias,
+entradas, recuperación, menús, utilidades de terminal, bloqueo CLI,
+abortos, contexto, print_report y rutas de vectores.
+
+No todos sus ensayos son de integración: algunos simulan TTY, decisiones
+y msvcrt. No introduce red ni material real y no reemplaza las otras suites.
+
+## Batería local y evidencia Linux
+
+Versión del script ensayado: 97.076 bytes.
+
+SHA-256:
+
+```text
+1f92a16c69c1566b9e228a9d7ca1d9cc3b066cad01ce0bc76be05b0fee88816f
+```
+
+Etapas satisfactorias: 24 vectores BIP39, cifrado, entrada segura,
+18 métodos del contenedor, 15 de escritura, nueve de regresión,
+18 de UX y 28 de la suite complementaria. Las cinco suites unittest
+contabilizan 88 métodos; no sumar esos métodos a vectores y comprobaciones
+como si fueran unidades homogéneas.
+
+Se conservaron los hashes de los 11 archivos protegidos. El inventario
+registró 70/70 entradas alcanzadas: 69 funciones superiores y un método
+de clase. Esto no significa cobertura completa de líneas, ramas,
+plataformas ni validez criptográfica independiente.
+
+| Fecha del registro | Hora UTC de entorno.json | Suma de etapas externas | Resultado |
+|---|---|---:|---|
+| 31 de octubre de 2026 | 22:05:40 | 54,159 s | Ocho etapas, código 0, sin omisiones |
+| 2 de noviembre de 2026 | 19:10:19 | 53,092 s | Ocho etapas, código 0, sin omisiones |
+
+Son dos ejecuciones distintas sobre el mismo hash. La suma de etapas no
+incluye toda la preparación; los tiempos internos de unittest no son
+los mismos que la duración externa del proceso.
+
+Los ensayos manuales comunicados el 31 de octubre incluyen compacto,
+--show-all, TXT, passphrase no vacía y comandos de autenticación/revelación.
+Se observaron autenticación del JSON visible y del TXT con el auxiliar,
+y autenticación del JSON con passphrase no vacía mediante el comando
+que no contrasta independientemente la seed. Los resultados no validan
+retrospectivamente otros exports no comprobados.
+
+manual_terminal_tests permanece PENDIENTES en el resumen automático
+por diseño. Los casos manuales se registran aparte; no se inventan
+pruebas de timeout real o de otras plataformas.
 
 ## Verificador manual de exports de laboratorio
 
@@ -330,6 +414,8 @@ No utilizar material real, publicar exports ni imprimir el plaintext.
 Un resultado correcto no certifica la imprevisibilidad de la fuente,
 la seguridad del equipo ni todas las derivaciones.
 
+Referencia histórica; revisión actual diferida y no bloqueante
+
 ## Alcance
 
 - Vectores BIP39: casos ejecutados de conversión, seed y round-trip.
@@ -344,6 +430,9 @@ la seguridad del equipo ni todas las derivaciones.
   según los métodos ejecutados en cada plataforma.
 - Auxiliar manual: autenticación y comprobaciones del export elegido,
   con alcance diferente para JSON y texto.
+- UX: separación entre presentación compacta y reporte privado completo.
+- Integral: casos funcionales, negativos y UI simulada.
+- Ejecutor: entorno, estados, omisiones, inventario y conservación de hashes.
 
 Pasar estas suites no constituye una auditoría ni verifica todas
 las derivaciones, plataformas o condiciones de escritura.
