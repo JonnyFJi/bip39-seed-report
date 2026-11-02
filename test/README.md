@@ -64,6 +64,23 @@ Con el entorno preparado:
 echo $?
 ```
 
+El ejecutor comprueba la identidad de la versión, sintaxis,
+importaciones, pip check y ocho etapas. Se detiene en el primer fallo
+y guarda nuevos registros dentro de output/.
+
+Códigos finales:
+
+- 0: etapas automáticas completas, sin fallos ni omisiones,
+  inventario alcanzado y hashes protegidos conservados.
+- 1: fallo de una etapa o modificación de archivos protegidos.
+- 2: resultado incompleto por omisiones o funciones no alcanzadas.
+- 3: problema de preparación.
+
+El código 0 no aprueba automáticamente los ensayos manuales.
+funciones.csv registra entradas a funciones, no cobertura completa
+de líneas o ramas. Las simulaciones de Windows no son ensayos
+en una consola Windows real.
+
 ## Suite del contenedor cifrado
 
 test/test_contenedor_report.py contiene 18 métodos de prueba con
@@ -312,8 +329,6 @@ errores de publicación y round-trip cifrado JSON/TXT.
 Usa fixtures ficticias y mocks de coordinación; no es verificación
 independiente de todas las derivaciones. La prueba PowerShell construye
 una cadena, no ejecuta una consola Windows real.
-
-Referencia histórica; revisión actual diferida y no bloqueante
 
 ## Suite complementaria
 
