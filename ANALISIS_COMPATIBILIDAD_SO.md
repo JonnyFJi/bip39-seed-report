@@ -135,8 +135,7 @@ universal ni una instalación reproducible con hashes.
 | Linux Mint 21.3 x86_64, 31/10/2026 | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Ocho etapas, 70/70 entradas, 11 archivos protegidos | Satisfactorio; hash 1f92a16c…; 54,159 s externos |
 | Linux Mint 21.3 x86_64, 02/11/2026 | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Ocho etapas, 70/70 entradas, 11 archivos protegidos | Satisfactorio; mismo hash; 53,092 s externos |
 | Windows 10 Home x64, 10.0.19045, compilación registrada 19045 | Python 3.10.11; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 23.0.1 | Vectores BIP39, cifrado, entrada segura, contenedor, escritura y verificación manual de exports | Satisfactorio para los casos ejecutados; escritura: 10 aprobados y 5 omitidos; ver detalle Windows. Revisión actual diferida; fuera del alcance activo |
-| macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar. Revisión actual diferida;
-fuera del alcance activo |
+| macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar. Revisión actual diferida; fuera del alcance activo |
 | BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
 
 ### Actualización del ensayo del contenedor — 15 de octubre de 2026
