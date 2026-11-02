@@ -410,7 +410,8 @@ Linux:
   --words 12 --network testnet --input-mode words
 ```
 
-Windows PowerShell:
+Windows PowerShell — referencia histórica; revisión actual diferida
+y no bloqueante:
 
 ```powershell
 & $PY .\test\verificar_export_laboratorio.py .\output\laboratorio\reporte.json --words 12 --network testnet --input-mode words
@@ -428,8 +429,6 @@ Si el ensayo utilizó la passphrase ficticia TREZOR, añadir:
 No utilizar material real, publicar exports ni imprimir el plaintext.
 Un resultado correcto no certifica la imprevisibilidad de la fuente,
 la seguridad del equipo ni todas las derivaciones.
-
-Referencia histórica; revisión actual diferida y no bloqueante
 
 ## Alcance
 
