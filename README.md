@@ -40,6 +40,19 @@ Debe tratarse como secreto, incluso cuando esté cifrado.
 - Comprobación local de la wordlist embebida y de la lista efectiva
   utilizada por mnemonic.
 
+## Entorno de trabajo de esta etapa
+
+El desarrollo y la verificación activa de esta etapa se realizan en Linux.
+La referencia comprobada es Linux Mint 21.3 Virginia, x86_64, kernel
+5.15.0-202-generic y CPython 3.10.12, con mnemonic 0.21,
+bip-utils 2.9.3 y cryptography 44.0.3.
+
+Windows y macOS quedan fuera del alcance activo y no bloquean este hito.
+Su revisión queda diferida a quien ejecute el programa en esos sistemas.
+Los resultados Windows históricos se conservan con su versión y sus
+omisiones; no certifican el parche actual. La simulación de consola Windows
+en Linux no constituye una ejecución Windows real.
+
 ## Modo interactivo recomendado
 
 Desde la carpeta del proyecto:
@@ -57,8 +70,9 @@ Flujo:
 5. Solicita la red cuando no se proporcionó -n/--network.
 6. Solicita y confirma la passphrase BIP39; puede quedar vacía.
 7. Valida y deriva el material.
-8. Muestra un reporte con secretos privados ocultos por defecto.
-9. Guarda un reporte cifrado.
+8. Muestra un resumen compacto sin secretos privados ni GAP limit.
+9. Guarda el reporte privado cifrado, sin reducir el contenido.
+10. Muestra la ruta final y comandos para autenticar o revelar el reporte.
 
 La ruta predeterminada es:
 
@@ -170,7 +184,8 @@ Test vectors BIP39: OK (24 casos)
 
 Las pruebas adicionales están en la carpeta test.
 
-Desde la raíz del proyecto, en Linux/macOS y utilizando una copia local de confianza:
+Desde la raíz del proyecto, en el entorno Linux preparado y con una copia
+local de confianza:
 
 ```bash
 PYTHONPATH="$PWD" python3 test/test_cifrado_report.py
@@ -178,6 +193,8 @@ PYTHONPATH="$PWD" python3 test/test_entrada_segura.py
 PYTHONPATH="$PWD" python3 test/test_contenedor_report.py
 PYTHONPATH="$PWD" python3 test/test_escritura_report.py
 PYTHONPATH="$PWD" python3 test/test_regresion_vectores_ultima_palabra.py
+PYTHONPATH="$PWD" python3 test/test_ux_terminal_report.py
+PYTHONPATH="$PWD" python3 test/test_revision_integral_report.py
 ```
 
 Ejecuta esos comandos desde la raíz y compruébalos en una descarga limpia.
@@ -220,14 +237,22 @@ El auxiliar test/verificar_export_laboratorio.py permite verificar
 manualmente un export sin imprimir su contenido privado. Requiere una
 terminal interactiva y no forma parte de las suites automáticas.
 
+Para ejecutar la batería secuencial y registrar entorno, hashes e inventario:
+
+```bash
+python3 test/ejecutar_bateria_local.py
+```
+
 Consulta [test/README.md](test/README.md) para ejecución y alcance, y
 [ANALISIS_COMPATIBILIDAD_SO.md](ANALISIS_COMPATIBILIDAD_SO.md) para los
 entornos y resultados registrados.
 
 ## Indicadores informativos de patrón
 
-El script muestra indicadores superficiales (unicidad, repeticiones, índices
-consecutivos). No estiman entropía criptográfica ni imprevisibilidad, ni
+El script calcula indicadores superficiales de patrón y los conserva
+sin pérdida en el reporte privado. La terminal compacta no enumera
+sus estadísticas; --show-all mantiene la presentación detallada.
+No estiman entropía criptográfica ni imprevisibilidad, ni
 determinan cómo se generó la mnemonic. Una mnemonic aleatoria válida puede
 contener palabras repetidas o índices consecutivos. No uses estos indicadores
 para aceptar o descartar una seed.
@@ -341,8 +366,9 @@ Opciones generales:
 - -n/--network: mainnet o testnet.
 - -f/--format: contenido interno JSON o texto.
 - -o/--output: destino; por defecto output/bip39_seed_report.json.
-- --audit-passphrase: descripción de la passphrase, sin estimar
-  su entropy real.
+- --audit-passphrase: incluye el análisis descriptivo en el reporte;
+  la vista compacta indica su inclusión y --show-all muestra sus detalles.
+  No estima la entropy real de la passphrase.
 - --show-all: revela material privado en terminal; solo para pruebas.
 - --run-tests: ejecuta la suite indicada y termina sin exportar.
 - --vectors-file: ruta explícita de la suite. Si se omite, utiliza test/vectors.json respecto de la carpeta del script.
@@ -421,7 +447,7 @@ python3 bip39_seed_report.py -i
    - Ingresar passphrase (opcional)
 3. Genera, importa o reconstruye el material según la opción elegida
    y valida la entrada.
-4. Deriva la seed, claves y direcciones, y presenta los indicadores.
+4. Deriva la seed, claves y direcciones, y presenta el resumen compacto.
 5. Guarda el reporte cifrado.
 
 #### 4. Modo educativo: revelar secretos en terminal
@@ -443,6 +469,8 @@ Flujo:
 --show-all desactiva la ocultación de secretos en la vista de terminal,
 pero no convierte esa vista en una reproducción completa del JSON privado.
 Se sigue mostrando solo la primera dirección de cada familia.
+GAP limit no se muestra en terminal; su valor y significado quedan
+conservados en los reportes.
 
 La salida puede revelar material suficiente para controlar fondos.
 No la redirijas a logs ni la compartas.
@@ -546,7 +574,8 @@ Test vectors BIP39: OK (24 casos)
 python3 bip39_seed_report.py -i --audit-passphrase -n testnet
 ```
 
-**Muestra:**
+El reporte conserva los siguientes datos descriptivos. En terminal se
+muestran con --show-all; en compacto se indica su inclusión:
 - Número de caracteres
 - Bytes UTF-8
 - Caracteres distintos
@@ -573,34 +602,41 @@ pruebas con material de recuperación real.
 
 ## Salida del script
 
-### En terminal (por defecto):
+La vista predeterminada es compacta: muestra entrada, red, estado BIP39,
+número de palabras, presencia de passphrase, rutas, claves públicas
+extendidas disponibles y la primera dirección de cada familia.
+No muestra entropy, seed, claves privadas, estadísticas detalladas ni
+GAP limit. Las direcciones y claves públicas extendidas son correlacionables.
 
-- Coin type: Bitcoin
-- Input mode: (words, entropy_bin, entropy_hex, mnemonic, mnemonic_incomplete)
-- Network: mainnet/testnet
-- Entropy: [OCULTO]
-- Checksum: [OCULTO]
-- **Validación e indicadores**: Indicadores informativos
-- Mnemonic: [OCULTO]
-- BIP39 seed: [OCULTO]
-- BIP32 root key: [OCULTO]
-- Addresses (0): Solo primera address por ruta
-- **Tipos de address**: P2PKH, P2WPKH-P2SH, P2WPKH, P2TR
-- Claves públicas extendidas de cuenta: las incluidas para BIP44,
-  BIP49 y BIP84. Son datos correlacionables y permanecen visibles.
+--show-all revela secretos y detalles de la vista de terminal, pero mantiene
+solo la primera dirección de cada familia, índice 0. No imprime todo el JSON
+ni muestra GAP limit. Utilizarlo solo con material ficticio.
 
-### En archivo (desencriptado):
+Los reportes privados conservan el contenido anterior. El contexto JSON
+normal añade report_notices, con version, general, input y privacy.
+Ese versionado informativo no cambia la versión 1 del contenedor cifrado.
+El TXT mantiene su contenido y añade los avisos. GAP limit se explica en
+los reportes como cantidad de direcciones generadas, no descubrimiento
+de actividad: no se consulta blockchain, saldo ni UTXO.
 
-- Material privado del reporte visible al descifrarlo.
-- 5 addresses por ruta (índices 0-4)
-- Claves privadas en formato WIF
-- Claves públicas en formato hex
-- Claves públicas extendidas de cuenta de BIP44, BIP49 y BIP84,
-  sin truncar. La de cuenta BIP86 todavía no se incluye.
-- Resultado de validación e indicadores descriptivos.
-- Contiene mnemonic, seed, clave raíz y claves privadas WIF. Trátalo como secreto
-- passphrase_used indica si se utilizó una passphrase BIP39. La passphrase no se guarda en claro como campo del contexto actual.
-- bip32_root_key contiene la concatenación hexadecimal de la clave privada maestra y el chain code; no es una clave extendida serializada xprv/tprv.
+Las verificaciones de ambas wordlists, errores, contraseñas, cancelaciones
+y decisiones de seguridad siguen activas aunque se reduzcan mensajes
+de éxito. Si se solicita --audit-passphrase, el cálculo y los campos se
+conservan en el reporte; en compacto se indica su inclusión y los detalles
+se muestran con --show-all.
+
+### Pie de revisión
+
+El pie usa el intérprete del entorno y la ruta final realmente publicada,
+incluidos sufijos secuenciales. Los comandos deben ejecutarse desde la raíz.
+La contraseña requerida es la de exportación, no la passphrase BIP39.
+
+Sin passphrase BIP39 se ofrece el auxiliar de laboratorio con los argumentos
+reales. Con passphrase no vacía se ofrece autenticación sin imprimir secretos,
+y se declara que no se contrasta la seed. No se incrusta la passphrase privada.
+
+La revelación completa se ofrece como un segundo comando con advertencia.
+No se ejecuta ni se crea una copia descifrada automáticamente.
 
 ## Seguridad operacional
 
@@ -643,6 +679,21 @@ No publiques una copia descifrada, seed o WIF. Si utilizas el visor local revisa
 La revelación completa puede quedar en scrollback o registros.
 Crear una copia descifrada en disco se reserva para material ficticio.
 
+### Revisión en editor: solo laboratorio
+
+Abrir el archivo cifrado en un editor muestra el contenedor y su ciphertext,
+no el reporte privado. Para leer el contenido en un editor se necesita una
+copia descifrada explícita, reservada a datos ficticios, fuera del repositorio
+y de carpetas sincronizadas. No modificar el original cifrado.
+
+Usar carpeta 0700 y archivo 0600 en Linux. Esos permisos no protegen un host
+comprometido ni evitan backups, autosaves, archivos recientes o capturas.
+Desactivar esas funciones en el editor cuando sea posible. Eliminar después
+no garantiza borrado seguro. Ninguna copia descifrada debe publicarse.
+
+Los auxiliares locales de revisión no se presuponen parte de la distribución
+si no están versionados expresamente.
+
 ## Estado y trabajo pendiente
 
 Implementado y probado en los ensayos registrados:
@@ -673,18 +724,27 @@ Implementado y probado en los ensayos registrados:
   del 23 de octubre, registró ocho métodos.
 - Mensaje de recuperación que distingue valores del checksum
   y cantidad de candidatos.
+- UX compacta por defecto y revelación explícita de la vista con --show-all.
+- report_notices en el contexto privado y avisos conservados en JSON/TXT.
+- Pie con comandos escapados y ruta final, sin contraseña o passphrase privada en argv.
+- Suites UX (18) e integral complementaria (28), y ejecutor local secuencial.
+- Baterías Linux del 31 de octubre y 2 de noviembre de 2026:
+  ocho etapas correctas, sin omisiones; inventario 70/70 y 11 archivos
+  protegidos sin cambios. El inventario no implica cobertura completa.
 
 Pendiente:
 
 - Lectura limitada desde disco antes de cargar el contenedor completo en memoria.
-- Concurrencia entre procesos Windows, casos omitidos de enlaces
-  simbólicos y comprobación de ACL.
 - Durabilidad del directorio y ampliación de pruebas por plataforma
   y sistema de archivos.
 - Perfiles de recuperación, auditoría y laboratorio.
 - Revelación granular de secrets.
 - Vectores independientes de BIP32 y todas las derivaciones.
 - Bloqueo transitivo, hashes de artefactos y ampliación de la matriz de entornos y flujos probados.
+
+Windows y macOS quedan fuera del alcance activo. La revisión se difiere
+a quien los utilice; los límites y resultados históricos se conservan
+en ANALISIS_COMPATIBILIDAD_SO.md y no bloquean este hito Linux.
 
 Estos resultados no constituyen una auditoría independiente ni
 una certificación para custodiar fondos.

@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental: 23 de octubre de 2026.
+- Actualización documental a 2 de noviembre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -57,6 +57,29 @@ observados.
 Este análisis no certifica todas las versiones de Python, sistemas
 operativos, arquitecturas, terminales o dependencias.
 
+## Alcance activo e identidad del parche UX
+
+El desarrollo y la verificación activa de esta etapa se realizan en Linux.
+La referencia comprobada es Linux Mint 21.3 Virginia, x86_64, kernel
+5.15.0-202-generic y CPython 3.10.12, con mnemonic 0.21,
+bip-utils 2.9.3 y cryptography 44.0.3.
+
+Windows y macOS quedan fuera del alcance activo y no bloquean este hito.
+Su revisión queda diferida a quien ejecute el programa en esos sistemas.
+Los resultados Windows históricos se conservan con su versión y sus
+omisiones; no certifican el parche actual. La simulación de consola Windows
+en Linux no constituye una ejecución Windows real.
+
+El parche UX ensayado se identifica por SHA-256:
+
+```text
+1f92a16c69c1566b9e228a9d7ca1d9cc3b066cad01ce0bc76be05b0fee88816f
+```
+
+El kernel anterior identifica el entorno del ensayo; no certifica un
+sistema actualizado o libre de vulnerabilidades. Su mantenimiento de
+seguridad se gestiona con los avisos de la distribución.
+
 ## Resumen
 
 El proyecto está pensado para ejecutarse en distintos sistemas, pero el
@@ -109,8 +132,12 @@ universal ni una instalación reproducible con hashes.
 | Entorno local Linux inicial | Registro completo pendiente | Ensayos anteriores comunicados, incluidos flujos manuales | Limitado a esos ensayos |
 | Entorno virtual Linux .venv-verificacion | mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3. Python exacto, distribución y arquitectura pendientes de registrar | Instalación, pip check, compilación, 24 vectores BIP39, 12 comprobaciones de cifrado y pruebas de entrada segura | Satisfactorio para las comprobaciones comunicadas |
 | Linux local, ensayo del 23 de octubre de 2026 | Python 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 22.0.2 | Instalación, pip check, sintaxis, 24 vectores, ocho métodos nuevos, cifrado, entrada segura, contenedor, escritura y rechazo CLI de suite vacía | Satisfactorio para los casos ejecutados; script a0239df8…; ver ensayo Linux de esta versión |
-| Windows 10 Home x64, 10.0.19045, compilación registrada 19045 | Python 3.10.11; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 23.0.1 | Vectores BIP39, cifrado, entrada segura, contenedor, escritura y verificación manual de exports | Satisfactorio para los casos ejecutados; escritura: 10 aprobados y 5 omitidos; ver detalle Windows |
-| macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar |
+| Linux Mint 21.3 x86_64, 31/10/2026 | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Ocho etapas, 70/70 entradas, 11 archivos protegidos | Satisfactorio; hash 1f92a16c…; 54,159 s externos |
+| Linux Mint 21.3 x86_64, 02/11/2026 | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Ocho etapas, 70/70 entradas, 11 archivos protegidos | Satisfactorio; mismo hash; 53,092 s externos |
+| Windows 10 Home x64, 10.0.19045, compilación registrada 19045 | Python 3.10.11; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 23.0.1 | Vectores BIP39, cifrado, entrada segura, contenedor, escritura y verificación manual de exports | Satisfactorio para los casos ejecutados; escritura: 10 aprobados y 5 omitidos; ver detalle Windows. Revisión actual diferida;
+fuera del alcance activo |
+| macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar. Revisión actual diferida;
+fuera del alcance activo |
 | BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
 
 ### Actualización del ensayo del contenedor — 15 de octubre de 2026
@@ -135,6 +162,65 @@ Los tests con mocks comprueban la política programada de rechazo y
 normalización; no recrean todos los comportamientos de una terminal real.
 
 ---
+
+## Resultados Linux: UX y batería integral — 31 de octubre y 2 de noviembre de 2026
+
+Versión del script ensayado: 97.076 bytes.
+
+SHA-256:
+
+```text
+1f92a16c69c1566b9e228a9d7ca1d9cc3b066cad01ce0bc76be05b0fee88816f
+```
+
+Etapas satisfactorias: 24 vectores BIP39, cifrado, entrada segura,
+18 métodos del contenedor, 15 de escritura, nueve de regresión,
+18 de UX y 28 de la suite complementaria. Las cinco suites unittest
+contabilizan 88 métodos; no sumar esos métodos a vectores y comprobaciones
+como si fueran unidades homogéneas.
+
+Se conservaron los hashes de los 11 archivos protegidos. El inventario
+registró 70/70 entradas alcanzadas: 69 funciones superiores y un método
+de clase. Esto no significa cobertura completa de líneas, ramas,
+plataformas ni validez criptográfica independiente.
+
+| Fecha del registro | Hora UTC de entorno.json | Suma de etapas externas | Resultado |
+|---|---|---:|---|
+| 31 de octubre de 2026 | 22:05:40 | 54,159 s | Ocho etapas, código 0, sin omisiones |
+| 2 de noviembre de 2026 | 19:10:19 | 53,092 s | Ocho etapas, código 0, sin omisiones |
+
+Son dos ejecuciones distintas sobre el mismo hash. La suma de etapas no
+incluye toda la preparación; los tiempos internos de unittest no son
+los mismos que la duración externa del proceso.
+
+Los ensayos manuales comunicados el 31 de octubre incluyen compacto,
+--show-all, TXT, passphrase no vacía y comandos de autenticación/revelación.
+Se observaron autenticación del JSON visible y del TXT con el auxiliar,
+y autenticación del JSON con passphrase no vacía mediante el comando
+que no contrasta independientemente la seed. Los resultados no validan
+retrospectivamente otros exports no comprobados.
+
+manual_terminal_tests permanece PENDIENTES en el resumen automático
+por diseño. Los casos manuales se registran aparte; no se inventan
+pruebas de timeout real o de otras plataformas.
+
+### Duración externa de las ocho etapas
+
+| Etapa | 31/10/2026 | 02/11/2026 |
+|---|---:|---:|
+| Vectores | 1,784 s | 1,889 s |
+| Cifrado | 20,683 s | 20,094 s |
+| Entrada | 1,927 s | 1,344 s |
+| Contenedor | 7,382 s | 7,205 s |
+| Escritura | 2,697 s | 2,656 s |
+| Regresión | 3,122 s | 3,055 s |
+| UX | 12,383 s | 12,338 s |
+| Integral | 4,181 s | 4,511 s |
+
+En ambos registros: código global 0, sin fallos/omisiones y sin funciones
+pendientes de alcanzar. Los JSON internos de unittest pueden representar
+su salida satisfactoria como false; el proceso termina con código 0.
+No es un fallo del script.
 
 ## Resultados Linux: runner y última palabra — 23 de octubre de 2026
 
@@ -236,7 +322,11 @@ no constituyen una auditoría ni soporte universal de Linux.
 ---
 
 
-## Resultados Windows 10 Home x64
+## Resultados históricos Windows 10 Home x64
+
+Se conserva como evidencia de una versión anterior. La revisión de la
+versión actual en Windows queda diferida y fuera del alcance activo.
+Las omisiones no se convierten en aprobaciones ni bloquean el cierre Linux.
 
 ### Fuente, entorno e identidad
 
@@ -393,7 +483,7 @@ Faltan bloqueo transitivo y hashes de artefactos para una preparación
 reproducible. Hay evidencia de instalaciones Linux y Windows concretas,
 no de cualquier combinación de sistema o herramientas.
 
-### Linux/macOS: ejemplo con entorno virtual
+### Linux: ejemplo con entorno virtual
 
 ```bash
 python3 -m venv .venv
@@ -551,7 +641,7 @@ distintos en Unix y Windows; ambos necesitan pruebas reales por entorno.
 
 ## Protocolo de comprobación
 
-### Linux/macOS
+### Linux
 
 Desde la raíz, con el intérprete del entorno preparado:
 
@@ -564,7 +654,15 @@ PYTHONPATH="$PWD" python test/test_entrada_segura.py
 PYTHONPATH="$PWD" python test/test_contenedor_report.py
 PYTHONPATH="$PWD" python test/test_escritura_report.py
 PYTHONPATH="$PWD" python test/test_regresion_vectores_ultima_palabra.py
+PYTHONPATH="$PWD" python test/test_ux_terminal_report.py
+PYTHONPATH="$PWD" python test/test_revision_integral_report.py
 ```
+
+```bash
+python test/ejecutar_bateria_local.py
+```
+
+El interprete python debe ser en el entorno probado.
 
 La invocación con PYTHONPATH está comprobada en el entorno Linux
 comunicado. No debe generalizarse como prueba realizada en macOS.
@@ -662,6 +760,11 @@ equipo en los logs publicados.
 Existen resultados satisfactorios en las combinaciones Linux comunicadas
 y en Windows 10 Home x64, 10.0.19045, con Python 3.10.11 y las dependencias
 descritas. No hay una matriz universal de soporte.
+
+El cierre activo corresponde a Linux y al hash 1f92a16c…: dos baterías
+satisfactorias con entorno identificado y evidencia manual separada.
+Windows/macOS no bloquean este hito y no se dan por aprobados para esa versión.
+El inventario 70/70 no elimina límites de cobertura o seguridad del host.
 
 El ensayo Linux comunicado el 23 de octubre de 2026 incorpora
 la regresión del runner y última palabra: ocho métodos correctos,

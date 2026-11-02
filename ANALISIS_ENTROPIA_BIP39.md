@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental: 23 de octubre de 2026.
+- Actualización documental a 2 de noviembre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio de referencia: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -80,6 +80,31 @@ en ANALISIS_COMPATIBILIDAD_SO.md.
 
 El cuarto campo BIP32 sigue sin verificarse y permanecen pendientes
 los vectores independientes de clave maestra y derivaciones.
+
+### Actualización posterior de UX y batería Linux
+
+El parche UX y su batería se identifican por SHA-256 del script:
+
+```text
+1f92a16c69c1566b9e228a9d7ca1d9cc3b066cad01ce0bc76be05b0fee88816f
+```
+
+Se reduce la presentación por defecto y se añaden avisos al contexto privado,
+sin alterar generación, conversiones, NFKD, seed, derivaciones, perfil KDF
+o publicación. Los reportes conservan los datos y GAP limit.
+
+Las baterías Linux del 31 de octubre y 2 de noviembre de 2026 completaron
+sus ocho etapas, 70/70 entradas del inventario y control de 11 archivos
+protegidos, sin fallos u omisiones. El detalle de entorno y tiempos
+se conserva en ANALISIS_COMPATIBILIDAD_SO.md.
+
+La suite complementaria comprueba primitivas y estructura de derivaciones,
+pero no resuelve todos los casos excepcionales ni sustituye vectores
+independientes completos. El cuarto campo BIP32 sigue sin verificarse.
+Los resultados no certifican la imprevisibilidad de entradas ni el host.
+
+Windows/macOS quedan diferidos fuera del alcance activo; los registros
+históricos no se atribuyen al hash nuevo.
 
 ## Objetivo y alcance
 
@@ -273,9 +298,9 @@ La escritura sin reemplazo se incorporó posteriormente y cuenta con
 pruebas según el alcance de cada plataforma. Requiere enlaces duros y
 una carpeta de salida de confianza.
 
-Siguen pendientes la durabilidad del directorio, las ACL y los casos
-omitidos de escritura en Windows, además de la separación de perfiles
-de reporte.
+Continúan abiertos la durabilidad del directorio y la separación de perfiles
+de reporte. La revisión de ACL y casos omitidos Windows queda diferida,
+fuera del alcance activo Linux y sin bloquear este hito.
 
 ### Uso de prueba
 

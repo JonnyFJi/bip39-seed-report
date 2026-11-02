@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### UX compacta y batería Linux — ensayos del 31 de octubre y 2 de noviembre de 2026
+
+- Vista compacta por defecto sin secretos, estadísticas extensas ni GAP limit.
+- --show-all conserva la primera dirección de cada familia y revela
+  los secretos de esa vista, sin convertirse en un volcado JSON completo.
+- Verificación de lista embebida y efectiva conservada; solo se reducen
+  mensajes de éxito. Errores y decisiones operativas permanecen visibles.
+- Incorporación de report_notices al contexto privado normal, con avisos
+  generales, de entrada y privacidad. Se mantiene el contenedor versión 1,
+  su perfil scrypt y AES-256-GCM.
+- TXT conserva su contenido anterior y añade avisos; JSON conserva campos.
+- Pie posterior a la publicación con la ruta final y comandos escapados.
+  No incluye contraseñas ni la passphrase BIP39 privada en argv.
+- Suite UX de 18 métodos, suite complementaria de 28 y ejecutor local
+  secuencial con inventario y control de hashes.
+- Dos baterías Linux satisfactorias: ocho etapas, sin omisiones,
+  70/70 entradas alcanzadas y 11 archivos protegidos sin cambios.
+- Se conservan las 65 funciones anteriores y se añaden cuatro helpers.
+  Generación, derivaciones, KDF, cifrado, descifrado y escritura se mantienen.
+- Alcance activo Linux. Windows y macOS quedan diferidos, no aprobados
+  para esta versión y sin bloquear el hito Linux.
+
+SHA-256 del script ensayado:
+
+```text
+1f92a16c69c1566b9e228a9d7ca1d9cc3b066cad01ce0bc76be05b0fee88816f
+```
+
+El inventario alcanzado no equivale a todas las ramas o a una auditoría.
+Los ensayos manuales y resultados históricos se conservan por separado.
+La publicación en main no constituye una release formal.
+
 ### Captura de salida de la suite de regresión — 24 de octubre de 2026
 
 - Corrección de test_05_mismatches_do_not_print_success:

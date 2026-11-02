@@ -48,6 +48,7 @@ import hmac
 import json
 import os
 import pathlib
+import shlex
 import sys
 import tempfile
 import unicodedata
@@ -618,7 +619,7 @@ BIP39_OFFICIAL_WORDLIST = [
 BIP39_OFFICIAL_SHA256 = "187db04a869dd9bc7be80d21a86497d692c0db6abd3aa8cb6be5d618ff757fae"
 
 
-def verify_against_bip39_official():
+def verify_against_bip39_official(verbose=True):
     """Comprueba la lista embebida y la lista efectiva de mnemonic, offline."""
     if len(BIP39_OFFICIAL_WORDLIST) != 2048:
         print("ERROR: la wordlist embebida no contiene 2048 palabras.")
@@ -641,12 +642,13 @@ def verify_against_bip39_official():
         )
         return False
 
-    print(
-        "Wordlist BIP39 embebida: hash local verificado (2048 palabras)."
-    )
-    print(
-        "Wordlist efectiva de mnemonic: contenido y orden verificados."
-    )
+    if verbose:
+        print(
+            "Wordlist BIP39 embebida: hash local verificado (2048 palabras)."
+        )
+        print(
+            "Wordlist efectiva de mnemonic: contenido y orden verificados."
+        )
     return True
 
 
@@ -1354,8 +1356,8 @@ def get_secure_entropy_bin():
 
 
 def get_secure_passphrase():
-    print("\n🔐 Ingresa la passphrase BIP39 (opcional, oculto):")
-    print("   Presiona Enter en ambos campos para dejarla vacía.\n")
+    print("\nPassphrase BIP39 opcional; no es la contraseña del reporte.")
+    print("Deja ambos campos vacíos para no utilizarla.\n")
 
     return get_confirmed_secret(
         prompt="Passphrase: ",
@@ -1453,20 +1455,22 @@ def resolve_input(args, interactive=False):
         input_count = sum([has_words, has_entropy_bin, has_entropy_hex, has_mnemonic, has_mnemonic_incomplete])
 
         if input_count == 0:
-            print("\nSelecciona el tipo de entrada:")
-            print("  [1] Generar nueva mnemonic aleatoria")
-            print("  [2] Ingresar entropía hexadecimal")
-            print("  [3] Ingresar entropía binaria")
-            print("  [4] Ingresar mnemonic existente")
-            print("  [5] Calcular última palabra (11 o 23 palabras)")
+            print("\n" + "-" * 60)
+            print("ENTRADA")
+            print("-" * 60)
+            print("  [1] Generar mnemonic aleatoria")
+            print("  [2] Importar entropy hexadecimal")
+            print("  [3] Importar entropy binaria")
+            print("  [4] Importar mnemonic existente")
+            print("  [5] Completar última palabra: 11 → 12 o 23 → 24")
             print()
 
             while True:
                 choice = input("Opción [1-5]: ").strip()
                 if choice == '1':
-                    print("\nSelecciona la longitud de la mnemonic:")
-                    print("  [1] 12 palabras (128 bits - estándar, recomendado)")
-                    print("  [2] 24 palabras (256 bits de entropía de entrada)")
+                    print("\nLongitud:")
+                    print("  [1] 12 palabras")
+                    print("  [2] 24 palabras")
                     print()
                     while True:
                         length_choice = input("Opción [1-2]: ").strip()
@@ -1495,9 +1499,9 @@ def resolve_input(args, interactive=False):
                     print("❌ Opción inválida. Ingresa un número entre 1 y 5.")
 
         if args.network is None:
-            print("\nSelecciona la red Bitcoin:")
-            print("  [1] Mainnet (Bitcoin principal - predeterminada)")
-            print("  [2] Testnet (Bitcoin de pruebas)")
+            print("\nRed:")
+            print("  [1] Mainnet")
+            print("  [2] Testnet")
 
             while True:
                 network_choice = input("Opción [1-2]: ").strip()
@@ -1663,10 +1667,141 @@ def build_context(args, interactive=False):
     if args.audit_passphrase:
         context["passphrase_audit"] = audit_passphrase(args.passphrase)
 
+    context["report_notices"] = build_report_notices(context)
     return context
 
+def build_report_notices(data):
+    input_mode = data.get("input_mode")
+    input_notices = [
+        "El formato y checksum BIP39 no certifican por sí solos la imprevisibilidad de una entrada.",
+        "No se puede certificar que el usuario haya copiado correctamente la mnemonic o la passphrase.",
+    ]
+    if input_mode == "words":
+        input_notices.append("La generación utiliza os.urandom y depende del sistema operativo.")
+    elif input_mode in {"entropy_hex", "entropy_bin", "mnemonic", "mnemonic_incomplete"}:
+        input_notices.append("El origen y la imprevisibilidad del material importado no quedan certificados.")
+    if input_mode == "mnemonic_incomplete":
+        input_notices.append("El checksum no identifica la palabra original; contrastar la selección con una fuente independiente.")
+    return {
+        "version": 1,
+        "general": [
+            "Herramienta educativa y experimental; no auditada para custodia o producción.",
+            "No consulta la red Bitcoin ni construye, firma o transmite transacciones.",
+            "La ejecución offline no certifica la seguridad del entorno.",
+            "El reporte contiene material privado y debe tratarse como secreto.",
+            "El cifrado no compensa una contraseña predecible; conservar la contraseña de exportación.",
+            "El programa intenta limpiar el historial del proceso Python; no garantiza borrar el shell, scrollback, memoria o copias.",
+            "Usar exclusivamente material ficticio en pruebas; no usar con fondos reales.",
+            "GAP limit representa la cantidad de direcciones derivadas por familia desde el índice 0; no realiza descubrimiento de actividad, consultas de saldos ni búsqueda de direcciones usadas.",
+            "La terminal muestra solo la primera dirección de cada familia; el reporte privado conserva todas las generadas.",
+        ],
+        "input": input_notices,
+        "privacy": [
+            "Las direcciones y claves públicas extendidas pueden facilitar correlación.",
+            "Revelar secretos en terminal puede dejarlos en scrollback, capturas o grabaciones.",
+        ],
+    }
+
+
+def format_terminal_summary(data):
+    modes = {
+        "words": "generación aleatoria",
+        "entropy_hex": "importación de entropy hexadecimal",
+        "entropy_bin": "importación de entropy binaria",
+        "mnemonic": "importación de mnemonic",
+        "mnemonic_incomplete": "reconstrucción de mnemonic",
+    }
+    valid = bool(data["mnemonic_valid"] and data["checksum_valid"])
+    valid = valid and data.get("indicadores_mnemonic", {}).get("valid", True)
+    status = "válido" if valid else "NO válido"
+    count = len(data["mnemonic"].split())
+    phrase_status = "utilizada" if data["passphrase_used"] else "no utilizada"
+    lines = [
+        "\n" + "=" * 60,
+        "RESUMEN",
+        "=" * 60,
+        "Entrada: " + modes.get(data["input_mode"], data["input_mode"]),
+        f"Red: {data['network']} · Moneda: {data['coin_type_label']}",
+        f"BIP39: {status} · {count} palabras",
+        "Mnemonic: oculta",
+        f"Passphrase BIP39: {phrase_status}",
+    ]
+    if "passphrase_audit" in data:
+        lines.append("Auditoría de passphrase: incluida en el reporte")
+    lines.extend(["", "Vista de terminal: primera dirección de cada ruta, índice 0"])
+    for name, item in data["derivations"].items():
+        lines.extend(["", f"[{name} · {item.get('address_type', '')}]",
+                      f"  Ruta:      {item['path_template']}"])
+        for key in ("xpub", "ypub", "zpub"):
+            if key in item:
+                lines.append(f"  Extendida: {item[key]}")
+        lines.append(f"  Dirección: {item['addresses'][0]['address']}")
+    return "\n".join(lines)
+
+
+def _quote_terminal_command(arguments, windows=False):
+    if windows:
+        return "& " + " ".join("'" + str(arg).replace("'", "''") + "'" for arg in arguments)
+    return shlex.join([str(arg) for arg in arguments])
+
+
+def format_export_help(final_path, data, output_format, *, windows=None):
+    if windows is None:
+        windows = os.name == "nt"
+    python = sys.executable
+    path = str(final_path)
+    auth_code = (
+        "from pathlib import Path; import json, sys; import bip39_seed_report as r; "
+        "c=Path(sys.argv[1]).read_text(encoding='utf-8'); "
+        "p=r.read_hidden_secret('Contraseña de exportación: '); "
+        "plain=r.decrypt_report_content(c,p); "
+        "json.loads(plain) if sys.argv[2]=='json' else None; "
+        "print('OK: reporte autenticado; no se imprime el contenido privado')"
+    )
+    if data["passphrase_used"]:
+        verify = [python, "-c", auth_code, path, output_format]
+        scope = "Autentica el reporte; no contrasta la seed con la passphrase BIP39."
+    else:
+        verify = [python, "test/verificar_export_laboratorio.py", path,
+                  "--format", output_format,
+                  "--words", str(len(data["mnemonic"].split())),
+                  "--network", data["network"], "--input-mode", data["input_mode"]]
+        scope = "Auxiliar de laboratorio; no verifica independientemente todas las direcciones."
+    reveal_code = (
+        "from pathlib import Path; import sys; import bip39_seed_report as r; "
+        "c=Path(sys.argv[1]).read_text(encoding='utf-8'); "
+        "p=r.read_hidden_secret('Contraseña de exportación: '); "
+        "print(r.decrypt_report_content(c,p))"
+    )
+    reveal = [python, "-c", reveal_code, path]
+    return "\n".join([
+        "\n" + "-" * 60,
+        "✓ Reporte cifrado guardado",
+        f"  Archivo: {path}",
+        f"  Contenido interno: {output_format.upper()}",
+        "  Datos privados y advertencias: incluidos en el reporte",
+        "",
+        "Conserva la contraseña de exportación: se necesita para descifrarlo.",
+        "",
+        "REVISAR EL REPORTE",
+        "Ejecuta los comandos desde la raíz del proyecto con este entorno Python.",
+        "Terminal: " + ("Windows PowerShell" if windows else "Bash/Linux"),
+        "Utiliza la contraseña de exportación, no la passphrase BIP39.",
+        "",
+        "1. Verificar sin imprimir el contenido privado:",
+        _quote_terminal_command(verify, windows),
+        scope,
+        "",
+        "2. Descifrar y mostrar el contenido privado completo:",
+        "ATENCIÓN: mostrará secretos; pueden quedar en scrollback o grabaciones.",
+        _quote_terminal_command(reveal, windows),
+        "Este comando no guarda una copia descifrada en disco.",
+    ])
 
 def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False):
+    if terminal_mode and hide_sensitive and not show_all:
+        return format_terminal_summary(data)
+
     if show_all:
         hide_sensitive = False
 
@@ -1810,8 +1945,9 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
         lines.extend([
             display_name,
             f"Path template    : {item['path_template']}",
-            f"GAP limit       : {gap}",
         ])
+        if not terminal_mode:
+            lines.append(f"GAP limit       : {gap}")
 
         if "xpub" in item:
             lines.append(f"Extended public key : {item['xpub']}")
@@ -1844,17 +1980,24 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
 
         lines.append("----------------------------------------")
 
-    lines.extend([
-        "ADVERTENCIA, este script:",
-        "no puede certificar que una entropía manual ingresada por el usuario sea imprevisible.",
-        "no puede certificar que el entorno operativo donde se ejecuta el script no esté comprometido.",
-        "no puede certificar que un usuario no haya copiado mal la passphrase o la mnemonic.",
-        "\nLa ejecución offline, un entorno confiable y una fuente de "
-        "entropía adecuada son condiciones necesarias, no una garantía "
-        "de seguridad.",
-        "el script intenta limpiar el historial del proceso Python actual.",
-        "\n- Use el script con prudencia.",
-    ])
+    if not terminal_mode:
+        lines.extend([
+            "ADVERTENCIA, este script:",
+            "no puede certificar que una entropía manual ingresada por el usuario sea imprevisible.",
+            "no puede certificar que el entorno operativo donde se ejecuta el script no esté comprometido.",
+            "no puede certificar que un usuario no haya copiado mal la passphrase o la mnemonic.",
+            "\nLa ejecución offline, un entorno confiable y una fuente de "
+            "entropía adecuada son condiciones necesarias, no una garantía "
+            "de seguridad.",
+            "el script intenta limpiar el historial del proceso Python actual.",
+            "\n- Use el script con prudencia.",
+        ])
+
+        notices = data.get("report_notices") or build_report_notices(data)
+        lines.extend(["", "AVISOS DEL REPORTE"])
+        for group in ("general", "input", "privacy"):
+            lines.append(group + ":")
+            lines.extend("- " + message for message in notices[group])
 
     return "\n".join(lines)
 
@@ -2053,7 +2196,7 @@ def main():
         ),
     )
     parser.add_argument("--show-all", action="store_true",
-                        help="Muestra TODOS los datos en pantalla (modo educativo)")
+                        help="Revela secretos y detalles de la vista de terminal; mantiene la primera dirección por familia.")
     args = parser.parse_args()
 
     supplied_secret_options = set(
@@ -2115,10 +2258,12 @@ def main():
         print("    El script NO puede continuar sin encriptación.\n")
         sys.exit(1)
 
-    print("\n" + "="*60)
-    print("VERIFICACIÓN DE INTEGRIDAD BIP39")
-    print("="*60)
-    ok_official = verify_against_bip39_official()
+    print("\n" + "=" * 60)
+    print("BIP39 SEED REPORT — LABORATORIO OFFLINE")
+    print("=" * 60)
+    print("Proyecto educativo. No es una wallet. No usar con fondos reales.")
+    print("\nVERIFICACIÓN BIP39")
+    ok_official = verify_against_bip39_official(verbose=False)
     
     if not ok_official:
         print(
@@ -2127,15 +2272,15 @@ def main():
         )
         sys.exit(1)
 
-    print("\n🔐 SEGURIDAD ACTIVADA")
-    print("   - El archivo de salida será encriptado con AES-256-GCM")
-    if not args.show_all:
-        print("   - Los datos sensibles se ocultarán en pantalla")
-    print("   - Debes recordar esta contraseña para abrir el archivo\n")
+    print("  Lista embebida: 2048 palabras · hash local correcto")
+    print("\nEXPORTACIÓN CIFRADA")
+    print("  Cifrado: AES-256-GCM · KDF: scrypt\n")
+    if args.show_all:
+        print("ATENCIÓN: --show-all revelará secretos en esta terminal.\n")
 
     try:
         encrypt_password = get_secure_input(
-            "Contraseña para encriptar: "
+            "Contraseña para cifrar el reporte: "
         )
         confirm_password = get_secure_input(
             "Confirmar contraseña: "
@@ -2175,10 +2320,6 @@ def main():
 
     print()
 
-    if args.interactive:
-        print("\nMODO INTERACTIVO")
-        print("Los secretos solicitados con getpass se introducen sin eco.")
-        print("Esto no protege contra un sistema comprometido.\n")
 
     try:
         data = build_context(args, interactive=args.interactive)
@@ -2218,16 +2359,7 @@ def main():
         sys.exit(1)
 
 
-    print()
-    print(f"✅ Reporte cifrado guardado: {final_path}")
-    print("   ⚠️  Recuerda la contraseña para desencriptar.")
-    print("   ⚠️  Si pierdes la contraseña, perderás acceso a los datos.")
-    print("\n📋 Para desencriptar el archivo:")
-    print("   Usa un script separado con la función decrypt_report_content()")
-    print(
-        "O usa python3 -c con getpass y decrypt_report_content "
-        "para no exponer la contraseña en el historial."
-    )
+    print(format_export_help(final_path, data, args.format))
 
 if __name__ == "__main__":
     main()
