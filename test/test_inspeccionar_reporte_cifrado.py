@@ -329,5 +329,84 @@ class InspectorTests(unittest.TestCase):
         self.assertNotIn("Traceback", capture.getvalue())
 
 
+    def test_33_duplicate_root_keys_rejected(self):
+        plain = json.dumps(self.data)[:-1] + ', "network": "testnet"}'
+        with self.assertRaises(v.InspectionError):
+            v.verify_plain(plain, self.options)
+
+    def test_34_duplicate_nested_keys_rejected(self):
+        original = json.dumps(self.data)
+        plain = original.replace('"index": 0', '"index": 0, "index": 0', 1)
+        self.assertNotEqual(plain, original)
+        with self.assertRaises(v.InspectionError):
+            v.verify_plain(plain, self.options)
+
+    def test_35_nonstandard_json_constants_rejected(self):
+        for token in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(token=token):
+                plain = json.dumps(self.data)[:-1] + ', "extra": ' + token + '}'
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(plain, self.options)
+
+    def test_36_entropy_bits_require_exact_integer(self):
+        for value in (128.0, True, "128", None):
+            with self.subTest(value=value):
+                data = json.loads(json.dumps(self.data))
+                data["entropy_bits"] = value
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(json.dumps(data), self.options)
+
+    def test_37_derivations_require_objects(self):
+        for replace_root in (True, False):
+            with self.subTest(replace_root=replace_root):
+                data = json.loads(json.dumps(self.data))
+                if replace_root:
+                    data["derivations"] = list(data["derivations"])
+                else:
+                    data["derivations"]["BIP44"] = []
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(json.dumps(data), self.options)
+
+    def test_38_addresses_require_array_of_objects(self):
+        for value in ({}, [None] * 5):
+            with self.subTest(value=value):
+                data = json.loads(json.dumps(self.data))
+                data["derivations"]["BIP44"]["addresses"] = value
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(json.dumps(data), self.options)
+
+    def test_39_indexes_reject_booleans_and_floats(self):
+        for position, value in ((0, False), (1, True), (0, 0.0), (0, "0")):
+            with self.subTest(position=position, value=value):
+                data = json.loads(json.dumps(self.data))
+                data["derivations"]["BIP44"]["addresses"][position]["index"] = value
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(json.dumps(data), self.options)
+
+    def test_40_addresses_require_nonblank_text(self):
+        for value in (123, True, ["ficticia"], {"x": "ficticia"}, "", " \t "):
+            with self.subTest(value=value):
+                data = json.loads(json.dumps(self.data))
+                data["derivations"]["BIP44"]["addresses"][0]["address"] = value
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(json.dumps(data), self.options)
+
+    def test_41_valid_extensions_remain_accepted(self):
+        self.data["extra_notice"] = {"text": "DATO_FICTICIO", "version": 1}
+        self.assertIn("BIP39", v.verify_plain(json.dumps(self.data), self.options))
+
+    def test_42_reveal_rejects_duplicate_json_without_printing(self):
+        marker = "SECRETO_FICTICIO_NO_IMPRIMIR"
+        self.backend.decrypt_report_content.return_value = (
+            '{"x":"' + marker + '","x":"otro"}'
+        )
+        capture = io.StringIO()
+        with patch("builtins.input", return_value="y"):
+            with contextlib.redirect_stdout(capture):
+                with self.assertRaises(v.InspectionError):
+                    v.reveal_here(self.path, self.options)
+        self.assertNotIn(marker, capture.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
