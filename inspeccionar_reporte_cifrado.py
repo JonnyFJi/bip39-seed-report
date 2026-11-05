@@ -20,6 +20,19 @@ class InspectionError(RuntimeError):
     pass
 
 
+def _reject_plain_duplicate_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Clave JSON duplicada.")
+        result[key] = value
+    return result
+
+
+def _reject_plain_constant(_value):
+    raise ValueError("Constante JSON no admitida.")
+
+
 def terminal_text(value):
     return "".join(repr(ch)[1:-1] if ch not in "\n\t" and
                    unicodedata.category(ch) in {"Cc", "Cf"} else ch for ch in str(value))
@@ -47,7 +60,10 @@ def parse_plain(plain, expected_format):
         actual, data = "txt", None
     else:
         try:
-            data = json.loads(plain)
+            data = json.loads(
+                plain, object_pairs_hook=_reject_plain_duplicate_keys,
+                parse_constant=_reject_plain_constant,
+            )
         except (ValueError, RecursionError):
             raise InspectionError("El contenido no es un reporte JSON o TXT reconocido.") from None
         if type(data) is not dict:
@@ -69,11 +85,18 @@ def verify_plain(plain, options):
             raise InspectionError("La red no coincide con la esperada.")
         return "TXT: autenticación, cabecera y red; no se comprueban BIP39, seed ni todas las derivaciones."
     try:
-        if data["network"] not in {"mainnet", "testnet"} or type(data["passphrase_used"]) is not bool:
+        if type(data["network"]) is not str or data["network"] not in {"mainnet", "testnet"}:
+            raise ValueError
+        if type(data["passphrase_used"]) is not bool:
             raise ValueError
         if type(data["gap_limit"]) is not int or data["gap_limit"] != report.GAP_LIMIT:
             raise ValueError
-        if data["input_mode"] not in {"words", "entropy_hex", "entropy_bin", "mnemonic", "mnemonic_incomplete"}:
+        if (type(data["input_mode"]) is not str or
+                data["input_mode"] not in {"words", "entropy_hex", "entropy_bin", "mnemonic", "mnemonic_incomplete"}):
+            raise ValueError
+        if type(data["mnemonic"]) is not str or not data["mnemonic"].strip():
+            raise ValueError
+        if type(data["entropy_hex"]) is not str or type(data["entropy_bits"]) is not int:
             raise ValueError
         if options.network is not None and data["network"] != options.network:
             raise InspectionError("La red no coincide con la esperada.")
@@ -90,15 +113,25 @@ def verify_plain(plain, options):
         if not data["passphrase_used"]:
             if report.Mnemonic("english").to_seed(data["mnemonic"], "").hex() != data["bip39_seed_hex"]:
                 raise ValueError
-        if set(data["derivations"]) != {"BIP44", "BIP49", "BIP84", "BIP86"}:
+        if (type(data["derivations"]) is not dict or
+                set(data["derivations"]) != {"BIP44", "BIP49", "BIP84", "BIP86"}):
             raise ValueError
         coin = 0 if data["network"] == "mainnet" else 1
         for family, item in data["derivations"].items():
-            if len(item["addresses"]) != report.GAP_LIMIT:
+            if type(item) is not dict:
                 raise ValueError
-            for index, address in enumerate(item["addresses"]):
-                if (address["index"] != index or not address["address"] or
-                    address["path"] != f"m/{family[3:]}'/{coin}'/0'/0/{index}"):
+            addresses = item["addresses"]
+            if type(addresses) is not list or len(addresses) != report.GAP_LIMIT:
+                raise ValueError
+            for index, address in enumerate(addresses):
+                if type(address) is not dict:
+                    raise ValueError
+                if type(address["index"]) is not int or address["index"] != index:
+                    raise ValueError
+                if type(address["address"]) is not str or not address["address"].strip():
+                    raise ValueError
+                if (type(address["path"]) is not str or
+                        address["path"] != f"m/{family[3:]}'/{coin}'/0'/0/{index}"):
                     raise ValueError
     except InspectionError:
         raise
@@ -107,7 +140,6 @@ def verify_plain(plain, options):
     if data["passphrase_used"]:
         return "JSON: BIP39 y estructura comprobados; seed no contrastada con la passphrase BIP39 no vacía."
     return "JSON: BIP39, seed con passphrase vacía y estructura comprobados; no se verifican independientemente todas las direcciones."
-
 
 def reveal_here(path, options, *, confirm=True):
     print("ATENCIÓN: mostrará secretos y pueden quedar en scrollback o grabaciones.")
