@@ -590,11 +590,23 @@ no de cualquier combinación de sistema o herramientas.
 ### Linux: ejemplo con entorno virtual
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python --version
+python3 -m venv .venv-verificacion
+PY="$PWD/.venv-verificacion/bin/python"
+
+"$PY" -m pip install -r requirements.txt
+"$PY" -m pip check
+"$PY" --version
+"$PY" -c 'import sys; print(sys.executable)'
 ```
+
+La creación del entorno solo es necesaria si todavía no existe.
+En cada terminal nueva, definir PY desde la raíz del proyecto:
+
+```bash
+PY="$PWD/.venv-verificacion/bin/python"
+```
+
+No es necesario activar el entorno si se utiliza directamente "$PY".
 
 Estos comandos son una propuesta de preparación, no evidencia de que
 todas las plataformas o versiones funcionen.
@@ -760,6 +772,7 @@ PYTHONPATH="$PWD" "$PY" test/test_escritura_report.py
 PYTHONPATH="$PWD" "$PY" test/test_regresion_vectores_ultima_palabra.py
 PYTHONPATH="$PWD" "$PY" test/test_ux_terminal_report.py
 PYTHONPATH="$PWD" "$PY" test/test_revision_integral_report.py
+PYTHONPATH="$PWD" "$PY" test/test_inspeccionar_reporte_cifrado.py
 PYTHONPATH="$PWD" "$PY" test/test_ejecutar_bateria_local.py
 ```
 
@@ -767,7 +780,9 @@ PYTHONPATH="$PWD" "$PY" test/test_ejecutar_bateria_local.py
 "$PY" test/ejecutar_bateria_local.py
 ```
 
-El interprete python debe ser en el entorno probado.
+La variable PY debe apuntar al ejecutable del entorno preparado.
+Definirla antes de ejecutar este protocolo y conservar el mismo
+intérprete durante las comprobaciones.
 
 La invocación con PYTHONPATH está comprobada en el entorno Linux
 comunicado. No debe generalizarse como prueba realizada en macOS.
