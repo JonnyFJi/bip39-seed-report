@@ -324,6 +324,16 @@ ni una instalación con verificación de hashes.
 
 ## Instalación
 
+Guías detalladas por sistema:
+
+- [Linux](docs/INSTALACION_LINUX.md)
+- [Windows PowerShell](docs/INSTALACION_WINDOWS.md)
+- [macOS](docs/INSTALACION_MACOS.md)
+- [Conservación y recuperación de reportes](docs/RECUPERACION_REPORTES.md)
+
+Consultar el alcance de cada guía: las instrucciones propuestas no
+equivalen a una ejecución registrada en esa plataforma.
+
 ### 1. Preparar el entorno virtual
 
 Desde la raíz de una copia local de confianza:
