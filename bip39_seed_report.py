@@ -13,7 +13,7 @@ Uso seguro recomendado:
 - Usar un entorno confiable.
 - Proporcionar entropy correcta y verificable.
 - Preferir una máquina limpia y no comprometida.
-- No usar con fondos reales: el proyecto no está auditado para producción.
+- El proyecto no está auditado para producción.
 
 Entrada compatible:
 - -w / --words
@@ -1691,7 +1691,7 @@ def build_report_notices(data):
             "El reporte contiene material privado y debe tratarse como secreto.",
             "El cifrado no compensa una contraseña predecible; conservar la contraseña de exportación.",
             "El programa intenta limpiar el historial del proceso Python; no garantiza borrar el shell, scrollback, memoria o copias.",
-            "Usar exclusivamente material ficticio en pruebas; no usar con fondos reales.",
+            "Usar exclusivamente material ficticio en pruebas.",
             "GAP limit representa la cantidad de direcciones derivadas por familia desde el índice 0; no realiza descubrimiento de actividad, consultas de saldos ni búsqueda de direcciones usadas.",
             "La terminal muestra solo la primera dirección de cada familia; el reporte privado conserva todas las generadas.",
         ],
@@ -1748,54 +1748,31 @@ def _quote_terminal_command(arguments, windows=False):
 def format_export_help(final_path, data, output_format, *, windows=None):
     if windows is None:
         windows = os.name == "nt"
-    python = sys.executable
-    path = str(final_path)
-    auth_code = (
-        "from pathlib import Path; import json, sys; import bip39_seed_report as r; "
-        "c=Path(sys.argv[1]).read_text(encoding='utf-8'); "
-        "p=r.read_hidden_secret('Contraseña de exportación: '); "
-        "plain=r.decrypt_report_content(c,p); "
-        "json.loads(plain) if sys.argv[2]=='json' else None; "
-        "print('OK: reporte autenticado; no se imprime el contenido privado')"
-    )
-    if data["passphrase_used"]:
-        verify = [python, "-c", auth_code, path, output_format]
-        scope = "Autentica el reporte; no contrasta la seed con la passphrase BIP39."
-    else:
-        verify = [python, "test/verificar_export_laboratorio.py", path,
-                  "--format", output_format,
-                  "--words", str(len(data["mnemonic"].split())),
-                  "--network", data["network"], "--input-mode", data["input_mode"]]
-        scope = "Auxiliar de laboratorio; no verifica independientemente todas las direcciones."
-    reveal_code = (
-        "from pathlib import Path; import sys; import bip39_seed_report as r; "
-        "c=Path(sys.argv[1]).read_text(encoding='utf-8'); "
-        "p=r.read_hidden_secret('Contraseña de exportación: '); "
-        "print(r.decrypt_report_content(c,p))"
-    )
-    reveal = [python, "-c", reveal_code, path]
+    inspector = pathlib.Path(__file__).resolve().parent / "inspeccionar_reporte_cifrado.py"
+    path = str(pathlib.Path(final_path).expanduser().resolve())
+    command = [
+        sys.executable, str(inspector), path,
+        "--format", output_format,
+        "--words", str(len(data["mnemonic"].split())),
+        "--network", data["network"],
+        "--input-mode", data["input_mode"],
+    ]
     return "\n".join([
         "\n" + "-" * 60,
         "✓ Reporte cifrado guardado",
-        f"  Archivo: {path}",
+        f"  Archivo: {final_path}",
         f"  Contenido interno: {output_format.upper()}",
         "  Datos privados y advertencias: incluidos en el reporte",
         "",
         "Conserva la contraseña de exportación: se necesita para descifrarlo.",
         "",
         "REVISAR EL REPORTE",
-        "Ejecuta los comandos desde la raíz del proyecto con este entorno Python.",
-        "Terminal: " + ("Windows PowerShell" if windows else "Bash/Linux"),
-        "Utiliza la contraseña de exportación, no la passphrase BIP39.",
+        "Un único comando abre el menú de inspección:",
+        _quote_terminal_command(command, windows),
         "",
-        "1. Verificar sin imprimir el contenido privado:",
-        _quote_terminal_command(verify, windows),
-        scope,
-        "",
-        "2. Descifrar y mostrar el contenido privado completo:",
-        "ATENCIÓN: mostrará secretos; pueden quedar en scrollback o grabaciones.",
-        _quote_terminal_command(reveal, windows),
-        "Este comando no guarda una copia descifrada en disco.",
+        "[1] Verificar sin mostrar · [2] Ventana temporal · [3] Revelar aquí · [Q] Salir",
+        "La contraseña se solicita al elegir una operación; no se incluye en el comando.",
+        "Inspector validable en Linux; ventana temporal requiere GNOME Terminal.",
     ])
 
 def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False):
@@ -1808,7 +1785,7 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
     lines = [
         "\nOffline BIP39 Seed Report",
         "NO ES UNA WALLET: no consulta red, no firma ni transmite transacciones.",
-        "NO USAR CON FONDOS REALES: el proyecto no está auditado para producción.",
+        "El proyecto no está auditado para producción.",
         "========================================",
         f"Coin type       : {data['coin_type_label']}",
         f"Input mode      : {data['input_mode']}",
@@ -2261,7 +2238,13 @@ def main():
     print("\n" + "=" * 60)
     print("BIP39 SEED REPORT — LABORATORIO OFFLINE")
     print("=" * 60)
-    print("Proyecto educativo. No es una wallet. No usar con fondos reales.")
+    print("Proyecto educativo. No es una wallet. Utilizalo con prudencia.")
+    print(
+        "\nLa vista compacta no muestra todos los datos generados.\n"
+        "Inspecciona el reporte cifrado para consultar la mnemonic, claves\n"
+        "privadas y demás información omitida en pantalla. Al finalizar se\n"
+        "mostrará el comando de inspección; necesitas la contraseña de exportación."
+    )
     print("\nVERIFICACIÓN BIP39")
     ok_official = verify_against_bip39_official(verbose=False)
     

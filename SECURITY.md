@@ -3,8 +3,11 @@
 ## Alcance del proyecto
 
 BIP39 Seed Report es una herramienta educativa y experimental.
-No está auditada de forma independiente para custodia o producción
-y no se recomienda usar con fondos reales.
+No está auditada de forma independiente para custodia o producción.
+
+La decisión de uso corresponde al usuario. Las pruebas y controles
+documentados no constituyen una certificación de seguridad para
+custodiar fondos.
 
 No consulta la red Bitcoin ni construye, firma o transmite transacciones.
 
@@ -58,10 +61,28 @@ Reducir mensajes no desactiva validaciones, errores ni decisiones.
 report_notices conserva advertencias dentro del contenido privado cifrado.
 No certifica la imprevisibilidad de una entrada o la seguridad del equipo.
 
-Los comandos del pie no se ejecutan automáticamente. Solicitan la contraseña
-de exportación sin incorporarla a argv. La rama de autenticación para
-passphrase BIP39 no vacía no contrasta la seed con esa passphrase.
-Los comandos de revelación muestran plaintext de forma explícita.
+El comando del pie no se ejecuta automáticamente. Abre un inspector
+distribuido que solicita la contraseña de exportación al elegir
+una operación, sin incorporarla a argv.
+
+La opción 1 no imprime el contenido privado. Su verificación JSON
+no contrasta la seed cuando se utilizó una passphrase BIP39 no vacía.
+No verifica independientemente todas las derivaciones.
+
+Las opciones 2 y 3 muestran contenido privado. La segunda utiliza
+una ventana dedicada; la tercera exige confirmación y utiliza la
+terminal actual. Un fallo de ventana no activa una revelación alternativa.
+
+Cada selección del menú tiene un plazo de 360 segundos. No es un
+timeout de contraseñas ni un límite de lectura del visor.
+
+Después de completar las opciones 2 o 3, el inspector termina.
+Ese cierre no garantiza eliminación de scrollback, memoria, swap,
+capturas o registros externos.
+
+El inspector no crea expresamente una copia descifrada en disco.
+La ventana dedicada reduce la exposición directa en la terminal
+lanzadora, sin garantizar privacidad total ni borrado seguro.
 
 Una copia descifrada para un editor es un nuevo archivo sin protección
 criptográfica. Reservarla a laboratorio ficticio, fuera del repositorio

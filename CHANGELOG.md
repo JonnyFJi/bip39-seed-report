@@ -2,6 +2,70 @@
 
 ## Unreleased
 
+### Inspector de reportes y finalización del menú — noviembre de 2026
+
+#### Funcionalidad
+
+- Incorporación de inspeccionar_reporte_cifrado.py como auxiliar distribuido.
+- Sustitución del pie de dos comandos por un único comando de inspección.
+- Comando construido con el intérprete de ejecución y las rutas resueltas
+  del inspector y del reporte final, sin contraseñas en argv.
+- Menú para verificar sin imprimir, revisar en ventana temporal
+  o revelar en la terminal actual con confirmación.
+- Validación del perfil GNOME BIP39-revision antes de abrir el visor.
+- Escape de caracteres de control al presentar contenido.
+- Selección temporizada de 360 segundos.
+- Finalización del inspector después de completar la opción 2 o la 3.
+- Retorno al menú tras revelación rechazada, errores de autenticación
+  o revisión de ventana no completada, sin revelación automática alternativa.
+- Conservación del contenedor versión 1, perfil scrypt, AES-256-GCM,
+  generación, derivaciones y escritura.
+
+#### Advertencias editoriales
+
+- Revisión intencional de la advertencia general de uso del programa.
+- Se conserva su carácter educativo y experimental y la ausencia
+  de auditoría independiente para producción.
+- La decisión de uso corresponde al usuario; no se presenta el proyecto
+  como certificado para custodiar fondos.
+- Se conservan las advertencias técnicas y el uso de datos ficticios
+  en las pruebas.
+
+#### Evidencia automática comunicada el 4 de noviembre de 2026
+
+- Suite del inspector: 32 métodos satisfactorios; código 0.
+- Batería local: nueve etapas OK, sin omisiones informadas.
+- Inventario del núcleo: 70/70 entradas alcanzadas.
+- Trece archivos protegidos sin cambios durante la batería.
+- Ejecución posterior al parche: bateria_local_zikvxpur.
+- Entorno automático: .venv-verificacion.
+
+#### Evidencia manual comunicada por separado
+
+- Nueve casos del menú satisfactorios.
+- Cierre visual de la ventana con Enter confirmado por el mantenedor.
+- Plazo de 360 segundos confirmado manualmente.
+- Finalización directa después de las opciones 2 y 3 completadas.
+- Errores y rechazos sin revelación automática.
+- Q con código 0; timeout y Ctrl+C con código 1.
+- Entorno manual observado: /usr/bin/python3 en Linux.
+
+Detalle:
+[test/RESULTADOS_INSPECTOR_2026-11-04.md](test/RESULTADOS_INSPECTOR_2026-11-04.md).
+
+SHA-256 del núcleo correspondiente:
+
+```text
+b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174
+```
+
+El parche final de timeout modifica únicamente el inspector y su suite.
+La actualización completa también incluye el pie del núcleo, su checksum,
+la adaptación de la suite UX y la novena etapa de la batería.
+
+No constituye una release formal ni una auditoría. Los resultados
+históricos de otras versiones se conservan sin reinterpretarlos.
+
 ### UX compacta y batería Linux — ensayos del 31 de octubre y 2 de noviembre de 2026
 
 - Vista compacta por defecto sin secretos, estadísticas extensas ni GAP limit.

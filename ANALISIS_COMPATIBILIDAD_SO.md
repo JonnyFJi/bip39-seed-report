@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental a 2 de noviembre de 2026.
+- Actualización documental a 4 de noviembre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -134,6 +134,8 @@ universal ni una instalación reproducible con hashes.
 | Linux local, ensayo del 23 de octubre de 2026 | Python 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 22.0.2 | Instalación, pip check, sintaxis, 24 vectores, ocho métodos nuevos, cifrado, entrada segura, contenedor, escritura y rechazo CLI de suite vacía | Satisfactorio para los casos ejecutados; script a0239df8…; ver ensayo Linux de esta versión |
 | Linux Mint 21.3 x86_64, 31/10/2026 | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Ocho etapas, 70/70 entradas, 11 archivos protegidos | Satisfactorio; hash 1f92a16c…; 54,159 s externos |
 | Linux Mint 21.3 x86_64, 02/11/2026 | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Ocho etapas, 70/70 entradas, 11 archivos protegidos | Satisfactorio; mismo hash; 53,092 s externos |
+| Linux local, inspector, 04/11/2026 — automático | .venv-verificacion; detalles en entorno.json local | 32 métodos del inspector; nueve etapas; 70/70; 13 archivos protegidos | Satisfactorio para los casos registrados; núcleo b09fcc4f… |
+| Linux local, inspector, 04/11/2026 — manual | /usr/bin/python3; GNOME Terminal | Nueve casos del menú; cierre de ventana y timeout confirmados | Satisfactorio para los flujos descritos; no equivale al entorno del venv |
 | Windows 10 Home x64, 10.0.19045, compilación registrada 19045 | Python 3.10.11; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 23.0.1 | Vectores BIP39, cifrado, entrada segura, contenedor, escritura y verificación manual de exports | Satisfactorio para los casos ejecutados; escritura: 10 aprobados y 5 omitidos; ver detalle Windows. Revisión actual diferida; fuera del alcance activo |
 | macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar. Revisión actual diferida; fuera del alcance activo |
 | BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
@@ -158,6 +160,61 @@ Python y versiones de paquetes antes de usarla como matriz reproducible.
 
 Los tests con mocks comprueban la política programada de rechazo y
 normalización; no recrean todos los comportamientos de una terminal real.
+
+---
+
+## Actualización Linux: inspector — 4 de noviembre de 2026
+
+El núcleo de esta actualización se identifica por SHA-256:
+
+```text
+b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174
+```
+
+Este hash es distinto de la referencia UX histórica 1f92a16c…;
+identifica otra revisión y no reemplaza los registros anteriores.
+
+### Evidencia automática
+
+Ejecución mediante .venv-verificacion/bin/python.
+
+Sintaxis correcta, suite individual del inspector con 32 métodos
+satisfactorios y batería de nueve etapas OK, sin omisiones informadas,
+inventario del núcleo 70/70 y 13 archivos protegidos sin cambios.
+Código final 0.
+
+Referencia local posterior al parche: bateria_local_zikvxpur.
+
+Los detalles adicionales del entorno se conservan en su entorno.json.
+No se trasladan automáticamente los datos de distribución, kernel
+o paquetes de un ensayo histórico a esta nueva ejecución.
+
+### Evidencia manual
+
+Nueve casos del inspector comunicados en Linux mediante /usr/bin/python3.
+
+Se comprobaron verificación, ventana correcta, contraseña incorrecta,
+rechazo y aceptación de revelación, timeout, Q y Ctrl+C.
+
+El mantenedor confirmó el cierre de la ventana con Enter y una espera
+de 360 segundos antes de la cancelación automática.
+
+El entorno manual es distinto del venv de la batería. Sus resultados
+de interacción no acreditan por sí solos la consistencia de paquetes
+del Python del sistema.
+
+### Dependencias de terminal
+
+El inspector actual exige Linux y TTY en entrada y salida.
+
+La opción 2 requiere GNOME Terminal, gsettings, sesión gráfica y un
+perfil BIP39-revision con cierre al terminar y sin comando personalizado.
+
+No se atribuye esta funcionalidad a cualquier emulador de terminal.
+Windows y macOS permanecen fuera de la validación actual del inspector.
+
+Detalle de evidencias y límites:
+[test/RESULTADOS_INSPECTOR_2026-11-04.md](test/RESULTADOS_INSPECTOR_2026-11-04.md).
 
 ---
 
@@ -318,7 +375,6 @@ Los resultados respaldan las comprobaciones ejecutadas en este entorno;
 no constituyen una auditoría ni soporte universal de Linux.
 
 ---
-
 
 ## Resultados históricos Windows 10 Home x64
 
