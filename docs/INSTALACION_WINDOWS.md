@@ -138,6 +138,15 @@ En cada terminal nueva, volver a definir `$PY` desde la raíz.
 
 ### B. Venv activado
 
+Esta modalidad también requiere crear el entorno e instalar dependencias.
+Si .venv-verificacion todavía no existe, crearlo desde la raíz:
+
+```powershell
+py -3 -m venv .venv-verificacion
+```
+
+Si ya existe, no es necesario crearlo otra vez.
+
 Si la política existente permite activar el script:
 
 ```powershell
@@ -147,8 +156,24 @@ $PY = (Get-Command python).Source
 ```
 
 Debe mostrar `True`. Usar después los comandos con `& $PY` de esta guía.
-Si la activación está bloqueada, utilizar A; no es necesario cambiar
-ExecutionPolicy ni utilizar `Bypass`. Para salir de la activación:
+
+Si todavía no se instalaron las dependencias en este entorno, ejecutar:
+
+```powershell
+& $PY -m pip install -r requirements.txt
+```
+
+Solo después de una instalación satisfactoria:
+
+```powershell
+& $PY -m pip check
+& $PY -c 'import mnemonic, bip_utils, cryptography'
+```
+
+Si la activación está bloqueada, utilizar la modalidad A; no cambiar
+ExecutionPolicy únicamente para continuar con esta guía.
+
+Para salir de la activación:
 
 ```powershell
 deactivate
