@@ -2,6 +2,61 @@
 
 ## Unreleased
 
+### Endurecimiento del inspector y del ejecutor — 5 de noviembre de 2026
+
+#### Inspector
+
+- Rechazo de claves JSON duplicadas en raíz y objetos anidados.
+- Rechazo de NaN e infinitos en el contenido JSON interno.
+- Tipos exactos para bits e índices, excluyendo booleanos y flotantes.
+- Validación de objetos, listas, rutas y direcciones como texto no vacío.
+- Conservación de extensiones legítimas del reporte.
+- Ampliación de la suite de 32 a 42 métodos sin retirar los anteriores.
+- Conservación del menú, timeout y política de revelación.
+
+#### Ejecutor
+
+- Registro del worker obligatorio, acotado y validado estrictamente.
+- Correspondencia entre código registrado y código del proceso.
+- Evaluación de fallos, errores y éxitos inesperados unittest.
+- Detección de suites vacías, omisiones y fallos esperados.
+- Distinción de etapas que no utilizan unittest.
+- Normalización de códigos de salida booleanos a enteros.
+- Nueva suite de 20 métodos e incorporación de la décima etapa.
+- Manifiesto ampliado de 13 a 14 archivos protegidos.
+
+#### Evidencia automática
+
+- Dos ejecuciones individuales del inspector con 42 métodos OK.
+- Dos baterías de diez etapas satisfactorias.
+- Inventario del núcleo 70/70 y archivos protegidos sin cambios.
+- Código final 0 en ambas baterías.
+- Python 3.10.12 y pip check satisfactorio en el venv comunicado.
+
+#### Evidencia manual separada
+
+- Intento inicial del auxiliar con ruta inexistente: FileNotFoundError.
+- Repetición sobre un export JSON testnet existente: autenticación,
+  BIP39, seed y estructura satisfactorias, sin imprimir secretos.
+- Código de salida de la repetición: 0.
+- No se declara una repetición completa de los nueve casos del menú
+  registrados el 4 de noviembre.
+
+Detalle:
+[test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md](test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md).
+
+El núcleo, su checksum, generación, derivaciones, KDF, cifrado y escritura
+se conservan. La documentación se actualiza sin reinterpretar los
+resultados históricos.
+
+SHA-256 del núcleo:
+
+```text
+b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174
+```
+
+No constituye una release formal ni una auditoría independiente.
+
 ### Inspector de reportes y finalización del menú — noviembre de 2026
 
 #### Funcionalidad

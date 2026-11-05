@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental a 4 de noviembre de 2026.
+- Actualización documental a 5 de noviembre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -136,6 +136,7 @@ universal ni una instalación reproducible con hashes.
 | Linux Mint 21.3 x86_64, 02/11/2026 | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Ocho etapas, 70/70 entradas, 11 archivos protegidos | Satisfactorio; mismo hash; 53,092 s externos |
 | Linux local, inspector, 04/11/2026 — automático | .venv-verificacion; detalles en entorno.json local | 32 métodos del inspector; nueve etapas; 70/70; 13 archivos protegidos | Satisfactorio para los casos registrados; núcleo b09fcc4f… |
 | Linux local, inspector, 04/11/2026 — manual | /usr/bin/python3; GNOME Terminal | Nueve casos del menú; cierre de ventana y timeout confirmados | Satisfactorio para los flujos descritos; no equivale al entorno del venv |
+| Linux local, endurecimiento, 05/11/2026 | Python 3.10.12; pip 22.0.2; venv; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Inspector de 42 métodos; suite del ejecutor de 20; dos baterías de diez etapas; 70/70; manifiesto de 14 archivos | Satisfactorio para los casos comunicados; ver registro del 5 de noviembre |
 | Windows 10 Home x64, 10.0.19045, compilación registrada 19045 | Python 3.10.11; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 23.0.1 | Vectores BIP39, cifrado, entrada segura, contenedor, escritura y verificación manual de exports | Satisfactorio para los casos ejecutados; escritura: 10 aprobados y 5 omitidos; ver detalle Windows. Revisión actual diferida; fuera del alcance activo |
 | macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar. Revisión actual diferida; fuera del alcance activo |
 | BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
@@ -160,6 +161,55 @@ Python y versiones de paquetes antes de usarla como matriz reproducible.
 
 Los tests con mocks comprueban la política programada de rechazo y
 normalización; no recrean todos los comportamientos de una terminal real.
+
+---
+
+## Actualización Linux: endurecimiento — 5 de noviembre de 2026
+
+La publicación revisada se identifica por el commit
+107e527b8507e8f257ee0a093ff1a90ce02744ad.
+
+El núcleo conserva el SHA-256 b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174.
+
+### Evidencia automática
+
+Entorno comunicado: Linux, Python 3.10.12, pip 22.0.2 y
+.venv-verificacion. Dependencias directas presentes y pip check correcto.
+
+La instalación informa Requirement already satisfied; no se documenta
+una instalación limpia desde cero.
+
+La suite del inspector terminó con 42 métodos correctos en dos
+ejecuciones individuales. La suite del protocolo del ejecutor contiene
+20 métodos y se integra como décima etapa.
+
+Las baterías bateria_local_l3fhi573 y bateria_local_s6olai6g terminaron
+con diez etapas OK, inventario del núcleo 70/70, archivos protegidos
+sin cambios y código final 0.
+
+El manifiesto actual define 14 archivos. No incluye el propio ejecutor
+ni toda la documentación.
+
+### Evidencia manual separada
+
+Un primer comando utilizó una ruta de ejemplo inexistente y terminó
+con FileNotFoundError.
+
+La repetición sobre bip39_seed_report_027.json, generado con 12 palabras
+en testnet y sin passphrase BIP39, terminó con autenticación, BIP39,
+seed y estructura satisfactorias y código 0.
+
+La generación utilizó /usr/bin/python3 y la verificación "$PY".
+No se atribuye automáticamente el mismo entorno a ambos procesos.
+
+### Alcance por plataforma
+
+No se comunica una nueva ejecución Windows o macOS.
+Los resultados históricos de esas plataformas conservan su identidad
+y no se atribuyen a esta actualización.
+
+Detalle:
+[test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md](test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md).
 
 ---
 
@@ -700,20 +750,21 @@ distintos en Unix y Windows; ambos necesitan pruebas reales por entorno.
 Desde la raíz, con el intérprete del entorno preparado:
 
 ```bash
-python -m py_compile bip39_seed_report.py
-python bip39_seed_report.py --help
-python bip39_seed_report.py --run-tests --vectors-file test/vectors.json
-PYTHONPATH="$PWD" python test/test_cifrado_report.py
-PYTHONPATH="$PWD" python test/test_entrada_segura.py
-PYTHONPATH="$PWD" python test/test_contenedor_report.py
-PYTHONPATH="$PWD" python test/test_escritura_report.py
-PYTHONPATH="$PWD" python test/test_regresion_vectores_ultima_palabra.py
-PYTHONPATH="$PWD" python test/test_ux_terminal_report.py
-PYTHONPATH="$PWD" python test/test_revision_integral_report.py
+"$PY" -m py_compile bip39_seed_report.py
+"$PY" bip39_seed_report.py --help
+"$PY" bip39_seed_report.py --run-tests --vectors-file test/vectors.json
+PYTHONPATH="$PWD" "$PY" test/test_cifrado_report.py
+PYTHONPATH="$PWD" "$PY" test/test_entrada_segura.py
+PYTHONPATH="$PWD" "$PY" test/test_contenedor_report.py
+PYTHONPATH="$PWD" "$PY" test/test_escritura_report.py
+PYTHONPATH="$PWD" "$PY" test/test_regresion_vectores_ultima_palabra.py
+PYTHONPATH="$PWD" "$PY" test/test_ux_terminal_report.py
+PYTHONPATH="$PWD" "$PY" test/test_revision_integral_report.py
+PYTHONPATH="$PWD" "$PY" test/test_ejecutar_bateria_local.py
 ```
 
 ```bash
-python test/ejecutar_bateria_local.py
+"$PY" test/ejecutar_bateria_local.py
 ```
 
 El interprete python debe ser en el entorno probado.
