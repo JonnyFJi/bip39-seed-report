@@ -37,6 +37,7 @@ Comprobar sintaxis y ejecutar las suites:
 "$PY" -m py_compile test/ejecutar_bateria_local.py
 "$PY" -m py_compile inspeccionar_reporte_cifrado.py
 "$PY" -m py_compile test/test_inspeccionar_reporte_cifrado.py
+"$PY" -m py_compile test/test_ejecutar_bateria_local.py
 
 "$PY" bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 
@@ -48,6 +49,7 @@ PYTHONPATH="$PWD" "$PY" test/test_regresion_vectores_ultima_palabra.py
 PYTHONPATH="$PWD" "$PY" test/test_ux_terminal_report.py
 PYTHONPATH="$PWD" "$PY" test/test_revision_integral_report.py
 PYTHONPATH="$PWD" "$PY" test/test_inspeccionar_reporte_cifrado.py
+PYTHONPATH="$PWD" "$PY" test/test_ejecutar_bateria_local.py
 ```
 
 Ejecutar los comandos por separado. Si uno falla, revisar el error antes
@@ -73,24 +75,39 @@ echo $?
 ```
 
 El ejecutor comprueba la identidad de la versión, sintaxis,
-importaciones, pip check y nueve etapas. Se detiene en el primer fallo
+importaciones, pip check y diez etapas. Se detiene en el primer fallo
 y guarda nuevos registros dentro de output/.
 
 La novena etapa ejecuta test/test_inspeccionar_reporte_cifrado.py.
+La décima ejecuta test/test_ejecutar_bateria_local.py.
 
-El manifiesto actual protege 13 archivos únicos, incluido el inspector
-y su suite. No incluye el propio ejecutor ni toda la documentación.
+El manifiesto actual protege 14 archivos únicos, incluidos el inspector,
+su suite y la nueva suite del protocolo del ejecutor. No incluye el propio
+test/ejecutar_bateria_local.py ni toda la documentación.
 
-El inventario de funciones se calcula sobre bip39_seed_report.py:
+Los registros del worker son obligatorios y tienen límite de tamaño.
+Se validan JSON, estructura, tipos, código registrado, inventario
+y contadores unittest.
+
+Un proceso que termina con código 0 no se aprueba si su registro
+contiene fallos, errores o éxitos inesperados. Las suites vacías,
+omisiones y fallos esperados producen un resultado incompleto.
+
+Las etapas de vectores, cifrado y entrada segura se distinguen de las
+etapas que deben registrar ejecuciones unittest.
+
+El inventario se calcula sobre bip39_seed_report.py:
 69 funciones superiores y un método de clase. Las funciones del inspector
-no forman parte del conteo 70/70.
+y del ejecutor no forman parte del conteo 70/70.
 
 Códigos finales:
 
-- 0: etapas automáticas completas, sin fallos ni omisiones,
+- 0: etapas automáticas completas, sin fallos ni resultados incompletos,
   inventario alcanzado y hashes protegidos conservados.
-- 1: fallo de una etapa o modificación de archivos protegidos.
-- 2: resultado incompleto por omisiones o funciones no alcanzadas.
+- 1: fallo de proceso, registro rechazado, fallo/error/éxito inesperado
+  unittest o modificación de archivos protegidos.
+- 2: resultado incompleto por suites vacías, omisiones, fallos esperados,
+  funciones no alcanzadas o etapas no completadas sin otro fallo prioritario.
 - 3: problema de preparación.
 
 El código 0 no aprueba automáticamente los ensayos manuales.
@@ -349,7 +366,7 @@ una cadena, no ejecuta una consola Windows real.
 
 ## Suite del inspector
 
-test/test_inspeccionar_reporte_cifrado.py contiene 32 métodos.
+test/test_inspeccionar_reporte_cifrado.py contiene 42 métodos.
 
 Comprueba lectura limitada antes de solicitar contraseña, errores
 controlados, alcance de verificación JSON/TXT, confirmación de revelación,
@@ -360,18 +377,61 @@ Incluye los estados de finalización del menú, timeout simulado,
 retorno tras errores, rechazo de una lectura sin límite como fallback
 y un round-trip con cifrado real sin crear un archivo descifrado.
 
+Las pruebas 33 a 42 añaden rechazo de claves duplicadas en raíz y
+objetos anidados, constantes JSON no estándar, tipos incorrectos,
+direcciones que no sean texto no vacío y estructuras de familias
+o direcciones no admitidas.
+
+También comprueban que se acepten extensiones legítimas y que la
+revelación rechace JSON duplicado antes de imprimir contenido privado.
+
 Las pruebas del menú y del lanzador utilizan simulaciones. No abren
 una ventana GNOME real ni esperan 360 segundos.
 
 Resultado esperado:
 
 ```text
-Ran 32 tests in ...
+Ran 42 tests in ...
 OK
 ```
 
 Los ensayos reales de terminal y ventana se registran por separado en
 [RESULTADOS_INSPECTOR_2026-11-04.md](RESULTADOS_INSPECTOR_2026-11-04.md).
+
+El endurecimiento posterior y sus nuevas ejecuciones se registran en
+[RESULTADOS_ENDURECIMIENTO_2026-11-05.md](RESULTADOS_ENDURECIMIENTO_2026-11-05.md).
+
+## Suite del protocolo del ejecutor
+
+test/test_ejecutar_bateria_local.py contiene 20 métodos.
+
+Comprueba:
+
+- Estructura y tipos de los registros del worker.
+- Correspondencia entre código registrado y código del proceso.
+- Inventario y contadores admitidos.
+- Registros ausentes, ilegibles, demasiado grandes o JSON no válido.
+- Claves duplicadas y constantes no estándar.
+- Fallos y errores aunque el proceso termine con código 0.
+- Éxitos inesperados.
+- Suites vacías, omisiones y fallos esperados.
+- Etapas que no utilizan unittest.
+- Normalización de salidas booleanas a enteros.
+
+Incluye programas ficticios ejecutados mediante el worker: fallo
+capturado con salida 0, suite vacía, salidas booleanas y ejecución correcta.
+
+Resultado esperado en una ejecución individual:
+
+```text
+Ran 20 tests in ...
+OK
+```
+
+Su integración en la batería corresponde a 10_ejecutor.
+
+La suite comprueba el protocolo y casos reales del worker; no equivale
+a una prueba end-to-end de todas las rutas de main del coordinador.
 
 ## Suite complementaria
 
@@ -383,7 +443,31 @@ abortos, contexto, print_report y rutas de vectores.
 No todos sus ensayos son de integración: algunos simulan TTY, decisiones
 y msvcrt. No introduce red ni material real y no reemplaza las otras suites.
 
-## Evidencia actual del inspector — 4 de noviembre de 2026
+## Evidencia actual del endurecimiento — 5 de noviembre de 2026
+
+La suite del inspector terminó con 42 métodos satisfactorios en las
+dos ejecuciones individuales comunicadas.
+
+La suite del protocolo del ejecutor contiene 20 métodos y se incorpora
+como décima etapa. Las dos baterías comunicadas terminaron con diez
+etapas OK, inventario del núcleo 70/70, archivos protegidos sin cambios
+y código final 0.
+
+El manifiesto actual define 14 archivos protegidos.
+
+Los resultados automáticos y la verificación manual posterior de un
+export testnet se registran por separado en
+[RESULTADOS_ENDURECIMIENTO_2026-11-05.md](RESULTADOS_ENDURECIMIENTO_2026-11-05.md).
+
+Los nueve ensayos manuales del menú del 4 de noviembre siguen siendo
+evidencia histórica separada. No se declara una repetición completa
+de esos nueve casos durante este nuevo hito.
+
+manual_terminal_tests permanece PENDIENTES en el resumen automático
+por diseño; los resultados manuales no se incorporan reescribiendo
+los artefactos originales.
+
+## Evidencia histórica del inspector — 4 de noviembre de 2026
 
 La ejecución posterior al ajuste del menú terminó con nueve etapas
 satisfactorias, inventario del núcleo 70/70, 13 archivos protegidos
@@ -460,6 +544,12 @@ la seed; no es la contraseña del archivo.
 
 ### Ejemplos
 
+Los ejemplos no crean el archivo indicado. Antes de ejecutarlos,
+seleccionar un export ficticio existente y ajustar todas las expectativas.
+
+No copiar literalmente output/laboratorio/reporte.json si ese archivo
+no existe. Un FileNotFoundError no comprueba autenticación ni descifrado.
+
 Linux:
 
 ```bash
@@ -467,6 +557,17 @@ Linux:
   output/laboratorio/reporte.json \
   --words 12 --network testnet --input-mode words
 ```
+
+Ejemplo registrado el 5 de noviembre de 2026:
+
+```bash
+"$PY" test/verificar_export_laboratorio.py \
+  output/bip39_seed_report_027.json \
+  --words 12 --network testnet --input-mode words
+```
+
+Ese nombre corresponde únicamente al archivo del ensayo comunicado.
+En otra copia local debe sustituirse por el archivo realmente existente.
 
 Windows PowerShell — referencia histórica; revisión actual diferida
 y no bloqueante:
