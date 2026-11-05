@@ -208,6 +208,7 @@ PYTHONPATH="$PWD" "$PY" test/test_regresion_vectores_ultima_palabra.py
 PYTHONPATH="$PWD" "$PY" test/test_ux_terminal_report.py
 PYTHONPATH="$PWD" "$PY" test/test_revision_integral_report.py
 PYTHONPATH="$PWD" "$PY" test/test_inspeccionar_reporte_cifrado.py
+PYTHONPATH="$PWD" "$PY" test/test_ejecutar_bateria_local.py
 ```
 
 Ejecuta esos comandos desde la raíz y compruébalos en una descarga limpia.
@@ -256,12 +257,25 @@ Para ejecutar la batería secuencial y registrar entorno, hashes e inventario:
 "$PY" test/ejecutar_bateria_local.py
 ```
 
-La batería actual contiene nueve etapas. La suite del inspector tiene
-32 métodos. El inventario 70/70 corresponde al núcleo, no a cobertura
-completa del inspector ni de todas las ramas.
+La batería actual contiene diez etapas. La suite del inspector tiene
+42 métodos y la suite del protocolo del ejecutor contiene 20 métodos.
 
-Los resultados automáticos y manuales del inspector se registran por
-separado en [test/RESULTADOS_INSPECTOR_2026-11-04.md](test/RESULTADOS_INSPECTOR_2026-11-04.md).
+El manifiesto actual define 14 archivos protegidos. El inventario 70/70
+corresponde a funciones y métodos del núcleo, no a cobertura completa
+del inspector, del ejecutor ni de todas las ramas.
+
+El ejecutor comprueba los registros de cada proceso, los códigos de
+salida y los resultados unittest. Los fallos, errores y éxitos inesperados
+impiden aprobar la etapa; las suites vacías, omisiones y fallos esperados
+impiden una aprobación completa.
+
+Los resultados automáticos y la verificación manual del hito actual
+se registran por separado en
+[test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md](test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md).
+
+Los nueve ensayos manuales del menú y la batería anterior se conservan en
+[test/RESULTADOS_INSPECTOR_2026-11-04.md](test/RESULTADOS_INSPECTOR_2026-11-04.md).
+No se atribuyen a esa ejecución anterior los conteos del hito actual.
 
 Consulta [test/README.md](test/README.md) para ejecución y alcance, y
 [ANALISIS_COMPATIBILIDAD_SO.md](ANALISIS_COMPATIBILIDAD_SO.md) para los
@@ -756,6 +770,17 @@ En JSON comprueba BIP39, coherencia de entropy y estructura de las
 familias, cantidades, índices y rutas. Contrasta la seed cuando
 passphrase_used es false.
 
+El parser del contenido JSON interno rechaza claves duplicadas y
+constantes no estándar como NaN e infinitos.
+
+La comprobación de estructura exige tipos concretos: enteros exactos
+para entropy_bits e índices, objetos para las familias, una lista de
+objetos para las direcciones y texto no vacío para cada dirección.
+
+Se admiten campos adicionales legítimos del reporte. Estos controles
+de estructura no constituyen verificación criptográfica independiente
+de todas las direcciones o claves.
+
 Si se utilizó una passphrase BIP39 no vacía, no la solicita ni contrasta
 la seed con ella. Declara esa limitación.
 
@@ -840,19 +865,29 @@ Implementado y probado en los ensayos registrados:
   confirmada en terminal.
 - Menú con plazo de selección de 360 segundos y salida después de
   completar las opciones 2 o 3.
-- Suite del inspector de 32 métodos y batería de nueve etapas.
+- Suite del inspector de 42 métodos, incluidos rechazos de duplicados,
+  constantes JSON no estándar y tipos incorrectos.
+- Suite del protocolo del ejecutor de 20 métodos, incorporada como
+  décima etapa de la batería.
+- Manifiesto actual de 14 archivos protegidos e inventario del núcleo
+  70/70 alcanzado en las baterías comunicadas el 5 de noviembre de 2026.
 - Nueve ensayos manuales del inspector comunicados el 4 de noviembre
   de 2026, separados de la evidencia automática.
+- Lectura acotada de archivos cifrados en el inspector y en el verificador
+  de laboratorio, con rechazo del exceso antes de solicitar contraseña.
 
 Pendiente:
 
-- Lectura limitada desde disco antes de cargar el contenedor completo en memoria.
 - Durabilidad del directorio y ampliación de pruebas por plataforma
   y sistema de archivos.
 - Perfiles de recuperación, auditoría y laboratorio.
 - Revelación granular de secrets.
 - Vectores independientes de BIP32 y todas las derivaciones.
 - Bloqueo transitivo, hashes de artefactos y ampliación de la matriz de entornos y flujos probados.
+
+La lectura acotada de los auxiliares distribuidos no garantiza el
+comportamiento de consumidores externos que carguen el archivo por
+su cuenta antes de llamar a la API de descifrado.
 
 Windows y macOS quedan fuera del alcance activo. La revisión se difiere
 a quien los utilice; los límites y resultados históricos se conservan
