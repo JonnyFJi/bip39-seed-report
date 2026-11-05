@@ -18,6 +18,8 @@ reporte_prueba_descifrado*.txt
 # Backups
 *.backup.*
 *_backup.py
+*_backup.md
+/.gitignore_backup
 *.bak
 
 # Editores y temporales
@@ -34,6 +36,13 @@ reporte_prueba_descifrado*.txt
 # Resultados locales de pruebas
 Resultado-*.txt
 Resultado*.txt
+
+# Transcripciones locales de esta revisión; pueden contener secretos
+/resultado-prueba.md
+/resultado-verificacion-local.md
+/resultado-ventana-emergente.md
+/terminal-emergente-con-contrasena-invalida.md
+/pruebas_3_11_26.txt
 
 # Herramientas
 .pytest_cache/
