@@ -21,7 +21,7 @@ import unittest
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "bip39_seed_report.py"
-EXPECTED_SHA256 = "1f92a16c69c1566b9e228a9d7ca1d9cc3b066cad01ce0bc76be05b0fee88816f"
+EXPECTED_SHA256 = "b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174"
 STAGES = [
     ("01_vectores", "bip39_seed_report.py", ["--run-tests", "--vectors-file", "test/vectors.json"]),
     ("02_cifrado", "test/test_cifrado_report.py", []),
@@ -31,6 +31,7 @@ STAGES = [
     ("06_regresion", "test/test_regresion_vectores_ultima_palabra.py", []),
     ("07_ux", "test/test_ux_terminal_report.py", []),
     ("08_integral", "test/test_revision_integral_report.py", []),
+    ("09_inspector", "test/test_inspeccionar_reporte_cifrado.py", []),
 ]
 
 
@@ -103,7 +104,12 @@ def main():
         print("Uso: python test/ejecutar_bateria_local.py (sin opciones)", file=sys.stderr)
         return 3
     required = [ROOT / relative for _, relative, _ in STAGES]
-    required.extend([ROOT / "requirements.txt", ROOT / "bip39_seed_report.py.sha256", ROOT / "test/vectors.json"])
+    required.extend([
+        ROOT / "requirements.txt",
+        ROOT / "bip39_seed_report.py.sha256",
+        ROOT / "test/vectors.json",
+        ROOT / "inspeccionar_reporte_cifrado.py",
+    ])
     missing = [str(p.relative_to(ROOT)) for p in required if not p.is_file()]
     if missing:
         print("Preparación incompleta; faltan: " + ", ".join(missing), file=sys.stderr)

@@ -53,9 +53,8 @@ class TerminalUXTests(unittest.TestCase):
 
     def commands(self, text):
         lines = text.splitlines()
-        first = lines.index("1. Verificar sin imprimir el contenido privado:")
-        second = lines.index("2. Descifrar y mostrar el contenido privado completo:")
-        return [lines[first + 1], lines[second + 2]]
+        start = lines.index("Un único comando abre el menú de inspección:")
+        return shlex.split(lines[start + 1])
 
     def test_01_compact_hides_secrets_and_patterns(self):
         text = report.format_report(self.data)
@@ -160,23 +159,29 @@ class TerminalUXTests(unittest.TestCase):
         path = "output/carpeta con espacios/reporte_'003.json"
         for fmt in ("json", "txt"):
             text = report.format_export_help(path, self.data, fmt, windows=False)
-            verify, reveal = map(shlex.split, self.commands(text))
-            self.assertEqual(verify[2], path)
-            self.assertEqual(verify[verify.index("--format") + 1], fmt)
-            self.assertEqual(reveal[-1], path)
-            self.assertEqual(verify[verify.index("--words") + 1], "12")
+            command = self.commands(text)
+            self.assertEqual(Path(command[1]).name, "inspeccionar_reporte_cifrado.py")
+            self.assertEqual(command[2], str(Path(path).expanduser().resolve()))
+            self.assertEqual(command[command.index("--format") + 1], fmt)
+            self.assertEqual(command[command.index("--words") + 1], "12")
+            self.assertEqual(command[command.index("--network") + 1], self.data["network"])
+            self.assertEqual(command[command.index("--input-mode") + 1], self.data["input_mode"])
+            self.assertNotIn("-c", command)
             self.assertNotIn(self.data["mnemonic"], text)
             self.assertNotIn(self.data["bip39_seed_hex"], text)
 
     def test_11_footer_nonempty_passphrase_does_not_put_secret_in_argv(self):
         self.data["passphrase_used"] = True
         text = report.format_export_help("output/reporte.json", self.data, "json", windows=False)
-        verify, reveal = map(shlex.split, self.commands(text))
-        self.assertEqual(verify[1], "-c")
-        self.assertNotIn("--test-passphrase", text)
-        self.assertIn("no contrasta la seed", text)
-        compile(verify[2], "auth_command", "exec")
-        compile(reveal[2], "reveal_command", "exec")
+        command = self.commands(text)
+        self.assertEqual(Path(command[1]).name, "inspeccionar_reporte_cifrado.py")
+        self.assertNotIn("--test-passphrase", command)
+        self.assertNotIn("--passphrase", command)
+        self.assertNotIn("-p", command)
+        self.assertNotIn("-c", command)
+        self.assertNotIn(self.data["mnemonic"], text)
+        self.assertNotIn(self.data["bip39_seed_hex"], text)
+        self.assertIn("no se incluye en el comando", text)
 
     def test_12_powershell_quote_builder(self):
         command = report._quote_terminal_command(["python.exe", "-c", "print('dato')", "a'b.json"], windows=True)

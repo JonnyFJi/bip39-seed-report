@@ -20,6 +20,11 @@ PY="$PWD/.venv-verificacion/bin/python"
 "$PY" -m pip check
 ```
 
+No reasignar PY al Python del sistema durante la misma verificación.
+Si se cambia el intérprete, registrar sus resultados como otro entorno.
+
+La batería utiliza sys.executable para sus procesos hijos.
+
 Comprobar sintaxis y ejecutar las suites:
 
 ```bash
@@ -30,6 +35,8 @@ Comprobar sintaxis y ejecutar las suites:
 "$PY" -m py_compile test/test_ux_terminal_report.py
 "$PY" -m py_compile test/test_revision_integral_report.py
 "$PY" -m py_compile test/ejecutar_bateria_local.py
+"$PY" -m py_compile inspeccionar_reporte_cifrado.py
+"$PY" -m py_compile test/test_inspeccionar_reporte_cifrado.py
 
 "$PY" bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 
@@ -40,6 +47,7 @@ PYTHONPATH="$PWD" "$PY" test/test_escritura_report.py
 PYTHONPATH="$PWD" "$PY" test/test_regresion_vectores_ultima_palabra.py
 PYTHONPATH="$PWD" "$PY" test/test_ux_terminal_report.py
 PYTHONPATH="$PWD" "$PY" test/test_revision_integral_report.py
+PYTHONPATH="$PWD" "$PY" test/test_inspeccionar_reporte_cifrado.py
 ```
 
 Ejecutar los comandos por separado. Si uno falla, revisar el error antes
@@ -65,8 +73,17 @@ echo $?
 ```
 
 El ejecutor comprueba la identidad de la versión, sintaxis,
-importaciones, pip check y ocho etapas. Se detiene en el primer fallo
+importaciones, pip check y nueve etapas. Se detiene en el primer fallo
 y guarda nuevos registros dentro de output/.
+
+La novena etapa ejecuta test/test_inspeccionar_reporte_cifrado.py.
+
+El manifiesto actual protege 13 archivos únicos, incluido el inspector
+y su suite. No incluye el propio ejecutor ni toda la documentación.
+
+El inventario de funciones se calcula sobre bip39_seed_report.py:
+69 funciones superiores y un método de clase. Las funciones del inspector
+no forman parte del conteo 70/70.
 
 Códigos finales:
 
@@ -330,6 +347,32 @@ Usa fixtures ficticias y mocks de coordinación; no es verificación
 independiente de todas las derivaciones. La prueba PowerShell construye
 una cadena, no ejecuta una consola Windows real.
 
+## Suite del inspector
+
+test/test_inspeccionar_reporte_cifrado.py contiene 32 métodos.
+
+Comprueba lectura limitada antes de solicitar contraseña, errores
+controlados, alcance de verificación JSON/TXT, confirmación de revelación,
+escape de caracteres de control, construcción del comando del visor,
+validación del perfil GNOME y ausencia de revelación automática.
+
+Incluye los estados de finalización del menú, timeout simulado,
+retorno tras errores, rechazo de una lectura sin límite como fallback
+y un round-trip con cifrado real sin crear un archivo descifrado.
+
+Las pruebas del menú y del lanzador utilizan simulaciones. No abren
+una ventana GNOME real ni esperan 360 segundos.
+
+Resultado esperado:
+
+```text
+Ran 32 tests in ...
+OK
+```
+
+Los ensayos reales de terminal y ventana se registran por separado en
+[RESULTADOS_INSPECTOR_2026-11-04.md](RESULTADOS_INSPECTOR_2026-11-04.md).
+
 ## Suite complementaria
 
 test/test_revision_integral_report.py contiene 28 métodos con subcasos.
@@ -340,7 +383,22 @@ abortos, contexto, print_report y rutas de vectores.
 No todos sus ensayos son de integración: algunos simulan TTY, decisiones
 y msvcrt. No introduce red ni material real y no reemplaza las otras suites.
 
-## Batería local y evidencia Linux
+## Evidencia actual del inspector — 4 de noviembre de 2026
+
+La ejecución posterior al ajuste del menú terminó con nueve etapas
+satisfactorias, inventario del núcleo 70/70, 13 archivos protegidos
+sin cambios y código final 0.
+
+La suite individual del inspector terminó con 32 métodos satisfactorios.
+
+La evidencia automática y los nueve ensayos manuales se documentan
+por separado en
+[RESULTADOS_INSPECTOR_2026-11-04.md](RESULTADOS_INSPECTOR_2026-11-04.md).
+
+El campo manual_terminal_tests del resumen automático permanece
+PENDIENTES por diseño. No se modifica para incorporar aprobaciones manuales.
+
+## Batería histórica Linux — 31 de octubre y 2 de noviembre de 2026
 
 Versión del script ensayado: 97.076 bytes.
 
