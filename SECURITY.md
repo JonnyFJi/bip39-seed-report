@@ -32,6 +32,19 @@ la KDF cuando la entrada no cumple esas condiciones.
 Estos controles no sustituyen la autenticación AES-GCM ni certifican
 seguridad del entorno.
 
+## Controles del contenido JSON interno
+
+Después del descifrado, el inspector rechaza claves duplicadas y
+constantes JSON no estándar.
+
+La opción de verificación comprueba tipos y estructura de los campos
+utilizados: bits, índices, familias, listas de direcciones, rutas y
+direcciones como texto no vacío. Se conservan extensiones legítimas.
+
+Estos controles son distintos de la autenticación del contenedor exterior.
+No certifican el origen de entropy ni verifican independientemente
+todas las direcciones, claves o derivaciones.
+
 ## Controles de escritura
 
 El flujo normal cifra el reporte antes de escribirlo en un temporal
@@ -100,8 +113,10 @@ registrado en un ensayo no equivale a un kernel certificado seguro.
 - El cifrado no compensa una contraseña predecible.
 - La lectura oculta no protege un host comprometido.
 - Limpiar pantalla o borrar archivos no garantiza eliminación segura.
-- El contenedor aplica validación estructural y límites, pero la lectura
-  limitada desde disco no queda garantizada para todos sus consumidores.
+- El inspector y el verificador de laboratorio limitan la lectura desde
+  disco y rechazan el exceso antes de solicitar contraseña. Esto no
+  garantiza el comportamiento de consumidores externos que carguen
+  el archivo por su cuenta antes de llamar a la API de descifrado.
 - La publicación sin reemplazo requiere enlaces duros y una carpeta
   de salida de confianza.
 - No se garantiza durabilidad del directorio ante pérdida de alimentación
@@ -112,6 +127,17 @@ registrado en un ensayo no equivale a un kernel certificado seguro.
 - La separación de perfiles de reporte sigue pendiente.
 - Las suites no cubren todas las derivaciones, plataformas o condiciones
   de ejecución.
+
+## Alcance de la evidencia automática
+
+La batería valida registros del worker y resultados unittest, además
+de códigos de proceso, inventario y conservación de archivos protegidos.
+
+Un código 0 no certifica el equipo ni todas las rutas de ejecución.
+El inventario de funciones no es cobertura completa de ramas.
+
+La evidencia manual se registra por separado. No se cambia el estado
+manual de un resumen automático para aparentar una aprobación integrada.
 
 ## Comunicación de problemas
 

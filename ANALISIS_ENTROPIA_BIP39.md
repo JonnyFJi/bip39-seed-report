@@ -3,7 +3,7 @@
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental a 2 de noviembre de 2026.
+- Actualización documental a 5 de noviembre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio de referencia: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -105,6 +105,42 @@ Los resultados no certifican la imprevisibilidad de entradas ni el host.
 
 Windows/macOS quedan diferidos fuera del alcance activo; los registros
 históricos no se atribuyen al hash nuevo.
+
+### Actualización posterior del inspector y del ejecutor — 5 de noviembre de 2026
+
+La publicación revisada se identifica por el commit:
+
+```text
+107e527b8507e8f257ee0a093ff1a90ce02744ad
+```
+
+SHA-256 del núcleo conservado:
+
+```text
+b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174
+```
+
+El endurecimiento afecta a la validación del reporte interno y al
+protocolo de resultados de la batería. No modifica la generación
+mediante os.urandom, las conversiones BIP39, NFKD, seed o derivaciones.
+
+La suite del inspector alcanza 42 métodos y la suite del ejecutor
+contiene 20. Se comunicaron dos baterías satisfactorias de diez etapas,
+con inventario del núcleo 70/70 y archivos protegidos sin cambios.
+
+Estos controles no estiman la incertidumbre real de una muestra
+de entropy ni certifican su imprevisibilidad.
+
+No se incorpora una decisión adicional de Continuar/Abortar basada
+en una valoración no concluyente de la muestra. Tampoco se introducen
+puntuaciones de seguridad, filtros de patrones o regeneraciones
+silenciosas.
+
+Los resultados automáticos y la verificación manual del export
+se conservan por separado en
+[test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md](test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md).
+
+Las referencias anteriores permanecen como historial de otras revisiones.
 
 ## Objetivo y alcance
 
