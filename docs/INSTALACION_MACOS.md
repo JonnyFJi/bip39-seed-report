@@ -144,10 +144,32 @@ el venv ni cambiar permisos de ejecución de los `.py`.
 
 ### B. Venv activado: alternativa para zsh/Bash
 
+Esta modalidad requiere el mismo entorno que la modalidad A.
+Si todavía no existe, crearlo desde la raíz:
+
+```bash
+python3 -m venv .venv-verificacion
+```
+
+No repetir la creación si ya existe.
+
 ```bash
 source .venv-verificacion/bin/activate
 python -c 'import sys; print(sys.executable); print(sys.prefix != sys.base_prefix)'
 PY="$VIRTUAL_ENV/bin/python"
+```
+
+Si las dependencias todavía no están instaladas en este entorno:
+
+```bash
+"$PY" -m pip install -r requirements.txt
+```
+
+Solo después de una instalación satisfactoria:
+
+```bash
+"$PY" -m pip check
+"$PY" -c 'import mnemonic, bip_utils, cryptography'
 ```
 
 Usar el mismo `"$PY"` en las instrucciones posteriores. `deactivate` termina la
