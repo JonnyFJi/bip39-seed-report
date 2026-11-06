@@ -2,6 +2,9 @@
 
 ## Alcance, versión y seguridad
 
+Actualización documental: 6 de noviembre de 2026. Se simplifica la selección
+del archivo cifrado; no se modifica el código ni el formato de cifrado.
+
 Guía preparada el 5 de noviembre de 2026 para el código revisado en el commit
 `c342c4ccd61b8434ed5581a70c25e9a8bc00689d`. No es una release ni declara soporte universal.
 El hito Linux tiene 42 métodos del inspector, 20 del ejecutor, diez etapas
@@ -104,7 +107,20 @@ Trabajar con una copia del cifrado no cambia el original ni requiere sobrescribi
 
 ## 5. Recuperación mediante el inspector en Linux
 
-Desde la raíz de la copia compatible, con las dependencias ya preparadas:
+### 5.1. Situarse en la raíz y comprobar el entorno
+
+La raíz contiene bip39_seed_report.py, inspeccionar_reporte_cifrado.py,
+requirements.txt y test/. Si la terminal está dentro de output/, volver a la
+raíz antes de usar los ejemplos relativos. Si se está exactamente en output/,
+un nivel debajo de la raíz, basta `cd ..`; comprobar la ubicación antes de seguir.
+No ejecutar ese cambio de carpeta si ya se está en la raíz.
+
+```bash
+pwd
+ls -l -- bip39_seed_report.py inspeccionar_reporte_cifrado.py requirements.txt
+```
+
+Con el venv y sus dependencias ya preparados:
 
 ```bash
 PY="$PWD/.venv-verificacion/bin/python"
@@ -112,25 +128,105 @@ PY="$PWD/.venv-verificacion/bin/python"
 "$PY" -m pip check
 ```
 
-Solicitar la ruta de la copia cifrada existente:
+Si falta el ejecutable o fallan dependencias, detenerse y seguir la guía Linux.
+No cambiar el script para resolver una preparación incompleta.
+
+### 5.2. Método principal: ruta relativa directa
+
+Este ejemplo corresponde a un archivo que ya exista como
+output/bip39_seed_report.json. Si la copia tiene otro nombre, un sufijo secuencial
+como _001 o está en otra carpeta, sustituir la ruta real en ambos comandos.
+No ejecutar el ejemplo esperando que cree o localice automáticamente otro archivo.
+
+Primero comprobar que el archivo se encuentra desde la raíz:
 
 ```bash
-printf 'Ruta del reporte cifrado existente, sin comillas exteriores: '
-IFS= read -r REPORTE
+ls -l -- "output/bip39_seed_report.json"
+```
+
+Solo si se encuentra, abrir el inspector:
+
+```bash
+"$PY" inspeccionar_reporte_cifrado.py "output/bip39_seed_report.json"
+```
+
+No es necesario introducir la ruta por segunda vez ni utilizar printf/read.
+No se genera otra seed ni se sobrescribe el reporte existente.
+
+### 5.3. Alternativa: asignación explícita a REPORTE
+
+Para el mismo archivo situado bajo output/, desde la raíz:
+
+```bash
+REPORTE="$PWD/output/bip39_seed_report.json"
+```
+
+Para otro archivo, cambiar el valor de la asignación por su ruta real entre comillas.
+Puede ser una ruta absoluta fuera del proyecto. No copiar una ruta ficticia sin adaptarla.
+La contraseña nunca se escribe en esta variable ni en el comando.
+
+Comprobar lo que se guardó y que el archivo existe:
+
+```bash
+printf 'Ruta guardada en REPORTE: <%s>\n' "$REPORTE"
+ls -l -- "$REPORTE"
+```
+
+Solo si ls encuentra el archivo, ejecutar:
+
+```bash
 "$PY" inspeccionar_reporte_cifrado.py "$REPORTE"
 ```
 
-Seleccionar 1 para comprobar sin mostrar. Con formato auto se reconoce JSON o TXT.
-La comprobación TXT es menor; una JSON con passphrase no vacía no contrasta la seed
-con ella. Un OK no verifica independientemente todas las direcciones.
+printf imprime un mensaje o un valor; no asigna una ruta a REPORTE. La asignación
+es la línea que empieza por REPORTE=. El procedimiento básico no utiliza read,
+por lo que no deja una entrada adicional pendiente ni requiere pegar la ruta otra vez.
 
-Si es necesario leer el contenido, elegir 2 (perfil GNOME requerido) o 3 (confirmación
-explícita). La guía Linux explica esos requisitos. No hay revelación automática tras
-un fallo. La opción 3 puede persistir en scrollback. La opción 2 no garantiza borrado.
+Si se usa en otro contexto `IFS= read -r REPORTE`, ese comando espera una línea
+posterior de entrada. Mostrar una ruta antes con printf no la entrega automáticamente
+a read. Un Enter vacío puede dejar REPORTE vacía; pegar un bloque puede proporcionar
+una entrada distinta de la pretendida. No es el método básico de esta guía.
 
-Un cierre con Q devuelve 0 aunque se haya producido un error previo en una operación:
-el código final corresponde a Q. Timeout o Ctrl+C devuelven 1. Registrar lo que pasó,
-no interpretar únicamente el código final como autenticación correcta.
+### 5.4. Autenticar antes de revelar
+
+1. Seleccionar 1 en el menú.
+2. Introducir la contraseña de exportación en la entrada oculta.
+3. Revisar el resultado explícito de esa operación.
+4. Elegir Q si no hace falta otra revisión.
+
+Para el ensayo JSON con passphrase BIP39 vacía se observó:
+
+```text
+OK: reporte autenticado; no se imprime el contenido privado.
+JSON: BIP39, seed con passphrase vacía y estructura comprobados; no se verifican independientemente todas las direcciones.
+```
+
+El mensaje de alcance depende del contenido: en TXT la comprobación es menor;
+si la passphrase BIP39 no era vacía, no se contrasta la seed con ella.
+No utilizar el texto del ejemplo para atribuir una comprobación no efectuada.
+
+Si hace falta leer el contenido, elegir 2 (perfil GNOME requerido) o 3
+(confirmación explícita). La guía Linux explica los requisitos. Nunca hay
+revelación automática tras un fallo. La opción 3 puede persistir en scrollback;
+la opción 2 no garantiza borrado seguro.
+
+Un cierre con Q devuelve 0 aunque una operación anterior haya fallado. El código
+final corresponde a Q. Timeout o Ctrl+C devuelven 1. Registrar los mensajes de
+cada operación y no interpretar solo el código final como autenticación correcta.
+
+### 5.5. Diagnóstico de rutas y de autenticación
+
+| Mensaje o situación | Qué comprobar |
+|---|---|
+| No existe un archivo cifrado legible en la ruta indicada | Ubicación actual, valor de REPORTE, nombre/sufijo, archivo regular y ruta real |
+| La variable se imprime como <> | No contiene la ruta; asignarla antes de continuar |
+| ls no encuentra el archivo | Corregir la ruta antes de pedir descifrado; no generar otro reporte como arreglo |
+| No se pudo autenticar o descifrar | Revisar contraseña de exportación y archivo íntegro; no confundir con passphrase BIP39 |
+| Se imprimió una ruta con printf | Eso no demuestra que esté guardada en REPORTE |
+
+Calcular SHA-256 permite registrar los bytes actuales. Para demostrar preservación
+frente al original hay que comparar con un hash previo confiable; no sustituye la
+autenticación del contenedor con la contraseña.
 
 ## 6. Windows/macOS: límites actuales y autenticación opcional
 
@@ -212,13 +308,26 @@ $LASTEXITCODE
 
 ### Ejecutar en macOS o Linux
 
+Con el auxiliar local creado como se indica arriba, el venv preparado y situado
+en la raíz. El ejemplo supone que output/bip39_seed_report.json existe: sustituir
+su ruta si el archivo está en otro lugar o tiene un nombre distinto.
+
 ```bash
 PY="$PWD/.venv-verificacion/bin/python"
-printf 'Ruta del archivo cifrado existente, sin comillas exteriores: '
-IFS= read -r REPORTE
+REPORTE="$PWD/output/bip39_seed_report.json"
+printf 'Ruta guardada en REPORTE: <%s>\n' "$REPORTE"
+ls -l -- "$REPORTE"
+```
+
+Solo si el archivo se encuentra:
+
+```bash
 "$PY" local-private/autenticar_reporte_recuperado.py "$REPORTE"
 echo $?
 ```
+
+Aquí REPORTE se asigna expresamente; printf no sustituye esa asignación.
+La modificación documental no acredita nuevos ensayos reales de macOS.
 
 Esperar código 0 solamente si aparecen los mensajes de autenticación. Código 1 indica
 cancelación/error, no una razón para imprimir el contenido sin protección.
@@ -287,6 +396,27 @@ No conservar únicamente un venv copiado o asumir que incluye un Python portable
 - [ ] Si necesito recuperación offline, probé el kit sin conexión.
 - [ ] No dependo de una ventana aún no implementada en mi SO.
 - [ ] No publiqué reportes, claves o transcripciones privadas.
+
+## 9. Comprobación del procedimiento comunicada el 6 de noviembre de 2026
+
+En una copia local de prueba se autenticó el mismo reporte JSON mediante:
+
+- Una ruta absoluta asignada explícitamente a REPORTE.
+- La ruta relativa directa desde la raíz del proyecto.
+
+Ambas ejecuciones de la opción 1 informaron autenticación, BIP39, seed con
+passphrase vacía y estructura comprobados sin imprimir contenido privado.
+Después se regresó al menú y se salió mediante Q. La transcripción no incluye
+una consulta del código de salida de esas dos invocaciones.
+
+El intento anterior falló al indicar una ruta mediante printf/read sin confirmar
+el contenido de la variable. La asignación directa resolvió la selección de ruta;
+no fue necesario modificar el script, cambiar contraseña o regenerar el reporte.
+
+Son dos accesos al mismo archivo, no dos reportes independientes. Esta evidencia
+no demuestra por sí sola un kit offline ni una recuperación completamente
+independiente del entorno original. No se publican la ruta personal, el hash del
+reporte o su contenido privado.
 
 ## Referencias
 
