@@ -37,6 +37,20 @@ No pegar prompts como `$`, `PS>` o `>>>`.
    `inspeccionar_reporte_cifrado.py`, `requirements.txt` y `test/`.
    Esa carpeta es la raíz; no es `docs/` ni `test/`.
 
+### Qué contiene el enlace ZIP fijado
+
+El enlace al commit c342c4ccd61b8434ed5581a70c25e9a8bc00689d
+descarga el código de referencia revisado. Ese commit es anterior
+a la incorporación de estas guías y su ZIP no contiene la carpeta docs/.
+
+Para conservar también las guías, guardar una copia de los cuatro
+documentos publicados en docs/, o descargar el contenido actual del
+repositorio mediante Code → Download ZIP.
+
+La descarga desde main incluye los archivos presentes en esa rama
+en el momento de descargarla. Puede corresponder a una revisión
+posterior a la referencia fija; registrar esa diferencia.
+
 `main` puede cambiar. Registrar el commit o la versión elegida. El ZIP de GitHub
 es código fuente: no incluye un Python listo para ejecutar ni sus dependencias.
 Estas guías no anuncian una release del programa; esa distribución sigue pendiente.
