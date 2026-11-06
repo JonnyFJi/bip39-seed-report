@@ -418,6 +418,25 @@ no demuestra por sí sola un kit offline ni una recuperación completamente
 independiente del entorno original. No se publican la ruta personal, el hash del
 reporte o su contenido privado.
 
+### Recuperación desde otra carpeta — 6 de noviembre de 2026
+
+El mantenedor copió los archivos básicos de la herramienta y un reporte
+cifrado existente a otra carpeta del mismo equipo, cuyo nombre contiene
+un espacio.
+
+Se seleccionó el intérprete de .venv-verificacion situado dentro de esa
+carpeta. El inspector encontró el archivo mediante una ruta relativa y
+la opción 1 terminó con autenticación, BIP39, seed con passphrase vacía
+y estructura comprobados, sin imprimir contenido privado.
+
+La captura muestra la creación del venv y pip check satisfactorio,
+pero no documenta la instalación de las dependencias. Por tanto, se
+registra como recuperación satisfactoria desde otra ubicación, no como
+demostración completa de instalación limpia desde cero.
+
+No se acredita mediante este ensayo recuperación sin red, en otro
+equipo o en otro sistema operativo.
+
 ## Referencias
 
 - [Instalación Linux](INSTALACION_LINUX.md)
