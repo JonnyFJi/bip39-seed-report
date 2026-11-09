@@ -141,12 +141,48 @@ manual de un resumen automático para aparentar una aprobación integrada.
 
 ## Comunicación de problemas
 
-No se ha establecido todavía un canal privado específico.
+### Reporte privado de posibles vulnerabilidades
 
-Para errores no sensibles, abrir un issue con datos ficticios,
-pasos de reproducción, versión del entorno y hash del script.
+Para comunicar una posible vulnerabilidad de seguridad, escribe a:
 
-Si el informe requiere información sensible, no publicarla.
-Solicitar primero al mantenedor un canal privado adecuado.
+jonnyfji.jt7rg@aleeas.com
 
-No se promete un plazo de respuesta ni soporte de versiones antiguas.
+Utiliza como asunto: [Seguridad] BIP39 Seed Report — descripción breve.
+
+Incluye, cuando sea posible:
+
+- Una descripción del problema y su posible impacto.
+- La versión o el commit afectado.
+- El sistema operativo, la versión de Python y las dependencias relevantes.
+- Pasos para reproducirlo utilizando exclusivamente datos ficticios.
+- El resultado esperado y el observado.
+
+No envíes mnemonics, passphrases BIP39, contraseñas de exportación,
+seeds, claves privadas, WIF ni reportes privados, aunque estén cifrados.
+
+Revisa también las capturas, logs y archivos adjuntos para evitar
+incluir información sensible.
+
+Si necesitas compartir material adicional que no pueda publicarse,
+descríbelo primero sin adjuntarlo y solicita un procedimiento adecuado
+para su intercambio.
+
+Mientras se evalúa una posible vulnerabilidad, utiliza este canal
+privado en lugar de publicar sus detalles en un issue o pull request.
+
+### Errores no sensibles y consultas generales
+
+Los errores funcionales que no expongan una vulnerabilidad o información
+privada pueden comunicarse mediante un issue en el repositorio.
+
+Incluye pasos de reproducción y datos ficticios. No publiques secretos
+ni exports privados.
+
+### Disponibilidad y alcance
+
+El proyecto es educativo y experimental y no cuenta con una auditoría
+independiente para custodia o producción.
+
+Los reportes se revisarán según la disponibilidad del mantenedor.
+No se garantiza un plazo de respuesta o corrección ni soporte de
+versiones antiguas.
