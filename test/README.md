@@ -1,5 +1,270 @@
 # Pruebas de BIP39 Seed Report
 
+## Resultado comprobado — integración entropy CLI, 10 de noviembre de 2026
+
+La batería local `bateria_local_8jy797o3` terminó satisfactoriamente
+en el entorno Linux comunicado:
+
+- 25 etapas planificadas y completadas.
+- 362 métodos unittest registrados.
+- Suite del ejecutor de 33 métodos.
+- Sin fallos, errores, omisiones, fallos esperados ni éxitos inesperados.
+- Inventario del núcleo alcanzado: 73/73.
+- 49 archivos protegidos, con hashes y conjunto conservados.
+- Código final 0.
+
+El manifiesto incluye los auxiliares
+`entropy_helpers/node_entropy_probe.cjs`,
+`entropy_helpers/webcrypto_provider.cjs`
+y la prueba `test/js/test_webcrypto_provider.cjs`.
+
+SHA-256 del núcleo ensayado:
+
+```text
+b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6
+```
+
+El desglose, identidades, incidencias y límites se conservan en
+[RESULTADOS_ENTROPY_CLI_2026-11-10.md](RESULTADOS_ENTROPY_CLI_2026-11-10.md).
+
+Los seis ensayos manuales se registran por separado.
+`manual_terminal_tests` permanece pendiente en el resumen automático
+por diseño; no se reescriben los artefactos de la batería.
+
+La batería anterior `bateria_local_082q7ze7` conserva su resultado
+de 360 métodos y 46 archivos. No se le atribuye retrospectivamente
+la protección de los archivos `.cjs`.
+
+Las secciones de preparación y los registros históricos siguientes
+conservan su contexto. Este resultado no demuestra cobertura completa
+de ramas, independencia entre proveedores, instalación desde cero
+ni verificación independiente de todas las derivaciones.
+
+## Resultado comprobado — otra copia Linux, 10 de noviembre de 2026
+
+La batería proyecto/output/bateria_local_zelv2gy3 terminó con
+25 etapas, 362 métodos unittest, inventario del núcleo 73/73,
+49 entradas del manifiesto conservadas y código final 0.
+No hubo fallos, errores, omisiones, fallos esperados, éxitos inesperados
+o errores de registro; ninguna etapa quedó incompleta.
+
+La suite individual del ejecutor terminó con 33 métodos y código 0.
+Esos métodos ya están incluidos en el acumulado de la batería.
+Las dos baterías de 362 métodos son ejecuciones distintas, no
+724 métodos diferentes.
+
+### Preparación y alcance
+
+- Se copiaron y verificaron 64 archivos seleccionados en un laboratorio
+  separado del proyecto de referencia.
+- Se creó un venv nuevo y se instalaron de nuevo las dependencias Python.
+- La copia registró pip 22.0.2; el entorno original registró pip 26.3.
+  No se igualan retrospectivamente.
+- Se recompilaron las dos fuentes Java con código 0, utilizando los
+  runtimes base existentes del mismo equipo.
+- Los hashes de las clases se registraron antes de la batería.
+  Las clases no forman parte del manifiesto de 49 archivos y no se
+  comunicó una nueva comprobación de sus hashes después de todos los ensayos.
+- Antes de los manuales se comprobaron 71 archivos registrados del origen
+  sin cambios y sin ausencias. No se presenta como una comprobación
+  posterior a esos manuales ni de todo el sistema.
+
+Los 64 archivos copiados, las 49 entradas protegidas y los 71 archivos
+comprobados del origen son conjuntos distintos.
+
+### Tres casos manuales posteriores
+
+| Caso | Resultado registrado | Límite |
+|---|---|---|
+| Redundante, 12 palabras, testnet | Cuatro proveedores aceptados y utilizados; generación y verificador con código 0 | No demuestra independencia ni imprevisibilidad |
+| Current explícito, 12 palabras, testnet | Solo python_os; otros tres no intentados; reporte creado y verificador con mensaje OK | No se capturaron códigos separados de generación y verificación |
+| Interactivo, 24 palabras, testnet, passphrase BIP39 vacía | Cuatro proveedores utilizados; verificación satisfactoria e inspector con código 0 | No verifica independientemente todas las direcciones |
+
+El mantenedor confirmó visualmente que la ventana temporal del tercer
+caso se abrió, mostró el reporte y se cerró al pulsar Enter.
+No se declara borrado seguro ni repetición de todos los timeouts,
+cancelaciones o errores del menú.
+
+Los tres casos nuevos no sustituyen los seis manuales originales.
+manual_terminal_tests conserva su estado original en los resúmenes;
+no se reescriben los artefactos para incorporar aprobaciones manuales.
+
+Esta comprobación utilizó reportes nuevos y runtimes existentes
+del mismo equipo. No acredita instalación completa desde cero,
+recuperación offline de un reporte antiguo trasladado a otro equipo
+ni soporte nuevo Windows/macOS.
+
+Detalle:
+[RESULTADOS_COPIA_ENTROPY_2026-11-10.md](RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
+
+Las ediciones documentales posteriores cambian la identidad de los
+documentos editados, incluido este README protegido por el ejecutor.
+No se actualizan por ello los manifiestos históricos ni se presenta
+la conservación registrada durante una batería como una comprobación
+del árbol actual después de esas ediciones.
+
+## Batería integrada de entropy CLI — configuración e instrucciones
+
+Esta sección describe la configuración de la integración ensayada y
+las instrucciones para una nueva ejecución. Los resultados originales
+y de la copia posterior están registrados arriba; no se atribuyen
+automáticamente a otro árbol, equipo o entorno.
+
+### Preparación antes de ejecutar
+
+Utilizar una copia local de confianza, con dependencias Python,
+configuración de proveedores, auxiliares y runtimes preparados.
+Instalar requirements.txt no instala Java o Node ni compila Java.
+
+Antes de la batería, comprobar las rutas efectivas y compilar las
+fuentes Java en el classpath de esa copia. La configuración ensayada
+exige build/entropy_java/JavaEntropyProvider.class. No recompilar clases
+históricas ni modificar proveedores para cerrar esta revisión documental.
+
+El proveedor Web Crypto ensayado exige Node v24.22.2, OpenSSL 3.5.9,
+Linux x64, execArgv vacío y getFips() igual a 0, además de su protocolo
+de pipes. Son condiciones de esa implementación, no una recomendación
+universal de versiones ni una certificación. Otro runtime puede ser
+rechazado aunque disponga de Web Crypto.
+
+La preparación completa se describe en la
+[guía Linux](../docs/INSTALACION_LINUX.md#preparación-adicional-de-runtimes-para-entropy)
+y sus identidades observadas en el
+[inventario de runtimes](../docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
+Las rutas Linux no constituyen una preparación Windows/macOS.
+
+Desde la raíz del proyecto, ejecutar las líneas siguientes por separado.
+Detenerse si una falla; la ejecución posterior no corrige un fallo previo:
+
+```bash
+PY="$PWD/.venv-regresion-entropy-cli/bin/python"
+"$PY" --version
+"$PY" -m pip check
+PYTHONPATH="$PWD" "$PY" -B test/test_ejecutar_bateria_local.py
+"$PY" -B test/ejecutar_bateria_local.py
+```
+
+El nombre del venv del ejemplo corresponde al entorno original.
+En otra copia, definir PY con el intérprete realmente preparado y
+mantenerlo durante la comprobación; no mezclar resultados de entornos.
+
+La suite del ejecutor conserva los 20 métodos anteriores y agrega 13:
+total 33. Son pruebas del protocolo y configuración, con fixtures;
+no una ejecución completa de todos los proveedores reales.
+
+### Etapas
+
+Se conservan las diez etapas anteriores y se agregan quince etapas, una
+por cada archivo test_entropy_*.py registrado: total 25. Cada etapa nueva
+exige un registro unittest no vacio. El inventario de nombres se contrasta
+antes de iniciar: un archivo esperado ausente o una suite entropy nueva
+no registrada detienen la preparacion con codigo 3. No hay descubrimiento
+silencioso de suites ni se fija un contador global de metodos.
+
+### Identidad e inventario
+
+El nucleo esperado conserva SHA-256:
+
+```text
+b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6
+```
+
+El checksum local debe identificar esa misma version. Esta actualizacion
+no modifica bip39_seed_report.py ni sus proveedores.
+El inventario AST del núcleo revisado contiene 72 funciones superiores
+y un método: 73 entradas. Las baterías original corregida y posterior
+de la copia registraron 73/73. Una nueva ejecución debe conservar
+su propio resultado; no hereda ese alcance por usar el mismo código.
+No es cobertura de líneas o ramas ni inventario de funciones de
+todos los módulos de entropy.
+
+### Manifiesto
+
+PROTECTED_FILES define entradas obligatorias, entre ellas el ejecutor,
+su suite, este README, entropy_cli_support.py y los auxiliares
+entropy_helpers/node_entropy_probe.cjs y
+entropy_helpers/webcrypto_provider.cjs.
+
+Se agregan los objetivos de todas las etapas y los archivos .py, .java,
+.js, .cjs y .mjs encontrados en el arbol visible del proyecto. Se excluyen directorios ocultos y los llamados
+output, backups, node_modules, __pycache__, venv y env.
+Los enlaces simbolicos encontrados dentro del arbol seleccionado se
+rechazan. El conteo es dinamico y se registra en protected_files_total.
+Se comprueban hashes y conservacion del conjunto de archivos seleccionado.
+
+Este manifiesto identifica fuentes seleccionadas durante una ejecucion;
+no verifica su procedencia. No incluye automaticamente binarios de Java,
+Node o Python, .class, dependencias de entornos, fuentes ocultas ni todos
+los archivos documentales. Los ejecutables y artefactos de runtimes siguen
+fuera de esta politica. Revisar hashes_antes.json para conocer el alcance
+real. No confundir este manifiesto con el cierre de toda la cadena de suministro.
+
+### Resultados y limites
+
+Los codigos finales conservan su significado: 0 automatico completo,
+1 fallo, 2 incompleto y 3 preparacion. Las omisiones o fallos esperados
+no equivalen a una aprobacion completa. El resumen agrega stages_planned,
+protected_files_total y protected_file_set_unchanged.
+
+La lectura del registro del worker esta limitada; la captura de stdout
+y stderr no tiene un limite de volumen incorporado. El timeout de 900
+segundos es por etapa, no un plazo global ni una garantia de limpieza
+de todos los descendientes.
+
+manual_terminal_tests permanece pendiente en el resumen automatico por
+diseno. Los seis casos manuales comunicados el 10 de noviembre se registran
+por separado: redundante JSON, current JSON, importaciones hexadecimal,
+binaria y mnemonic completa JSON, y redundante TXT.
+En TXT hubo un error del verificador auxiliar de cabecera/espaciado,
+corregido sobre el mismo reporte. El inspector TXT verifica autenticacion,
+cabecera y red; la comprobacion adicional revisa texto registrado, sin
+recalcular BIP39, seed o derivaciones.
+
+La ejecucion previa de 349 metodos se conserva como evidencia anterior;
+no se atribuye automaticamente a este ejecutor modificado. La nueva suite
+cambia el numero de metodos: registrar el resultado real, no reutilizar 349.
+No se certifica independencia entre interfaces de proveedores, imprevisibilidad
+de muestras, seguridad del host ni todas las derivaciones. Linux es el
+alcance activo; Windows/macOS no se validan mediante esta actualizacion.
+
+### Correccion del manifiesto JavaScript — 10 de noviembre de 2026
+
+La bateria bateria_local_082q7ze7 termino con 25 etapas satisfactorias,
+360 metodos unittest, inventario del nucleo 73/73, 46 archivos protegidos
+sin cambios y codigo final 0.
+
+La revision posterior del manifiesto identifico que no incluia los
+auxiliares node_entropy_probe.cjs y webcrypto_provider.cjs, porque la
+seleccion de fuentes JavaScript solo contemplaba .js.
+
+Se incorporan ambos auxiliares como archivos obligatorios y se amplian
+las extensiones seleccionadas a .js, .cjs y .mjs. Se agregan dos pruebas
+de regresion; la suite del ejecutor pasa de 31 a 33 metodos.
+
+La batería anterior conserva su alcance original. La corrección requirió
+una nueva ejecución, realizada después como bateria_local_8jy797o3:
+25 etapas, 362 métodos, inventario 73/73, 49 archivos conservados
+y código final 0.
+
+No se modifican los manifiestos de bateria_local_082q7ze7 ni se le
+atribuye retrospectivamente la protección de los auxiliares omitidos.
+El resultado posterior tampoco convierte los 46 archivos anteriores
+en un manifiesto de 49.
+
+## Documentacion y registros anteriores — conservar como referencia historica
+
+Los apartados siguientes conservan sus conteos y contexto históricos.
+Las menciones a diez etapas, catorce archivos, veinte métodos del ejecutor
+y 70/70 corresponden a configuraciones anteriores, no a la integración
+de 25 etapas descrita arriba.
+
+Las expresiones «actual» o «nueva» dentro de esos registros se refieren
+al hito que describían, no al estado más reciente de esta actualización.
+Para ejecutar la batería integrada, utilizar la preparación y las
+instrucciones superiores; no interpretar los conteos históricos como
+expectativas de la revisión nueva.
+
+
 Las suites utilizan exclusivamente datos ficticios o vectores públicos.
 No introducir mnemonics, passphrases ni claves de usuario.
 
