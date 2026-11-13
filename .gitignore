@@ -49,3 +49,22 @@ Resultado*.txt
 .ruff_cache/
 .coverage
 htmlcov/
+
+# Compilación y dependencias locales de entropy
+/build/
+*.class
+node_modules/
+
+# Carpetas locales de respaldo y evidencia
+/backups/
+/evidencia/
+
+# Planes y auxiliares locales de preparación de la publicación
+/plan_trabajo*.md
+/PLAN_TRABAJO*.md
+/ARCHIVOS_ACTUALIZACION_GITHUB_*.txt
+/AJUSTES_DOCUMENTACION_PUBLICACION_*.md
+
+# Paquetes locales de actualización; no son releases del proyecto
+/actualizacion_*.zip
+/actualizacion_*.zip.sha256
