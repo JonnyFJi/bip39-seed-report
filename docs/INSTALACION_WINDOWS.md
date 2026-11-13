@@ -2,10 +2,26 @@
 
 ## Alcance, versión y seguridad
 
-Guía preparada el 5 de noviembre de 2026 para el código revisado en el commit
-`c342c4ccd61b8434ed5581a70c25e9a8bc00689d`. No es una release ni declara soporte universal.
-El hito Linux tiene 42 métodos del inspector, 20 del ejecutor, diez etapas
-y un manifiesto de 14 archivos; el inventario 70/70 solo corresponde al núcleo.
+Guía preparada inicialmente el 5 de noviembre de 2026 para la referencia
+histórica c342c4ccd61b8434ed5581a70c25e9a8bc00689d y actualizada
+documentalmente el 11 de noviembre para distinguirla de la integración
+local entropy CLI del 10 de noviembre. No se atribuye un commit remoto
+nuevo ni se declara una release.
+
+El hito histórico Linux del 5 de noviembre registró 42 métodos del
+inspector, 20 del ejecutor, diez etapas, 14 archivos protegidos
+e inventario del núcleo 70/70.
+
+La integración Linux local corregida del 10 de noviembre registró
+42 métodos del inspector, 33 del ejecutor, 25 etapas, 362 métodos
+unittest acumulados, inventario 73/73 y 49 entradas conservadas.
+La comprobación posterior de otra copia Linux registró esos mismos
+conteos, con un venv nuevo y Java recompilado sobre runtimes base
+existentes del mismo equipo.
+
+Estos resultados no corresponden a una nueva ejecución Windows.
+Las instrucciones para la integración local siguen siendo propuestas
+pendientes de ensayo en ese sistema.
 
 La herramienta es educativa y experimental, no auditada para custodia o
 producción. La decisión de uso corresponde al usuario. Todas las pruebas
@@ -27,25 +43,31 @@ del sistema, si hacen falta, son una operación distinta.
 Ejecutar los comandos por pasos. Si un paso falla, detenerse y revisar su
 salida; un comando posterior satisfactorio no corrige un fallo anterior.
 No pegar prompts como `$`, `PS>` o `>>>`.
+
 ## Descargar y reconocer la raíz del proyecto
 
 1. Abrir el repositorio oficial: https://github.com/JonnyFJi/bip39-seed-report
-2. En `Code` elegir `Download ZIP`, o descargar el snapshot del commit revisado:
-   https://github.com/JonnyFJi/bip39-seed-report/archive/c342c4ccd61b8434ed5581a70c25e9a8bc00689d.zip
+2. Elegir y registrar la revisión que se desea comprobar. `Code` →
+   `Download ZIP` descarga la rama disponible, pero no demuestra que
+   contenga la integración local entropy CLI. El snapshot histórico es:
+   [https://github.com/JonnyFJi/bip39-seed-report/archive/c342c4ccd61b8434ed5581a70c25e9a8bc00689d.zip](https://github.com/JonnyFJi/bip39-seed-report/archive/c342c4ccd61b8434ed5581a70c25e9a8bc00689d.zip)
+   No utilizar ese enlace histórico como distribución de la integración nueva.
 3. Extraer el ZIP completo; no abrir o ejecutar los scripts desde el visor del ZIP.
 4. Entrar en la carpeta extraída que contiene `bip39_seed_report.py`,
    `inspeccionar_reporte_cifrado.py`, `requirements.txt` y `test/`.
    Esa carpeta es la raíz; no es `docs/` ni `test/`.
 
-### Qué contiene el enlace ZIP fijado
+### Qué contiene el enlace ZIP histórico fijado
 
 El enlace al commit c342c4ccd61b8434ed5581a70c25e9a8bc00689d
-descarga el código de referencia revisado. Ese commit es anterior
-a la incorporación de estas guías y su ZIP no contiene la carpeta docs/.
+descarga el código histórico de referencia, no la integración local
+entropy CLI del 10 de noviembre. Ese commit es anterior a la
+incorporación de estas guías y su ZIP no contiene la carpeta docs/.
 
-Para conservar también las guías, guardar una copia de los cuatro
-documentos publicados en docs/, o descargar el contenido actual del
-repositorio mediante Code → Download ZIP.
+Para conservar también las guías, guardar los documentos de docs/
+correspondientes a la revisión elegida, o descargar el contenido disponible
+del repositorio mediante Code → Download ZIP. Registrar si las guías
+y el código proceden de revisiones diferentes.
 
 La descarga desde main incluye los archivos presentes en esa rama
 en el momento de descargarla. Puede corresponder a una revisión
@@ -67,8 +89,18 @@ Para el núcleo del commit de referencia, el SHA-256 esperado es:
 b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174
 ```
 
-Si se eligió otra revisión y el valor difiere, comparar esa revisión antes de
-continuar; no regenerar el checksum para hacer desaparecer la discrepancia.
+El núcleo local de la integración del 10 de noviembre tiene otro hash:
+
+```text
+b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6
+```
+
+Este hash no se atribuye al ZIP histórico ni a una ejecución Windows.
+No se afirma aquí que la integración local esté publicada en main.
+
+Si se eligió otra revisión y el valor difiere, comparar esa revisión
+antes de continuar; no regenerar el checksum para hacer desaparecer
+la discrepancia.
 
 ## Estado específico de esta guía
 
@@ -76,10 +108,44 @@ El ensayo histórico fue Windows 10 Home x64 con Python 3.10.11; no aprueba el
 parche actual ni justifica instalar esa versión hoy. Estas instrucciones para
 la versión actual son un procedimiento propuesto, pendiente de ejecución Windows.
 
+El ensayo Windows comunicado el 22 de octubre de 2026 corresponde
+al núcleo con SHA-256
+df80621c8a2f2adef15c370783319c88ba4593f31ed92c03c08a0d5248cc9d3f.
+No es el hash del hito Linux del 5 de noviembre ni el de la integración
+local del 10 de noviembre. Sus resultados y omisiones se conservan en
+[ANALISIS_COMPATIBILIDAD_SO.md](../ANALISIS_COMPATIBILIDAD_SO.md).
+
 El núcleo conserva funciones multiplataforma, pero el CLI actual
 `inspeccionar_reporte_cifrado.py` rechaza Windows. No intentar saltar esa
 comprobación, simular Linux o instalar GNOME como supuesto arreglo.
 Para inspección completa usar el entorno Linux probado; ver recuperación.
+
+### Generación redundante y preparación pendiente
+
+La integración local utiliza redundant de forma predeterminada para
+generación nueva. Las configuraciones ensayadas seleccionan rutas Linux
+para Java y un ejecutable Node de usuario construido para Linux x64.
+No copiar esas rutas o binarios a Windows como si fueran portables.
+
+Instalar requirements.txt prepara paquetes Python, no instala Java o
+Node ni compila las fuentes Java. La preparación redundante exige
+revisar ejecutables, arquitectura, auxiliares y classpath de la copia.
+Cambiar PATH, JAVA_HOME o $PY no sustituye automáticamente todas las
+rutas fijadas en los módulos de configuración.
+
+No se ofrece aquí una receta redundante validada en Windows.
+No cambiar las fuentes, el inspector o las pruebas para aparentar
+una preparación aprobada o eliminar omisiones.
+
+Los ejemplos de generación siguientes solicitan current explícitamente,
+basado en os.urandom() y sin intentar Java ni Node para esa generación.
+Esto no valida el modo redundante, la batería integrada ni el inspector
+en Windows. Los flags nuevos corresponden a la integración local;
+no deben aplicarse sin revisión al ZIP histórico que no los incorpora.
+
+La batería integrada incluye las suites de los proveedores redundantes
+y requiere su propia preparación, aunque se utilice current en un
+ensayo manual separado.
 
 ## 1. Descargar, extraer y abrir PowerShell
 
@@ -104,15 +170,39 @@ otra versión explícita, utilizarla para crear el venv y no mezclar entornos.
 
 ## 2. Comprobar el núcleo
 
+Elegir el hash esperado según la revisión seleccionada, antes de calcular
+el hash del archivo. No deducir automáticamente el valor esperado a partir
+del archivo que se intenta comprobar.
+
+El bloque siguiente corresponde únicamente al núcleo local de la
+integración del 10 de noviembre:
+
 ```powershell
-$Esperado = 'b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174'
-$Actual = (Get-FileHash -Algorithm SHA256 -LiteralPath '.\bip39_seed_report.py').Hash.ToLowerInvariant()
-if ($Actual -ne $Esperado) { throw 'Hash diferente: comparar la versión antes de continuar.' }
-Write-Output 'Hash del núcleo de referencia: coincide'
+$Esperado = 'b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6'
+$Actual = (Get-FileHash -Algorithm SHA256 -LiteralPath '.\bip39_seed_report.py' -ErrorAction Stop).Hash.ToLowerInvariant()
+
+if ($Actual -ne $Esperado) {
+    throw 'Hash diferente: comparar la revisión elegida antes de continuar.'
+}
+
+Write-Output 'Identidad del núcleo local seleccionado: coincide'
 ```
 
-Este valor es el del commit de referencia, no el hash del ZIP. No reemplazar
-el hash esperado por el recibido para forzar una coincidencia.
+Si se eligió el ZIP histórico c342c4ccd61b8434ed5581a70c25e9a8bc00689d,
+el valor esperado es
+b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174.
+En ese caso, sustituir únicamente la asignación de $Esperado por ese valor
+histórico antes de ejecutar el bloque y utilizar las instrucciones
+correspondientes a esa revisión.
+
+El hash df80621c8a2f2adef15c370783319c88ba4593f31ed92c03c08a0d5248cc9d3f
+identifica otra revisión: el ensayo Windows histórico del 22 de octubre.
+No intercambiar los tres valores.
+
+Estos hashes identifican el núcleo, no el ZIP ni todos los archivos.
+La coincidencia no autentica por sí sola la procedencia del archivo
+ni demuestra compatibilidad Windows. No reemplazar el hash esperado
+por el recibido para forzar una coincidencia.
 
 ## 3. Elegir modalidad
 
@@ -246,12 +336,28 @@ finally {
 }
 ```
 
-Las suites del inspector utilizan simulaciones: pueden probar funciones sin que
-el CLI del inspector esté soportado en Windows. No confundir su éxito con una
-ventana Windows implementada. El resultado esperado por el código de referencia
-es 42 y 20 métodos, pero esta guía no acredita una ejecución Windows de ellos.
+Las suites del inspector utilizan simulaciones: pueden probar funciones
+sin que el CLI del inspector esté soportado en Windows. No confundir
+su éxito con una ventana Windows implementada.
 
-Batería propuesta para registrar el resultado de esta plataforma:
+Para la integración local corregida, los conteos de referencia son
+42 métodos del inspector y 33 del ejecutor. El hito histórico del
+5 de noviembre tenía 20 métodos del ejecutor. Son referencias del
+código y de los ensayos Linux, no nuevas ejecuciones Windows acreditadas
+por esta guía.
+
+La batería de la integración local planifica 25 etapas. En Linux se
+registraron 362 métodos unittest, inventario 73/73 y 49 entradas
+conservadas. Esos resultados no se atribuyen a Windows; el tamaño del
+manifiesto depende del árbol y no es 49 universalmente.
+El hito histórico del 5 de noviembre tenía diez etapas e inventario 70/70.
+
+No ejecutar la batería integrada como si bastara la instalación Python.
+Antes deben revisarse los requisitos de todas las etapas y prepararse
+los proveedores para Windows; esta guía no da esa preparación por completada.
+
+Solo después de resolver esa preparación, el comando propuesto para
+registrar el resultado de la plataforma es:
 
 ```powershell
 & $PY .\test\ejecutar_bateria_local.py
@@ -270,8 +376,13 @@ Guardar los resultados locales y no alterar la batería para eliminar esas omisi
 
 ## 5. Generación ficticia y verificador de laboratorio
 
+Procedimiento propuesto para la integración local, no registrado como
+ejecutado en Windows. Se solicita current explícitamente para no
+depender de las rutas Linux de Java/Node durante esta generación.
+No representa un respaldo automático ni valida el modo redundante.
+
 ```powershell
-& $PY .\bip39_seed_report.py -w 12 -n testnet
+& $PY .\bip39_seed_report.py -w 12 -n testnet --entropy-mode current
 $LASTEXITCODE
 ```
 
@@ -279,8 +390,13 @@ Introducir la contraseña de exportación en la terminal. Este ejemplo sin `-i`
 utiliza passphrase BIP39 vacía. Para el modo guiado:
 
 ```powershell
-& $PY .\bip39_seed_report.py -i -n testnet
+& $PY .\bip39_seed_report.py -i -n testnet --entropy-mode current
+$LASTEXITCODE
 ```
+
+En el menú, elegir generación nueva para este ensayo.
+Si se elige importar material, las opciones de entropy no lo convierten
+en una adquisición nueva.
 
 No usar argumentos de mnemonic/passphrase real ni redirigir el flujo interactivo.
 La ruta puede recibir un sufijo secuencial. Tomar el nombre final mostrado,
@@ -318,6 +434,9 @@ no declararlo un fallo de la generación. Consultar recuperación.
 
 ## Referencias y documentos relacionados
 
+- [Resultados de integración entropy CLI en Linux](../test/RESULTADOS_ENTROPY_CLI_2026-11-10.md)
+- [Resultados de preparación de otra copia Linux](../test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md)
+- [Inventario de runtimes Linux](RUNTIMES_ENTROPY_LINUX_2026-11-10.md)
 - [README del proyecto](../README.md)
 - [Guía de pruebas](../test/README.md)
 - [Recuperación de reportes](RECUPERACION_REPORTES.md)
