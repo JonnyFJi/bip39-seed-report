@@ -2,13 +2,29 @@
 
 ## Alcance, versión y seguridad
 
-Actualización documental: 6 de noviembre de 2026. Se simplifica la selección
-del archivo cifrado; no se modifica el código ni el formato de cifrado.
+Actualización documental: 12 de noviembre de 2026. Se incorpora el alcance
+de la integración local entropy CLI y de la comprobación posterior de otra
+copia. No se modifica el código ni el formato de cifrado.
+La actualización del 6 de noviembre simplificó la selección del archivo
+cifrado; sus procedimientos y resultados históricos se conservan.
 
-Guía preparada el 5 de noviembre de 2026 para el código revisado en el commit
-`c342c4ccd61b8434ed5581a70c25e9a8bc00689d`. No es una release ni declara soporte universal.
-El hito Linux tiene 42 métodos del inspector, 20 del ejecutor, diez etapas
-y un manifiesto de 14 archivos; el inventario 70/70 solo corresponde al núcleo.
+La guía se preparó inicialmente el 5 de noviembre de 2026 para la referencia
+c342c4ccd61b8434ed5581a70c25e9a8bc00689d. Ese hito Linux registró
+42 métodos del inspector, 20 del ejecutor, diez etapas, 14 archivos
+protegidos e inventario del núcleo 70/70.
+
+La integración Linux local corregida del 10 de noviembre registró
+42 métodos del inspector, 33 del ejecutor, 25 etapas, 362 métodos
+unittest acumulados, inventario 73/73 y 49 entradas conservadas.
+El núcleo local se identifica por SHA-256
+b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6.
+No se atribuye un commit remoto nuevo ni se declara una release.
+
+La comprobación posterior de otra copia Linux generó y verificó
+reportes nuevos sobre runtimes base existentes del mismo equipo.
+No se presenta como recuperación offline de un reporte anterior
+trasladado a otro equipo. Los resultados Linux no aprueban la
+integración actual en Windows/macOS.
 
 La herramienta es educativa y experimental, no auditada para custodia o
 producción. La decisión de uso corresponde al usuario. Todas las pruebas
@@ -39,6 +55,7 @@ No pegar prompts como `$`, `PS>` o `>>>`.
 | Contraseña de exportación | Imprescindible para derivar la clave de descifrado |
 | Código compatible y versión/commit | Permite interpretar exactamente el formato |
 | requirements.txt e instrucciones | Permiten preparar el entorno |
+| Intérprete base compatible y forma de prepararlo, si se necesita recuperación offline | El venv y el wheelhouse no constituyen por sí solos una distribución portable de Python |
 | Hashes del código y del archivo | Detectan cambios respecto de una referencia confiable |
 | Dependencias offline por plataforma, si se necesitan | Evitan depender de una descarga futura |
 
@@ -71,9 +88,23 @@ La opción más simple es conservar una copia completa y verificada del código 
 la versión utilizada, sus avisos/licencias y documentación. No depender solo de
 que el repositorio o un índice de paquetes sigan disponibles en el futuro.
 
-Para el inspector actual se necesitan tanto `inspeccionar_reporte_cifrado.py` como
-`bip39_seed_report.py`. Este último importa mnemonic, bip-utils y cryptography:
-conservar solamente el inspector no basta.
+Para el inspector se necesitan inspeccionar_reporte_cifrado.py,
+bip39_seed_report.py y los módulos de la revisión que estos importen,
+además de sus dependencias Python. En la integración local no debe
+suponerse que basta con conservar únicamente los dos scripts principales.
+La opción recomendada sigue siendo conservar la copia completa y
+verificada del código compatible.
+
+Preparar una recuperación no significa volver a ejecutar generación
+automática. Deben distinguirse los módulos necesarios para importar
+y descifrar con esa revisión de los runtimes y auxiliares utilizados
+para adquirir entropy nueva. No ejecutar una nueva generación ni
+recompilar proveedores como supuesto método para recuperar el cifrado.
+
+Los metadatos de generación que contenga un reporte forman parte
+del contenido cifrado existente. No es necesario reproducir aquellas
+aportaciones para autenticar ese archivo; esos metadatos tampoco
+certifican por sí solos el origen o la imprevisibilidad del material.
 
 El contenedor actual utiliza scrypt y AES-256-GCM con metadatos autenticados.
 Su codificación, normalización de contraseña, perfil KDF y construcción del AAD
@@ -104,6 +135,18 @@ Antes de borrar la única instalación funcional, ensayar con un reporte fictici
 
 No ejecutar generación nueva para «recuperar» el archivo: crearía otro material.
 Trabajar con una copia del cifrado no cambia el original ni requiere sobrescribirlo.
+
+Para registrar un ensayo de recuperación, utilizar un reporte ficticio
+preexistente y comprobar que la copia trasladada conserva sus bytes
+respecto de una referencia previa confiable. Después, registrar el
+resultado explícito de autenticación y el alcance de las comprobaciones.
+
+Crear y verificar un reporte nuevo en el entorno de destino prueba
+ese flujo de generación y lectura, no la recuperación del archivo
+anterior. Si el objetivo es recuperación sin red o en otro equipo,
+esas condiciones deben ensayarse y documentarse por separado.
+No marcar la lista final como completada solo por disponer de una
+batería automática satisfactoria.
 
 ## 5. Recuperación mediante el inspector en Linux
 
@@ -343,6 +386,12 @@ Solo preparar esto mientras se dispone de conexión y de un entorno de referenci
 que funciona. Los paquetes nativos dependen de SO, arquitectura, versión/ABI de Python.
 No usar un wheelhouse Linux como si fuera universal para Windows/macOS.
 
+El wheelhouse conserva paquetes Python, no instala por sí solo el
+intérprete base ni reconstruye todo el sistema. Preparar también
+una vía confiable y compatible para disponer de Python en el destino.
+Si se quiere reproducir generación redundante, su preparación Java/Node
+es un objetivo adicional y distinto de autenticar un reporte existente.
+
 En Linux/macOS, con PY definido y situado en la raíz:
 
 ```bash
@@ -363,6 +412,22 @@ Revisar el archivo congelado: puede reflejar URLs/rutas y paquetes adicionales d
 entorno. No publicarlo sin revisión. `pip wheel` puede requerir herramientas de
 compilación y conexión para requisitos de construcción. Si falla, no se dispone
 por ello de un kit offline completo.
+
+Antes de utilizar el fichero congelado en el destino, revisar y resolver
+las referencias directas a URLs, repositorios o rutas del equipo original,
+incluidas las de requisitos adicionales. No eliminarlas ni sustituirlas
+por versiones arbitrarias: preparar artefactos locales correspondientes
+y comprobar que el conjunto sigue siendo compatible.
+
+--no-index desactiva los índices de paquetes; no es un aislamiento de red
+ni garantiza que cualquier referencia del fichero sea local.
+El ensayo offline debe realizarse realmente sin conexión y sin depender
+de rutas, cachés o recursos disponibles solo en la instalación original.
+
+pip freeze --all describe los paquetes instalados; no calcula un lockfile
+ni demuestra que el wheelhouse sea suficiente para reconstruir el entorno.
+La suficiencia se comprueba instalando y autenticando un reporte ficticio
+preexistente en el entorno de destino preparado para ese ensayo.
 
 Transferir una copia verificada del código, del fichero de requisitos y del wheelhouse
 al equipo compatible. Crear allí el venv antes de instalar:
@@ -392,8 +457,9 @@ No conservar únicamente un venv copiado o asumir que incluye un Python portable
 - [ ] Conservo la contraseña de exportación por una vía protegida.
 - [ ] Conservo código compatible, requisitos, instrucciones e identidad de versión.
 - [ ] Distingo contraseña de exportación de passphrase BIP39.
-- [ ] He probado la recuperación de un archivo ficticio en otra carpeta/entorno.
-- [ ] Si necesito recuperación offline, probé el kit sin conexión.
+- [ ] He autenticado en el entorno de destino una copia íntegra de un reporte ficticio preexistente, no solo un reporte nuevo generado allí.
+- [ ] Si necesito otro equipo o sistema operativo, probé expresamente ese destino.
+- [ ] Si necesito recuperación offline, probé sin conexión el kit, el intérprete y los artefactos necesarios.
 - [ ] No dependo de una ventana aún no implementada en mi SO.
 - [ ] No publiqué reportes, claves o transcripciones privadas.
 
@@ -437,8 +503,49 @@ demostración completa de instalación limpia desde cero.
 No se acredita mediante este ensayo recuperación sin red, en otro
 equipo o en otro sistema operativo.
 
+## 10. Alcance de la comprobación de otra copia — 10 de noviembre de 2026
+
+El laboratorio posterior copió y verificó 64 archivos seleccionados
+en otra carpeta del mismo equipo Linux. Se creó un venv nuevo,
+se instalaron de nuevo los paquetes Python y se recompilaron las
+dos fuentes Java sobre los runtimes base existentes.
+
+La batería proyecto/output/bateria_local_zelv2gy3 terminó con
+25 etapas, 362 métodos unittest, inventario 73/73, 49 entradas
+conservadas y código 0. La ejecución individual de los 33 métodos
+del ejecutor no se suma otra vez al acumulado.
+
+Los tres casos manuales posteriores generaron reportes nuevos:
+redundante de 12 palabras, current explícito de 12 e interactivo
+de 24, todos en testnet. En current se conservaron mensajes
+satisfactorios, pero no códigos separados de generación y verificación.
+
+En el caso interactivo se registró verificación satisfactoria,
+inspector con código 0 y confirmación visual del mantenedor:
+la ventana temporal se abrió, mostró el reporte y se cerró con Enter.
+
+No se trasladó un reporte cifrado antiguo como objeto de recuperación
+de esos casos. Por tanto, el ensayo acredita preparación de una copia
+y generación/verificación de reportes nuevos, no recuperación offline
+de un archivo anterior en otro equipo.
+
+La comprobación de 71 archivos registrados del origen sin cambios
+se realizó antes de los manuales. No se presenta como verificación
+posterior a todos los ensayos. Ese conjunto, los 64 archivos copiados
+y las 49 entradas de la batería son distintos.
+
+Este registro no sustituye la recuperación desde otra carpeta del
+6 de noviembre ni amplía su alcance. Tampoco acredita una instalación
+completa de runtimes desde cero, borrado seguro o recuperación Windows/macOS.
+
+Detalle:
+[Resultados de preparación de otra copia](../test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
+
 ## Referencias
 
+- [Resultados de integración entropy CLI](../test/RESULTADOS_ENTROPY_CLI_2026-11-10.md)
+- [Resultados de preparación de otra copia](../test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md)
+- [Análisis de compatibilidad y resultados históricos](../ANALISIS_COMPATIBILIDAD_SO.md)
 - [Instalación Linux](INSTALACION_LINUX.md)
 - [Instalación Windows](INSTALACION_WINDOWS.md)
 - [Instalación macOS](INSTALACION_MACOS.md)

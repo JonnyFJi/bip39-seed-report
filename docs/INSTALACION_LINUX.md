@@ -2,10 +2,20 @@
 
 ## Alcance, versión y seguridad
 
-Guía preparada el 5 de noviembre de 2026 para el código revisado en el commit
-`c342c4ccd61b8434ed5581a70c25e9a8bc00689d`. No es una release ni declara soporte universal.
-El hito Linux tiene 42 métodos del inspector, 20 del ejecutor, diez etapas
-y un manifiesto de 14 archivos; el inventario 70/70 solo corresponde al núcleo.
+Guía actualizada el 11 de noviembre de 2026 para distinguir la integración
+local entropy CLI del 10 de noviembre, su comprobación posterior en otra
+copia y la referencia publicada histórica del 5 de noviembre.
+No se atribuye un commit remoto nuevo ni se declara una release.
+
+La batería corregida original y la batería posterior de la copia
+registraron, cada una, 25 etapas, 362 métodos, inspector de 42,
+ejecutor de 33, inventario del núcleo 73/73 y 49 entradas conservadas.
+Son ejecuciones distintas, no 724 métodos diferentes.
+
+La copia utilizó un venv nuevo, paquetes Python instalados de nuevo
+y fuentes Java recompiladas sobre runtimes base existentes del mismo
+equipo. La instalación completa de esos runtimes desde cero en otro
+entorno sigue pendiente; no se promete preparación completa con pip.
 
 La herramienta es educativa y experimental, no auditada para custodia o
 producción. La decisión de uso corresponde al usuario. Todas las pruebas
@@ -27,25 +37,31 @@ del sistema, si hacen falta, son una operación distinta.
 Ejecutar los comandos por pasos. Si un paso falla, detenerse y revisar su
 salida; un comando posterior satisfactorio no corrige un fallo anterior.
 No pegar prompts como `$`, `PS>` o `>>>`.
+
 ## Descargar y reconocer la raíz del proyecto
 
 1. Abrir el repositorio oficial: https://github.com/JonnyFJi/bip39-seed-report
-2. En `Code` elegir `Download ZIP`, o descargar el snapshot del commit revisado:
+2. Elegir la revisión que se desea verificar. `Code` → `Download ZIP`
+   descarga la rama disponible, pero no demuestra que contenga la integración
+   local del 10 de noviembre. El snapshot histórico anterior es:
    https://github.com/JonnyFJi/bip39-seed-report/archive/c342c4ccd61b8434ed5581a70c25e9a8bc00689d.zip
+   No usar ese enlace histórico como distribución de la integración nueva.
 3. Extraer el ZIP completo; no abrir o ejecutar los scripts desde el visor del ZIP.
 4. Entrar en la carpeta extraída que contiene `bip39_seed_report.py`,
    `inspeccionar_reporte_cifrado.py`, `requirements.txt` y `test/`.
    Esa carpeta es la raíz; no es `docs/` ni `test/`.
 
-### Qué contiene el enlace ZIP fijado
+### Qué contiene el enlace ZIP histórico fijado
 
 El enlace al commit c342c4ccd61b8434ed5581a70c25e9a8bc00689d
-descarga el código de referencia revisado. Ese commit es anterior
+descarga el código histórico de referencia revisado, no la integración
+local entropy CLI del 10 de noviembre. Ese commit es anterior
 a la incorporación de estas guías y su ZIP no contiene la carpeta docs/.
 
-Para conservar también las guías, guardar una copia de los cuatro
-documentos publicados en docs/, o descargar el contenido actual del
-repositorio mediante Code → Download ZIP.
+Para conservar también las guías, guardar los documentos de docs/
+correspondientes a la revisión elegida, o descargar el contenido disponible
+del repositorio mediante Code → Download ZIP. Registrar si las guías y
+el código proceden de revisiones diferentes.
 
 La descarga desde main incluye los archivos presentes en esa rama
 en el momento de descargarla. Puede corresponder a una revisión
@@ -67,8 +83,16 @@ Para el núcleo del commit de referencia, el SHA-256 esperado es:
 b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174
 ```
 
-Si se eligió otra revisión y el valor difiere, comparar esa revisión antes de
-continuar; no regenerar el checksum para hacer desaparecer la discrepancia.
+El núcleo local de la integración del 10 de noviembre tiene otro hash:
+
+```text
+b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6
+```
+
+No se atribuye este hash al ZIP histórico ni se afirma que esté publicado
+en `main`. Si se eligió otra revisión y el valor difiere, comparar esa
+revisión antes de continuar; no regenerar el checksum para hacer
+desaparecer la discrepancia.
 
 ## 1. Abrir una terminal en la carpeta extraída
 
@@ -95,7 +119,8 @@ sha256sum -c bip39_seed_report.py.sha256
 sha256sum bip39_seed_report.py
 ```
 
-Debe coincidir el checksum y, para el commit de referencia, el valor mostrado arriba.
+Debe coincidir el checksum y el hash de la revisión realmente elegida:
+no intercambiar los valores histórico y local indicados arriba.
 La coincidencia con el `.sha256` descargado no autentica por sí sola a su autor.
 
 ## 3. Elegir una de las tres modalidades
@@ -183,6 +208,220 @@ No recomendar `sudo pip`, borrar `EXTERNALLY-MANAGED` o usar
 estar restringido. `pip check` global puede detectar conflictos ajenos al proyecto.
 No instalar con un Python y ejecutar con otro.
 
+## Preparación adicional de runtimes para entropy
+
+### Inventario posterior del entorno existente
+
+Se registraron Python 3.10.12, OpenJDK 11.0.33, javac 11.0.33
+y Node v24.22.2, con las cuatro consultas de versión satisfactorias.
+La configuración completa pudo construirse y la clase Java estaba presente.
+
+Rutas, hashes, comandos registrados y límites:
+[Runtimes de entropy en Linux — 10 de noviembre de 2026](RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
+
+Ese diagnóstico no instaló runtimes ni recompiló la clase existente.
+La recompilación posterior pertenece al ensayo de otra copia.
+No se mezclan los hashes de la clase histórica con los de las clases
+generadas después.
+
+### Preparación y límites
+
+El modo CLI predeterminado redundant utiliza módulos locales y proveedores
+Python, Java y JavaScript. Instalar requirements.txt no instala Java
+ni Node, ni compila las fuentes Java.
+
+Antes de trabajar offline, preparar los componentes de la revisión
+seleccionada y revisar entropy_python_config.py, entropy_java_config.py
+y entropy_all_config.py. Cambiar PY selecciona el intérprete de los
+comandos que contienen "$PY"; no modifica automáticamente todas las
+rutas de proveedores definidas en esos módulos.
+
+Los ejemplos siguientes corresponden a las rutas de la configuración
+Linux ensayada. No constituyen una receta universal de instalación
+de runtimes. Si no corresponden al equipo o a la revisión elegida,
+detenerse y revisar la configuración; no crear enlaces o sustituir
+ejecutables del sistema para aparentar coincidencia.
+
+La preparación debe hacerse en una copia de trabajo nueva. No ejecutar
+esta compilación sobre el proyecto de referencia o el laboratorio
+histórico si se desea conservar sus clases y registros originales.
+
+### 1. Comprobar fuentes y auxiliares de la revisión
+
+Desde la raíz de la copia nueva, con PY definido:
+
+```bash
+ls -l \
+  entropy_python_config.py \
+  entropy_java_config.py \
+  entropy_all_config.py \
+  entropy_helpers/python_entropy_provider.py \
+  entropy_helpers/JavaEntropyProbe.java \
+  entropy_helpers/JavaEntropyProvider.java \
+  entropy_helpers/node_entropy_probe.cjs \
+  entropy_helpers/webcrypto_provider.cjs
+```
+
+Si falta alguno, revisar la copia o la revisión seleccionada antes
+de continuar. No descargar un auxiliar aislado desde una rama mutable
+para completar silenciosamente una versión distinta.
+
+### 2. Identificar Java, javac y Node
+
+Para las rutas ensayadas:
+
+```bash
+JAVA="/usr/lib/jvm/java-11-openjdk-amd64/bin/java"
+JAVAC="/usr/lib/jvm/java-11-openjdk-amd64/bin/javac"
+NODE="$HOME/.local/opt/bip39-node/node-v24.22.2-linux-x64/bin/node"
+
+ls -l "$JAVA" "$JAVAC" "$NODE"
+```
+
+Después de revisar su procedencia y decidir que son confiables,
+consultar por separado:
+
+```bash
+"$JAVA" -version
+```
+
+```bash
+"$JAVAC" -version
+```
+
+```bash
+"$NODE" --version
+```
+
+Para registrar su identidad local:
+
+```bash
+sha256sum "$JAVA" "$JAVAC" "$NODE"
+```
+
+Estos comandos no instalan runtimes ni contrastan sus hashes con
+una firma o referencia externa confiable. El nombre de una carpeta
+no prueba la versión ni el mantenimiento de su contenido.
+No copiar binarios sin revisar origen, integridad y arquitectura.
+
+La carpeta de usuario de Node no es un sandbox. Cambiar PATH o JAVA_HOME
+no sustituye una ruta fijada en un módulo de configuración.
+No cambiar el Python del sistema ni sustituir /usr/bin/node.
+
+### 3. Compilar Java antes de construir la configuración completa
+
+La configuración ensayada utiliza build/entropy_java y exige
+JavaEntropyProvider.class. En la copia nueva, compilar las dos fuentes
+con el compilador seleccionado:
+
+```bash
+(
+    if [ -e build/entropy_java ]; then
+        printf '%s\n' \
+          'Detener: build/entropy_java ya existe. Revisar antes de recompilar.' >&2
+        exit 1
+    fi
+
+    mkdir -p build/entropy_java || exit 1
+
+    "$JAVAC" \
+      -encoding UTF-8 \
+      --release 11 \
+      -d build/entropy_java \
+      entropy_helpers/JavaEntropyProbe.java \
+      entropy_helpers/JavaEntropyProvider.java
+)
+printf 'Codigo de compilacion Java: %s\n' "$?"
+```
+
+Continuar únicamente si la compilación termina con código 0.
+Si falla, detenerse: la existencia del directorio de salida no
+demuestra que la compilación haya finalizado correctamente.
+No borrar automáticamente un build existente para repetir el paso.
+
+Comprobar los resultados y registrar sus hashes:
+
+```bash
+ls -l \
+  build/entropy_java/JavaEntropyProbe.class \
+  build/entropy_java/JavaEntropyProvider.class
+
+sha256sum \
+  build/entropy_java/JavaEntropyProbe.class \
+  build/entropy_java/JavaEntropyProvider.class
+```
+
+La copia ensayada compiló con código 0 y registró los hashes antes
+de la batería. La clase Provider recompilada no fue binariamente
+idéntica a la histórica. No se exige igualar aquel hash mediante
+cambios de fuentes o compilador ni se declara compilación reproducible.
+
+Las clases no forman parte del manifiesto de 49 archivos de esas
+baterías. Para comprobar su conservación después de otras pruebas,
+se necesita una comparación específica adicional.
+
+### 4. Construir y revisar los comandos efectivos
+
+Solo sobre una copia local de confianza, después de compilar:
+
+```bash
+"$PY" -B - <<'PY'
+from pathlib import Path
+import os
+import sys
+
+from entropy_all_config import build_all_provider_commands
+
+commands = build_all_provider_commands()
+
+for provider, command in commands.items():
+    if not command:
+        raise SystemExit("Proveedor sin comando: " + provider)
+
+    executable_name, *arguments = command
+    executable = Path(executable_name)
+
+    if not executable.is_absolute():
+        raise SystemExit("Ejecutable sin ruta absoluta: " + provider)
+
+    if not executable.is_file() or not os.access(executable, os.X_OK):
+        raise SystemExit("Ejecutable ausente o no ejecutable: " + provider)
+
+print("Intérprete de esta comprobación:", sys.executable)
+
+for provider, command in commands.items():
+    print(provider, "=>", repr(command))
+
+print("Configuración construida y ejecutables presentes.")
+print("No se han adquirido aportaciones ni generado un reporte.")
+PY
+```
+
+Revisar que los auxiliares y el classpath pertenecen a la copia nueva,
+y que los ejecutables corresponden a los seleccionados.
+La salida puede contener rutas personales: no publicarla sin revisar.
+
+Construir estos comandos y comprobar que existen los ejecutables no
+valida por sí solo el protocolo, la salud de las fuentes ni su
+independencia. Las suites y pruebas funcionales se ejecutan después.
+Una preparación inválida puede detener la operación; no se promete
+respaldo automático para cualquier error.
+
+### Current explícito y plazos
+
+current explícito genera mediante os.urandom() sin intentar Java ni Node:
+
+```bash
+"$PY" bip39_seed_report.py -w 12 -n testnet --entropy-mode current
+```
+
+Es otro modo solicitado, no una aprobación de la preparación redundante.
+El ejemplo genera un reporte ficticio y requiere una TTY y las
+dependencias Python preparadas; no es una consulta de configuración.
+
+El timeout predeterminado de entropy es de 10 segundos por proveedor,
+positivo y finito; no es un plazo global ni limita contraseñas o visor.
+
 ## 4. Comprobar el programa y ejecutar las pruebas
 
 Con la modalidad elegida y `PY` definido:
@@ -211,15 +450,19 @@ Para la referencia actual se esperan 42 métodos y `OK`.
 PYTHONPATH="$PWD" "$PY" test/test_ejecutar_bateria_local.py
 ```
 
-Se esperan 20 métodos y `OK`.
+Para la integración local corregida se esperan 33 métodos y `OK`.
+La revisión histórica del 5 de noviembre tenía 20; no mezclar expectativas.
 
 ```bash
 "$PY" test/ejecutar_bateria_local.py
 echo $?
 ```
 
-El hito Linux comunicado completó diez etapas, 70/70 e integridad de archivos
-con código 0. Un equipo distinto debe registrar su propio resultado:
+La integración local corregida completó 25 etapas, 362 métodos unittest,
+73/73 y 49 archivos conservados, con código 0. Los 49 dependen del árbol
+ensayado, no son un valor obligatorio para cualquier copia.
+El hito histórico del 5 de noviembre tenía diez etapas y 70/70.
+Un equipo o revisión distintos deben registrar su propio resultado:
 
 - 0: automático completo según los controles del ejecutor.
 - 1: fallo de proceso/registro/prueba o archivos protegidos modificados.
@@ -231,11 +474,51 @@ los resultados en una carpeta nueva bajo `output/`; conservarlos localmente.
 Los ensayos manuales se registran aparte. No cambiar su estado dentro del JSON automático.
 `py_compile` puede crear `__pycache__`; no publicarlo.
 
+### Registro de la comprobación posterior en otra copia
+
+La preparación del laboratorio del 10 de noviembre utilizó
+.venv-instalacion-limpia, con pip 22.0.2. La batería original utilizó
+.venv-regresion-entropy-cli, con pip 26.3. Los nombres de entorno
+identifican esos ensayos; los ejemplos generales de esta guía utilizan
+.venv-verificacion. No se presentan como el mismo venv.
+
+En la copia se instalaron de nuevo las dependencias Python, se comprobó
+pip check y se recompilaron las dos fuentes Java. Los runtimes base
+existentes del mismo equipo se reutilizaron.
+
+La batería proyecto/output/bateria_local_zelv2gy3 terminó con
+25 etapas, 362 métodos unittest, inventario 73/73, 49 entradas
+conservadas y código 0. La ejecución individual de los 33 métodos
+del ejecutor no se añade otra vez al acumulado.
+
+Los tres casos manuales posteriores se registran aparte:
+redundante de 12 palabras, current explícito de 12 e interactivo
+de 24, todos en testnet. En current se conservaron mensajes
+satisfactorios, pero no códigos separados de generación y verificación.
+El mantenedor confirmó visualmente la apertura, presentación y cierre
+con Enter de la ventana temporal del caso interactivo.
+
+Estos casos no sustituyen los seis manuales de la integración original
+ni acreditan repetición de todos los timeouts, cancelaciones o errores.
+La copia generó reportes nuevos: no demuestra recuperación offline
+de un reporte anterior trasladado a otro equipo.
+
+Detalle:
+[Resultados de preparación de otra copia](../test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
+
 ## 5. Generar un reporte ficticio y comprobarlo
+
+En la integración local, el ejemplo siguiente solicita generación redundante
+experimental por defecto; requiere la preparación adicional anterior.
+Para elegir la primitiva conservada, añadir `--entropy-mode current`.
+Las importaciones no adquieren aportaciones nuevas por estas opciones.
 
 ```bash
 "$PY" bip39_seed_report.py -w 12 -n testnet
 ```
+
+El reporte registra el modo realmente ejecutado y los estados de proveedores;
+no interpretar una reducción o respaldo como cuatro aportaciones disponibles.
 
 Introducir y confirmar la contraseña de exportación sin eco. No es la passphrase
 BIP39. El uso sin `-i` de este ejemplo no solicita una passphrase BIP39: utiliza la vacía.
@@ -326,6 +609,7 @@ por otra vía. No publicar `output/`, backups, venv ni logs privados.
 
 ## Referencias y documentos relacionados
 
+- [Resultados locales entropy CLI](../test/RESULTADOS_ENTROPY_CLI_2026-11-10.md)
 - [README del proyecto](../README.md)
 - [Guía de pruebas](../test/README.md)
 - [Recuperación de reportes](RECUPERACION_REPORTES.md)
@@ -333,3 +617,5 @@ por otra vía. No publicar `output/`, backups, venv ni logs privados.
 - Entornos administrados: https://packaging.python.org/en/latest/specifications/externally-managed-environments/
 - Estado de Python: https://devguide.python.org/versions/
 - Descargas ZIP: https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives
+- [Resultados de preparación de otra copia](../test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md)
+- [Inventario de runtimes Linux](RUNTIMES_ENTROPY_LINUX_2026-11-10.md)
