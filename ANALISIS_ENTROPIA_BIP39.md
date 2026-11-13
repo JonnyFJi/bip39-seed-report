@@ -1,9 +1,130 @@
 # Análisis de generación de entropy y verificaciones BIP39
 
+## Actualización local — 10 de noviembre de 2026
+
+Esta sección actualiza el flujo CLI. Las referencias de commits y los
+resultados anteriores se conservan como historia, no como identidad del
+núcleo actual. No se atribuye un commit remoto a la integración local.
+
+SHA-256 del núcleo ensayado: `b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6`.
+
+La primitiva `generate_entropy(words)` permanece basada en `os.urandom()`;
+no describe por sí sola el flujo CLI nuevo. La generación automática pasa
+por `generate_automatic_entropy()` y `entropy_cli_support.generate_for_report()`.
+El modo CLI predeterminado es `redundant`, experimental, y el modo
+`current` utiliza expresamente la primitiva conservada.
+
+### Modos y metadatos
+
+| Modo ejecutado | Significado registrado | Método |
+|---|---|---|
+| `redundante` | Aportaciones seleccionadas por la política redundante | `sha512-framed` |
+| `redundante_reducido` | Continuidad con la pareja Java + JavaScript | `sha512-framed` |
+| `actual_respaldo` | Reutilización de aportación aceptada de `python_os` | `python-os-prefix` |
+| `actual_explicito` | Solicitud directa de `current`, solo `python_os` | `os.urandom` |
+
+Esta tabla describe resultados; no sustituye las condiciones exactas de
+`entropy_policy.py` ni garantiza que cualquier fallo permita continuar.
+El proveedor Python secrets, Java o JavaScript no se considera independiente
+solo por usar otra interfaz. El combinador no está auditado de forma independiente.
+
+`--entropy-timeout` es positivo y finito, 10 segundos por proveedor por
+defecto. Los metadatos registran modos, método, versiones aplicables,
+bits y proveedores utilizados, omitidos, fallidos y sus estados.
+Se guardan dentro del reporte privado y se describen en TXT. No son una
+prueba externa del origen o la incertidumbre de una muestra.
+
+Las importaciones y la enumeración de última palabra no adquieren aportaciones
+nuevas por estas opciones. No se añaden filtros por repeticiones ni una
+estimación de incertidumbre efectiva a partir de indicadores de patrón.
+
+### Evidencia y límites
+
+La batería corregida de la integración original,
+`output/bateria_local_8jy797o3`, registró 25 etapas, 362 métodos unittest,
+inventario 73/73 y 49 archivos conservados; código 0, sin fallos ni omisiones.
+La suite del ejecutor contiene 33 métodos, ya incluidos en ese acumulado.
+Los seis ensayos manuales originales se conservan por separado.
+
+No se sustituye la verificación independiente de BIP32/derivaciones ni
+se prueba la imprevisibilidad del material. Detalle:
+[Resultados de integración entropy CLI](test/RESULTADOS_ENTROPY_CLI_2026-11-10.md).
+
+### Comprobación posterior en otra copia — 10 de noviembre de 2026
+
+Se preparó otra copia en el mismo equipo Linux, con 64 archivos
+seleccionados copiados y verificados, un venv nuevo y dependencias Python
+instaladas de nuevo. Se recompilaron las dos fuentes Java para esa copia.
+Los runtimes base existentes se reutilizaron; no se declara una instalación
+completa desde cero en otro equipo.
+
+El entorno original registró pip 26.3 y la copia nueva pip 22.0.2.
+Ambos registraron CPython 3.10.12, mnemonic 0.21, bip-utils 2.9.3
+y cryptography 44.0.3. No se igualan retrospectivamente los entornos.
+
+La batería de la copia, `proyecto/output/bateria_local_zelv2gy3`,
+terminó con 25 etapas, 362 métodos unittest, inventario 73/73,
+49 entradas del manifiesto conservadas y código 0.
+Son dos ejecuciones de la batería, no 724 métodos distintos.
+La suite individual del ejecutor, de 33 métodos, tampoco se añade
+otra vez al acumulado.
+
+Antes de los casos manuales se comprobaron 71 archivos del origen
+sin cambios y sin ausencias. Ese registro no se presenta como una
+comprobación posterior a los manuales ni de todo el sistema.
+Los 64 archivos copiados, las 49 entradas del manifiesto y los
+71 archivos del origen corresponden a conjuntos diferentes.
+
+Se añadieron tres casos manuales, separados de los seis anteriores:
+
+| Caso | Resultado registrado | Límite |
+|---|---|---|
+| Redundante, 12 palabras, testnet | Cuatro proveedores aceptados y utilizados; generación y verificador con código 0 | No demuestra independencia de fuentes ni imprevisibilidad |
+| Current explícito, 12 palabras, testnet | Solo python_os; los otros tres no intentados; reporte creado y verificador con mensaje OK | No se capturaron códigos separados de generación y verificación |
+| Interactivo, 24 palabras, testnet, passphrase BIP39 vacía | Cuatro proveedores utilizados; verificación del inspector satisfactoria e inspector con código 0 | No verifica independientemente todas las direcciones |
+
+En el tercer caso, el mantenedor confirmó que la ventana temporal
+se abrió, mostró el reporte y se cerró al pulsar Enter.
+No se declara borrado seguro ni repetición de todos los casos
+de timeout, cancelación o error.
+
+La verificación de autenticación, BIP39, seed y estructura de estos
+reportes no acredita el origen histórico ni la incertidumbre de sus
+aportaciones. Los manuales se conservan aparte y no reescriben el
+estado `manual_terminal_tests` del resumen automático.
+
+La recompilación Java no demuestra identidad binaria con la clase
+histórica ni compilación reproducible byte a byte. Las clases no
+forman parte del manifiesto de 49 archivos de la batería.
+
+Detalle:
+[Resultados de preparación de otra copia](test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
+
+### Preparación y alcance por plataforma
+
+Instalar solo `requirements.txt` no prepara todos los proveedores
+del modo redundante. Deben revisarse los comandos configurados,
+los auxiliares, los ejecutables seleccionados y el classpath Java
+de la copia que se ejecuta. No basta con consultar PATH o JAVA_HOME.
+
+El diagnóstico de runtimes y la recompilación posterior son registros
+distintos. Su detalle se conserva en el
+[inventario de runtimes Linux](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md)
+y en el
+[análisis de compatibilidad](ANALISIS_COMPATIBILIDAD_SO.md).
+
+La política de continuidad no garantiza que cualquier error de
+configuración o preparación permita generar un reporte.
+Las rutas Linux no se consideran portables por defecto.
+No se comunica una ejecución nueva Windows/macOS ni recuperación
+offline de un reporte antiguo trasladado a otro equipo.
+
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental a 5 de noviembre de 2026.
+- Base histórica actualizada a 5 de noviembre de 2026; flujo CLI y
+  comprobación posterior de otra copia documentados en las secciones
+  locales del 10 de noviembre de 2026.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio de referencia: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -148,9 +269,9 @@ Documentar cómo el script obtiene entropy, la transforma en una mnemonic y deri
 
 Este documento no es una auditoría independiente, no certifica la imprevisibilidad de una entrada y no recomienda uso con fondos reales.
 
-## ✅ Generación de Entropía
+## Generación de entropy: primitiva conservada y flujo CLI
 
-### Código analizado
+### Primitiva conservada; no es todo el flujo CLI predeterminado
 
 ```python
 def generate_entropy(words):
@@ -169,7 +290,9 @@ El programa puede describir esos patrones, pero no los utiliza para asignar un s
 
 ### Fuente y tamaños de entrada
 
-generate_entropy() solicita bytes a os.urandom(), la interfaz del generador criptográfico del sistema operativo.
+`generate_entropy()` solicita bytes a `os.urandom()`. Es la primitiva
+utilizada por `current`; el modo CLI predeterminado es ahora redundante,
+según la actualización local inicial de este documento.
 
 El programa depende del funcionamiento del sistema, Python y sus dependencias. No comprueba retrospectivamente la imprevisibilidad de los bytes recibidos ni la ausencia de compromisos del entorno.
 
@@ -237,12 +360,14 @@ Las derivaciones de direcciones utilizan bip-utils.
 
 El repositorio distribuye test/vectors.json. En la base histórica
 analizada, el script utiliza el bloque english cuando está presente.
-El endurecimiento posterior del runner se distingue más abajo.
+El endurecimiento posterior se identifica en «Actualización posterior
+del runner y última palabra»; no debe confundirse con aquella base.
 
-Desde la raíz del proyecto:
+Ejemplo Linux desde la raíz del proyecto, con el entorno ya preparado:
 
 ```bash
-python3 bip39_seed_report.py --run-tests --vectors-file test/vectors.json
+PY="$PWD/.venv-regresion-entropy-cli/bin/python"
+"$PY" bip39_seed_report.py --run-tests --vectors-file test/vectors.json
 ```
 
 Resultado registrado con la suite distribuida:
@@ -289,7 +414,8 @@ Una entrada formada por ceros puede tener longitud válida y convertirse en una 
 La seed derivada tiene 512 bits de longitud, pero esa longitud no convierte una entrada débil en una fuente de 512 bits de incertidumbre.
 
 El módulo random no debe confundirse con una fuente criptográfica.
-El script utiliza os.urandom() para generación nueva.
+`current` utiliza `os.urandom()`; la generación CLI predeterminada utiliza
+la política redundante experimental descrita al principio.
 
 La recolección mediante dados, monedas u otros procedimientos físicos no se evalúa en este documento y no está implementada como ceremonia en la versión analizada.
 
@@ -297,7 +423,8 @@ La recolección mediante dados, monedas u otros procedimientos físicos no se ev
 
 ### Controles actuales
 
-- Generación de entropy nueva mediante os.urandom().
+- Generación automática redundante experimental por defecto; `current`
+  explícito mediante `os.urandom()`, con modos y metadatos diferenciados.
 - Aceptación sin filtros por palabras repetidas.
 - Validación BIP39 de formato y checksum.
 - Comprobación de wordlist embebida y efectiva.
@@ -345,13 +472,26 @@ No publicar mnemonic, passphrase, seed, WIF o exports privados.
 
 ## Conclusión
 
-La versión analizada obtiene bytes del generador del sistema en tamaños admitidos por BIP39, acepta mnemonics generadas sin filtrar repeticiones y valida formato, wordlist y checksum.
+La primitiva histórica y conservada obtiene bytes mediante `os.urandom()`.
+La CLI local actual añade generación redundante experimental y conserva
+`current` explícito; ambos usan tamaños BIP39 válidos y no filtran repeticiones.
+La validación de formato, wordlist y checksum no certifica imprevisibilidad.
 
 Los 24 vectores de referencia ejecutados respaldan las conversiones y la derivación de seed comprobadas, no una certificación completa del programa ni de todas las derivaciones.
 
+La comprobación posterior en otra copia añadió instalación de paquetes
+en un venv nuevo, recompilación Java, otra batería satisfactoria de
+25 etapas y tres casos manuales separados. Estos resultados respaldan
+los flujos ejecutados en ese entorno, no una estimación de incertidumbre,
+independencia entre proveedores, identidad binaria reproducible ni
+recuperación offline en otro equipo.
+
 El export nuevo utiliza scrypt y AES-256-GCM. El método histórico se conserva únicamente para descifrado compatible.
 
-El programa no certifica la imprevisibilidad de una entrada ni la seguridad del entorno. El proyecto permanece educativo y no se recomienda con fondos reales.
+El programa no certifica la imprevisibilidad de una entrada ni la seguridad del entorno.
+
+El proyecto permanece educativo y no ha sido auditado de forma independiente para custodia o producción.
+La decisión de uso corresponde al usuario. El proyecto no presenta sus resultados ni sus pruebas como una certificación de seguridad para custodiar fondos.
 
 ## Referencias
 

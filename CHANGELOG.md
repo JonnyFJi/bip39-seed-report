@@ -2,6 +2,170 @@
 
 ## Unreleased
 
+### Revisión documental local — 11 de noviembre de 2026
+
+- Actualización de los análisis de compatibilidad y entropy para incorporar
+  la preparación y comprobación de otra copia, sin reinterpretar los
+  resultados históricos.
+- Distinción entre el entorno original con pip 26.3 y el venv nuevo
+  con pip 22.0.2.
+- Separación entre inventario de runtimes, reinstalación de paquetes Python
+  y recompilación Java; no se declara instalación completa desde cero.
+- Conservación por separado de las baterías automáticas, los seis ensayos
+  manuales originales y los tres casos manuales posteriores.
+- Actualización de exclusiones locales para compilación, dependencias,
+  respaldos, evidencia y auxiliares de preparación de la publicación.
+- Alineación del cierre del análisis de entropy con la advertencia editorial:
+  el proyecto permanece educativo y no ha sido auditado de forma independiente
+  para custodia o producción. La decisión de uso corresponde al usuario.
+  Los resultados y pruebas no se presentan como certificación de seguridad
+  para custodiar fondos.
+
+Estos cambios documentales y de exclusiones no modifican el núcleo
+ni convierten las pruebas locales en una release o auditoría independiente.
+
+### Inventario de runtimes y comprobación de otra copia — 10 de noviembre de 2026
+
+Estado: ensayos locales posteriores a la integración, con el mismo núcleo
+b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6.
+Sin atribuir commit remoto ni release.
+
+#### Inventario posterior
+
+- Registro separado de Python 3.10.12, OpenJDK 11.0.33, javac 11.0.33
+  y Node v24.22.2, con consultas terminadas en código 0.
+- Identificación de ejecutables, configuración y clase Java existente.
+- Conservación de los hashes de seis fuentes y configuraciones
+  respecto del manifiesto de la batería original.
+- El inventario no instala runtimes ni recompila la clase existente.
+- Los datos posteriores no se incorporan retrospectivamente al
+  entorno.json ni al manifiesto de la batería original.
+
+Detalle:
+[Inventario de runtimes Linux](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
+
+#### Preparación de otra copia
+
+- 64 archivos seleccionados copiados y verificados en un laboratorio
+  separado del proyecto de referencia.
+- Venv nuevo e instalación de dependencias desde requirements.txt,
+  con pip check e importaciones principales satisfactorios.
+- CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3.
+- pip 22.0.2 en la copia, frente a pip 26.3 en la batería original.
+- Recompilación de las dos fuentes Java para el classpath de la copia,
+  con código 0 y hashes de clases registrados antes de la batería.
+- Reutilización de los runtimes base existentes del mismo equipo.
+- Sin identidad binaria entre la clase Java histórica y la recompilada;
+  no se atribuye una causa concreta ni se declara compilación reproducible.
+- Las clases compiladas no forman parte del manifiesto de 49 archivos.
+
+#### Evidencia automática
+
+- Suite individual del ejecutor: 33 métodos satisfactorios y código 0.
+- Batería proyecto/output/bateria_local_zelv2gy3:
+  25 etapas, 362 métodos unittest, inventario 73/73 y código 0.
+- Cero fallos, errores, omisiones, fallos esperados, éxitos inesperados
+  o errores de registro; ninguna etapa incompleta.
+- Conservación de los 49 nombres y hashes del manifiesto.
+- Antes de los manuales: 71 archivos registrados del origen sin cambios
+  y ninguna ausencia; no se declara comprobación posterior a esos manuales.
+- Los conteos de 64 archivos copiados, 49 entradas protegidas y
+  71 archivos del origen corresponden a conjuntos distintos.
+- Los 33 métodos individuales no se suman otra vez a 362.
+  La repetición de la batería no representa 724 métodos distintos.
+
+#### Evidencia manual separada
+
+- Redundante, 12 palabras, testnet: cuatro proveedores aceptados y utilizados;
+  generación y verificador con código 0.
+- Current explícito, 12 palabras, testnet: solo python_os y los otros tres
+  proveedores no intentados; creación y verificación satisfactorias por
+  mensajes, sin códigos separados capturados para ambas invocaciones.
+- Interactivo, 24 palabras, testnet y passphrase BIP39 vacía:
+  cuatro proveedores utilizados, verificación satisfactoria e inspector
+  terminado con código 0.
+- El mantenedor confirmó que la ventana temporal se abrió, mostró
+  el reporte y se cerró al pulsar Enter.
+- No se declara repetición de todos los casos del menú, timeout
+  o cancelación, ni borrado seguro.
+- Los tres casos nuevos no sustituyen los seis manuales anteriores
+  ni reescriben manual_terminal_tests del resumen automático.
+
+Detalle:
+[Resultados de preparación de otra copia](test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
+
+La comprobación corresponde a otra copia en el mismo equipo, con paquetes
+Python instalados de nuevo y Java recompilado sobre runtimes existentes.
+No acredita instalación completa desde cero, recuperación offline de
+un reporte antiguo en otro equipo ni soporte nuevo Windows/macOS.
+Tampoco prueba independencia de fuentes, imprevisibilidad ni verificación
+independiente de todas las derivaciones.
+
+### Integración entropy CLI y manifiesto JavaScript — 10 de noviembre de 2026
+
+Estado de la integración original: revisión local ensayada; sin atribuir
+commit remoto ni release. Esta entrada no documenta una instalación limpia;
+el inventario y la preparación posterior de otra copia se registran por separado.
+
+#### Generación e interfaz
+
+- Generación nueva con `--entropy-mode redundant` predeterminado, experimental.
+- Proveedores: `python_os`, `java_secure_random`, `javascript_webcrypto`
+  y `python_secrets`, sujetos a la política de selección.
+- `--entropy-mode current` explícito conserva `os.urandom()` y no intenta
+  los otros proveedores.
+- `--entropy-timeout`: positivo y finito, 10 segundos por proveedor por defecto;
+  no es un plazo global.
+- Registro de modos, método, versiones y estados en `entropy_generation`;
+  descripción en TXT y avisos dentro del reporte privado.
+- La importación de material y la búsqueda de última palabra no se mezclan
+  con generación nueva por estas opciones.
+- Se conservan conversiones BIP39, seed, derivaciones, perfil scrypt,
+  AES-GCM y publicación sin reemplazo; la integración sí modifica el núcleo
+  respecto del hito histórico de noviembre 5.
+
+SHA-256 del núcleo local ensayado:
+
+```text
+b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6
+```
+
+#### Batería y corrección posterior
+
+- Se mantienen las diez etapas anteriores y se añaden quince suites entropy.
+- Validación de configuración e inventario; fuentes y archivos obligatorios
+  protegidos, incluidos ejecutor, su suite y README de pruebas.
+- Fuentes `.py`, `.java`, `.js`, `.cjs` y `.mjs`; exclusiones documentadas.
+- Los auxiliares `node_entropy_probe.cjs` y `webcrypto_provider.cjs` pasan
+  a ser obligatorios. También se descubre `test/js/test_webcrypto_provider.cjs`.
+- La suite del ejecutor pasa de 20 a 31 y luego a 33 métodos.
+- Batería previa `bateria_local_082q7ze7`: 25 etapas, 360 métodos, 46 archivos.
+- Batería corregida `bateria_local_8jy797o3`: 25 etapas, 362 métodos,
+  inventario 73/73, 49 archivos y conjunto conservados, código 0.
+- Cero fallos, errores, omisiones, fallos esperados, éxitos inesperados
+  o registros rechazados en la batería corregida.
+
+#### Entorno y alcance
+
+Linux Mint 21.3, x86_64, kernel 5.15.0-203-generic; CPython 3.10.12;
+mnemonic 0.21, bip-utils 2.9.3, cryptography 44.0.3 y pip 26.3.
+Datos del `entorno.json` de la batería corregida. No registra versiones
+ni hashes completos de Java/Node; no se deducen del nombre de una carpeta.
+
+Seis ensayos manuales originales comunicados y consolidados por separado;
+no se reescribe `manual_terminal_tests`. La incidencia inicial TXT
+correspondió al verificador auxiliar y la repetición utilizó el mismo reporte.
+Estos seis ensayos no acreditan una repetición del menú GNOME.
+La comprobación visual posterior de la ventana se registra en el ensayo
+de otra copia; no se declara soporte nuevo Windows/macOS.
+
+Detalle: [Resultados de integración entropy CLI](test/RESULTADOS_ENTROPY_CLI_2026-11-10.md).
+
+El combinador sigue siendo experimental, sin auditoría independiente.
+Las interfaces pueden compartir fuentes; metadatos y suites no certifican
+independencia, imprevisibilidad ni todas las derivaciones. Los historiales
+siguientes conservan sus identidades y conteos.
+
 ### Endurecimiento del inspector y del ejecutor — 5 de noviembre de 2026
 
 #### Inspector
