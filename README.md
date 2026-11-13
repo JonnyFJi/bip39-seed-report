@@ -24,7 +24,8 @@ Debe tratarse como secreto, incluso cuando esté cifrado.
 
 ## Funciones implementadas
 
-- Generación de entropy mediante os.urandom() en longitudes BIP39 válidas.
+- Generación automática experimental redundante por defecto y modo
+  `current` explícito mediante `os.urandom()`, en longitudes BIP39 válidas.
 - Conversión a mnemonics inglesas de 12, 15, 18, 21 o 24 palabras.
 - Aceptación del resultado generado sin filtrar palabras repetidas.
 - Importación de entropy hexadecimal, entropy binaria o mnemonic existente.
@@ -53,9 +54,24 @@ Debe tratarse como secreto, incluso cuando esté cifrado.
 ## Entorno de trabajo de esta etapa
 
 El desarrollo y la verificación activa de esta etapa se realizan en Linux.
-La referencia comprobada es Linux Mint 21.3 Virginia, x86_64, kernel
-5.15.0-202-generic y CPython 3.10.12, con mnemonic 0.21,
-bip-utils 2.9.3 y cryptography 44.0.3.
+La integración original se ensayó en Linux Mint 21.3 Virginia, x86_64,
+kernel 5.15.0-203-generic y CPython 3.10.12, con mnemonic 0.21,
+bip-utils 2.9.3, cryptography 44.0.3 y pip 26.3, según
+`entorno.json` de `bateria_local_8jy797o3`, registrado el
+10 de noviembre de 2026 a las 19:11:17 UTC.
+
+La comprobación posterior de otra copia utilizó el mismo sistema, kernel,
+Python y versiones directas, pero un venv nuevo con pip 22.0.2.
+Se instalaron de nuevo los paquetes Python y se recompilaron las fuentes
+Java; los runtimes base existentes del mismo equipo se reutilizaron.
+No se igualan retrospectivamente ambos entornos ni se presenta este ensayo
+como instalación completa desde cero en otro equipo.
+
+Las versiones son referencias observadas, no recomendaciones universales
+ni certificados de seguridad del host. Las consultas posteriores de Java
+11.0.33, javac 11.0.33 y Node v24.22.2 se registran por separado;
+no se incorporan retrospectivamente a los campos del entorno.json original.
+Detalle: [Inventario de runtimes Linux](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
 
 Windows y macOS quedan fuera del alcance activo y no bloquean este hito.
 Su revisión queda diferida a quien ejecute el programa en esos sistemas.
@@ -65,7 +81,9 @@ en Linux no constituye una ejecución Windows real.
 
 ## Modo interactivo recomendado
 
-Preparar primero el entorno de la sección Instalación y definir PY.
+Preparar primero el entorno de la sección Instalación, incluidos los
+proveedores de generación redundante cuando se utilice el modo predeterminado,
+y definir PY.
 
 Desde la raíz del proyecto:
 
@@ -114,6 +132,59 @@ del programa es oculta.
 Las decisiones que utilizan la capa temporizada pueden cancelar tras
 360 segundos sin respuesta. No existe un timeout global para todo el
 flujo ni para todas las lecturas de secretos.
+
+## Generación automática de entropy — revisión local del 10 de noviembre de 2026
+
+La CLI utiliza `--entropy-mode redundant` de forma predeterminada para
+generación nueva. Es una integración experimental de los proveedores
+`python_os`, `java_secure_random`, `javascript_webcrypto` y `python_secrets`.
+Las aportaciones seleccionadas por la política se finalizan mediante
+`sha512-framed`, excepto el respaldo automático descrito a continuación.
+No se certifica independencia entre interfaces que pueden compartir fuentes
+del sistema operativo ni una mejora cuantificada de seguridad.
+
+`--entropy-mode current` solicita expresamente la primitiva conservada
+`generate_entropy()`, basada en `os.urandom()`. No intenta los otros tres
+proveedores. No es lo mismo que un respaldo automático del modo redundante.
+
+El reporte distingue los modos ejecutados `redundante`,
+`redundante_reducido` (pareja Java + JavaScript), `actual_respaldo`
+(aportación aceptada de `python_os`) y `actual_explicito`.
+En `actual_respaldo` se reutiliza la aportación aceptada de `python_os`
+mediante `python-os-prefix`; no se describe como una adquisición nueva.
+Los fallos de preparación o una combinación no admitida pueden detener
+la operación: el respaldo no es una garantía universal de continuidad.
+
+`--entropy-timeout SEGUNDOS` debe ser positivo y finito; su valor
+predeterminado es 10 segundos por proveedor. No es un plazo global del
+programa, de los menús, de las contraseñas ni del visor.
+
+Las importaciones hexadecimal, binaria o de mnemonic y la búsqueda de
+última palabra no se convierten en generación automática ni mezclan
+el material importado con nuevas aportaciones por estas opciones.
+
+El campo `entropy_generation` del contenido privado registra modo solicitado,
+modo ejecutado, método, versiones aplicables y estados de proveedores.
+El contenido TXT incluye una descripción correspondiente. Estos metadatos
+se autentican como parte del reporte cifrado; no prueban independientemente
+el origen, la salud de las fuentes o la imprevisibilidad de la entrada.
+
+La codificación del combinador y sus límites se describen en
+[la especificación experimental del combinador](docs/ENTROPY_COMBINER_V1.md).
+
+Ejemplos con material de laboratorio, desde una TTY y con `PY` preparado:
+
+```bash
+"$PY" bip39_seed_report.py -w 12 -n testnet --entropy-mode redundant
+```
+
+```bash
+"$PY" bip39_seed_report.py -w 12 -n testnet --entropy-mode current
+```
+
+No habilitar `--show-all` ni pasar secretos por argumentos para estas pruebas.
+Preparar los runtimes y dependencias antes de trabajar offline.
+
 
 ## Contraseñas diferentes
 
@@ -251,31 +322,96 @@ El auxiliar test/verificar_export_laboratorio.py permite verificar
 manualmente un export sin imprimir su contenido privado. Requiere una
 terminal interactiva y no forma parte de las suites automáticas.
 
+Antes de ejecutar la batería integrada en una copia nueva, preparar
+los comandos y auxiliares de proveedores y compilar las fuentes Java
+en el classpath configurado de esa copia, según la sección Instalación.
+Instalar solo requirements.txt no completa esa preparación.
+
 Para ejecutar la batería secuencial y registrar entorno, hashes e inventario:
 
 ```bash
 "$PY" test/ejecutar_bateria_local.py
 ```
 
-La batería actual contiene diez etapas. La suite del inspector tiene
-42 métodos y la suite del protocolo del ejecutor contiene 20 métodos.
+La batería integrada planifica 25 etapas. El ensayo local
+`bateria_local_8jy797o3` registró 362 métodos unittest, incluidos
+42 del inspector y 33 del ejecutor, sin fallos ni omisiones y con código 0.
+Las tres primeras etapas utilizan otros procedimientos y no se cuentan
+como métodos unittest. No se suma otra vez la ejecución individual del ejecutor.
 
-El manifiesto actual define 14 archivos protegidos. El inventario 70/70
-corresponde a funciones y métodos del núcleo, no a cobertura completa
-del inspector, del ejecutor ni de todas las ramas.
+El manifiesto de ese ensayo contiene 49 archivos conservados, incluidos
+los dos auxiliares `.cjs` y `test/js/test_webcrypto_provider.cjs`.
+La selección comprende fuentes `.py`, `.java`, `.js`, `.cjs` y `.mjs`,
+además de entradas obligatorias; no todos los documentos, binarios o dependencias.
+El inventario 73/73 corresponde a funciones y métodos del núcleo, no
+a cobertura completa del inspector, del ejecutor ni de todas las ramas.
+El total del manifiesto puede variar en otro árbol; no se impone 49 universalmente.
 
 El ejecutor comprueba los registros de cada proceso, los códigos de
 salida y los resultados unittest. Los fallos, errores y éxitos inesperados
 impiden aprobar la etapa; las suites vacías, omisiones y fallos esperados
 impiden una aprobación completa.
 
-Los resultados automáticos y la verificación manual del hito actual
-se registran por separado en
+El cierre local de la integración original se documenta en
+[Resultados de integración entropy CLI](test/RESULTADOS_ENTROPY_CLI_2026-11-10.md).
+Sus seis ensayos manuales conservan evidencia separada. No se cambia
+el estado manual del resumen automático.
+
+### Comprobación posterior de otra copia
+
+Se copiaron y verificaron 64 archivos seleccionados en un laboratorio
+separado del proyecto de referencia. La instalación en un venv nuevo,
+pip check y las importaciones principales fueron satisfactorios.
+Se recompilaron las dos fuentes Java para esa copia, con código 0.
+No se trasladaron el venv, el build ni los reportes cifrados anteriores.
+
+La batería `proyecto/output/bateria_local_zelv2gy3` terminó con
+25 etapas, 362 métodos unittest, inventario 73/73, 49 entradas del
+manifiesto conservadas y código 0, sin fallos, errores u omisiones.
+La suite individual del ejecutor terminó con 33 métodos y código 0;
+no se suma otra vez al acumulado. Dos ejecuciones de la batería no
+representan 724 métodos distintos.
+
+Antes de los casos manuales, se comprobaron 71 archivos registrados
+del origen sin cambios y sin ausencias. No se declara una comprobación
+posterior a esos manuales ni de todo el sistema. Los 64 archivos copiados,
+las 49 entradas del manifiesto y los 71 archivos del origen son conjuntos
+diferentes.
+
+Se añadieron tres casos manuales, separados de los seis originales:
+
+| Caso | Resultado registrado | Límite del registro |
+|---|---|---|
+| Redundante, 12 palabras, testnet | Cuatro proveedores aceptados y utilizados; generación y verificador con código 0 | No demuestra independencia de fuentes ni imprevisibilidad |
+| Current explícito, 12 palabras, testnet | Solo python_os; los otros tres no intentados; reporte creado y verificador con mensaje OK | No se capturaron códigos separados de generación y verificación |
+| Interactivo, 24 palabras, testnet, passphrase BIP39 vacía | Cuatro proveedores utilizados; verificación satisfactoria e inspector con código 0 | No verifica independientemente todas las direcciones |
+
+El mantenedor confirmó que la ventana temporal del tercer caso se abrió,
+mostró el reporte y se cerró al pulsar Enter. No se declara borrado seguro
+ni repetición de todos los casos de timeout, cancelación o error.
+Los manuales no reescriben manual_terminal_tests del resumen automático.
+
+Los hashes de las clases se registraron después de compilar y antes de
+la batería; no se comunicó una nueva comprobación de clases después de
+todos los ensayos. Las clases no forman parte del manifiesto de 49 archivos.
+La clase Java recompilada no es binariamente idéntica a la histórica;
+no se atribuye una causa concreta ni se declara compilación reproducible.
+
+Esta prueba utilizó runtimes base existentes del mismo equipo y reportes
+nuevos. No acredita instalación completa desde cero, recuperación offline
+de un reporte antiguo trasladado a otro equipo ni soporte nuevo Windows/macOS.
+
+Detalle:
+[Resultados de preparación de otra copia](test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
+
+### Resultados históricos y alcance adicional
+
+Los resultados históricos del endurecimiento del 5 de noviembre permanecen en
 [test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md](test/RESULTADOS_ENDURECIMIENTO_2026-11-05.md).
 
 Los nueve ensayos manuales del menú y la batería anterior se conservan en
 [test/RESULTADOS_INSPECTOR_2026-11-04.md](test/RESULTADOS_INSPECTOR_2026-11-04.md).
-No se atribuyen a esa ejecución anterior los conteos del hito actual.
+No se atribuyen a esas ejecuciones anteriores los conteos de esta integración.
 
 Consulta [test/README.md](test/README.md) para ejecución y alcance, y
 [ANALISIS_COMPATIBILIDAD_SO.md](ANALISIS_COMPATIBILIDAD_SO.md) para los
@@ -334,6 +470,35 @@ Guías detalladas por sistema:
 Consultar el alcance de cada guía: las instrucciones propuestas no
 equivalen a una ejecución registrada en esa plataforma.
 
+### Dependencias adicionales de la generación redundante
+
+Instalar `requirements.txt` no instala Java ni Node.js ni compila las
+fuentes Java. Consultar
+[la preparación de runtimes en Linux](docs/INSTALACION_LINUX.md#preparación-adicional-de-runtimes-para-entropy)
+y el [inventario de runtimes](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
+
+Antes de generar en modo redundante o ejecutar su batería:
+
+- Revisar las rutas efectivas de los módulos de configuración y los
+  ejecutables seleccionados para Python, Java y Node.
+- Disponer de los auxiliares de la misma revisión del proyecto.
+- Compilar las fuentes Java en el classpath configurado de la copia.
+  La configuración ensayada requiere build/entropy_java; no basta con
+  tener javac instalado.
+- Comprobar la configuración antes de introducir material de prueba.
+  Los errores de preparación no garantizan una continuación automática.
+
+La configuración local utiliza Node en una carpeta aislada de usuario;
+esto no equivale a un sandbox. Que `node` o `java` estén en PATH no
+demuestra que sean los ejecutables seleccionados.
+
+Se comprobó un venv nuevo con paquetes reinstalados y Java recompilado
+sobre los runtimes existentes. La instalación completa de esos runtimes
+desde cero y su reproducción en otro equipo siguen sin acreditarse.
+El modo `current` explícito no utiliza Java ni Node para generar;
+no debe confundirse con un respaldo automático del modo redundante.
+Las rutas Linux no se consideran portables por defecto a Windows/macOS.
+
 ### 1. Preparar el entorno virtual
 
 Desde la raíz de una copia local de confianza:
@@ -365,7 +530,10 @@ Si una comprobación falla, revisar el entorno antes de continuar.
 "$PY" -c 'import mnemonic, bip_utils, cryptography; print("Importaciones principales correctas")'
 ```
 
-Mantener el mismo intérprete para generación, inspección y batería.
+Mantener el mismo intérprete para los comandos de generación, inspección
+y batería. Revisar además los comandos de adquisición definidos en los
+módulos de configuración: cambiar PY no reconfigura automáticamente los
+ejecutables de los proveedores.
 
 La variable PY solo selecciona el ejecutable usado por los comandos
 que contienen "$PY". Reasignarla a /usr/bin/python3 no elimina el venv,
@@ -420,6 +588,9 @@ no se proporcionó una entrada.
 
 Opciones generales:
 
+- --entropy-mode: `redundant` por defecto o `current`; solo generación nueva.
+- --entropy-timeout: segundos por proveedor del modo redundante, positivos
+  y finitos; predeterminado 10. No es timeout global.
 - -i/--interactive: lectura interactiva de secretos sin eco en una TTY.
 - -n/--network: mainnet o testnet.
 - -f/--format: contenido interno JSON o texto.
@@ -533,9 +704,11 @@ conservados en los reportes.
 La salida puede revelar material suficiente para controlar fondos.
 No la redirijas a logs ni la compartas.
 
-⚠️ **ADVERTENCIA**: utiliza --show-all exclusivamente con material ficticio
-en pruebas educativas. El programa no está auditado para producción
-y no se recomienda usar con fondos reales.
+Advertencia: utiliza --show-all exclusivamente con material ficticio
+en pruebas educativas. El proyecto permanece educativo y no ha sido auditado
+de forma independiente para custodia o producción. La decisión de uso
+corresponde al usuario. Los resultados y pruebas no constituyen una
+certificación de seguridad para custodiar fondos.
 
 #### 5. Verificar mnemonic existente
 
@@ -877,10 +1050,20 @@ Implementado y probado en los ensayos registrados:
   completar las opciones 2 o 3.
 - Suite del inspector de 42 métodos, incluidos rechazos de duplicados,
   constantes JSON no estándar y tipos incorrectos.
-- Suite del protocolo del ejecutor de 20 métodos, incorporada como
-  décima etapa de la batería.
-- Manifiesto actual de 14 archivos protegidos e inventario del núcleo
-  70/70 alcanzado en las baterías comunicadas el 5 de noviembre de 2026.
+- Hito histórico del 5 de noviembre: suite del ejecutor de 20 métodos,
+  décima etapa, 14 archivos protegidos e inventario del núcleo 70/70.
+- Integración local del 10 de noviembre: generación redundante experimental,
+  `current` explícito y metadatos de adquisición en JSON/TXT.
+- Batería corregida de 25 etapas y 362 métodos, ejecutor de 33, inventario
+  73/73 y 49 archivos conservados, incluidos los tres `.cjs` encontrados.
+- Inventario posterior de runtimes y configuración, separado del
+  entorno.json y del manifiesto originales.
+- Otra copia comprobada con venv nuevo, paquetes Python reinstalados,
+  Java recompilado y runtimes base reutilizados: batería de 25 etapas,
+  362 métodos, 73/73 y 49 entradas conservadas.
+- Tres casos manuales adicionales en testnet, incluida confirmación
+  visual de la ventana temporal; límites y códigos capturados descritos
+  en el informe de la copia.
 - Nueve ensayos manuales del inspector comunicados el 4 de noviembre
   de 2026, separados de la evidencia automática.
 - Lectura acotada de archivos cifrados en el inspector y en el verificador
@@ -888,6 +1071,13 @@ Implementado y probado en los ensayos registrados:
 
 Pendiente:
 
+- Completar y comprobar la instalación de runtimes Java/Node desde cero
+  en otro entorno; conservar el inventario ya realizado y registrar
+  versiones e identidades nuevas para cada instalación distinta.
+- Instalación completa sin reutilizar los runtimes base, auditoría del
+  combinador y ampliación de pruebas de modos degradados, longitudes y flujos.
+- Recuperación offline con un reporte anterior trasladado a otro equipo;
+  la copia ensayada generó y verificó reportes nuevos en el mismo equipo.
 - Durabilidad del directorio y ampliación de pruebas por plataforma
   y sistema de archivos.
 - Perfiles de recuperación, auditoría y laboratorio.
@@ -915,9 +1105,8 @@ criptográfica de una mnemonic.
 
 La ejecución offline no garantiza seguridad del entorno.
 
-El proyecto permanece educativo y no se recomienda con fondos reales.
-La revisión de código y las pruebas registradas no constituyen
-una auditoría independiente para producción.
+El proyecto permanece educativo y no ha sido auditado de forma independiente para custodia o producción.
+La decisión de uso corresponde al usuario. El proyecto no presenta sus resultados ni sus pruebas como una certificación de seguridad para custodiar fondos.
 
 ## Licencia
 
@@ -934,7 +1123,9 @@ de material externo, los avisos conservados y las verificaciones de
 procedencia que todavía están pendientes.
 
 La licencia no constituye una auditoría ni una garantía de seguridad.
-El proyecto sigue siendo educativo y no se recomienda con fondos reales.
+El proyecto permanece educativo y no ha sido auditado de forma independiente
+para custodia o producción. La decisión de uso corresponde al usuario;
+la licencia no certifica seguridad para custodiar fondos.
 
 Consulta [LICENSE](LICENSE).
 

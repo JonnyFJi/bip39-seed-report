@@ -23,6 +23,50 @@ El reporte privado debe tratarse como secreto, incluso cifrado.
 No publicar esos datos en issues, pull requests, capturas o logs.
 No adjuntar exports privados para comunicar un fallo.
 
+## Generación automática y proveedores experimentales
+
+La CLI utiliza generación redundante experimental por defecto. Selecciona
+aportaciones de `python_os`, `java_secure_random`, `javascript_webcrypto`
+y `python_secrets` según la política implementada. `current` solicita
+expresamente `os.urandom()` sin intentar los otros proveedores.
+
+La redundancia de interfaces no prueba independencia: pueden compartir
+fuentes del sistema operativo. El combinador `sha512-framed` no cuenta
+con auditoría criptográfica independiente ni acredita un incremento
+cuantificado de seguridad. No corrige un sistema comprometido.
+
+El modo ejecutado puede diferir del solicitado. El reporte registra
+redundancia, reducción o respaldo según corresponda. El respaldo automático
+reutiliza una aportación aceptada de `python_os`; no debe confundirse con
+`current` ni anunciarse como una nueva adquisición independiente.
+Una preparación inválida o una combinación inadmisible puede detener la operación.
+
+`entropy_generation` está dentro del contenido privado cifrado. Su
+autenticación protege contra alteración no autorizada del reporte bajo
+las condiciones del contenedor; no verifica de forma externa el origen,
+la salud ni la imprevisibilidad de los bytes declarados.
+
+Los subprocesos y runtimes amplían los componentes que deben protegerse.
+El manifiesto de fuentes no certifica los binarios de Python, Java o Node,
+sus bibliotecas ni toda la cadena de suministro. Un runtime aislado en
+una carpeta de usuario no es un sandbox de seguridad.
+
+El inventario de versiones, rutas y hashes identifica componentes observados;
+no certifica su procedencia ni que estén libres de modificaciones maliciosas.
+Instalar paquetes en un venv nuevo no reinstala ni verifica por sí solo
+el intérprete base, Java, Node o el sistema operativo.
+
+La recompilación Java de la copia ensayada es un registro distinto del
+inventario de la clase histórica. No demuestra identidad binaria ni
+compilación reproducible. Las clases compiladas no forman parte del
+manifiesto de 49 archivos de esas baterías; sus hashes registrados
+antes de la batería no se presentan como una comprobación posterior
+a todos los ensayos.
+
+El timeout de entropy es por proveedor, no un timeout global. No limita
+las lecturas de contraseñas ni el tiempo de revisión en el visor.
+
+
 ## Controles del contenedor
 
 El formato versión 1 comprueba estructura, tipos, claves JSON duplicadas,
@@ -136,8 +180,49 @@ de códigos de proceso, inventario y conservación de archivos protegidos.
 Un código 0 no certifica el equipo ni todas las rutas de ejecución.
 El inventario de funciones no es cobertura completa de ramas.
 
-La evidencia manual se registra por separado. No se cambia el estado
-manual de un resumen automático para aparentar una aprobación integrada.
+La batería corregida de la integración original,
+output/bateria_local_8jy797o3, registró 25 etapas, 362 métodos unittest,
+inventario 73/73 y 49 archivos conservados, con código 0.
+La comprobación posterior de otra copia,
+proyecto/output/bateria_local_zelv2gy3, registró los mismos conteos
+y código 0. Son resultados de dos ejecuciones locales, no garantías
+para otros equipos ni 724 métodos distintos.
+
+Los 33 métodos de la suite individual del ejecutor ya están incluidos
+en el acumulado de 362 de la batería; no se suman otra vez.
+
+La copia posterior utilizó un venv nuevo, paquetes Python instalados
+de nuevo y fuentes Java recompiladas sobre runtimes base existentes
+del mismo equipo. No acredita instalación completa desde cero,
+recuperación offline de un reporte antiguo trasladado a otro equipo
+ni soporte nuevo Windows/macOS.
+
+El ejecutor conserva un timeout por etapa, no global,
+y su captura stdout mediante PIPE no tiene un límite previo equivalente
+al límite del registro JSON del worker.
+
+El manifiesto selecciona fuentes y archivos obligatorios, no todo el árbol.
+La comparación antes/después no demuestra ausencia de cambios transitorios
+ni valida por sí sola la procedencia de los bytes.
+
+La comprobación de archivos del origen del laboratorio se realizó antes
+de los casos manuales. No se presenta como una verificación posterior
+a esos casos ni de todos los archivos del sistema.
+
+La evidencia manual se registra por separado. Los tres casos posteriores
+de la copia no sustituyen los seis manuales originales ni las pruebas
+históricas del inspector. La confirmación visual de apertura, presentación
+y cierre de una ventana no demuestra borrado seguro ni verificación
+independiente de todas las derivaciones.
+
+No se cambia el estado manual de un resumen automático para aparentar
+una aprobación integrada.
+
+Detalle de resultados y límites:
+
+- [Integración entropy CLI](test/RESULTADOS_ENTROPY_CLI_2026-11-10.md).
+- [Preparación de otra copia](test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
+- [Inventario de runtimes Linux](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
 
 ## Comunicación de problemas
 

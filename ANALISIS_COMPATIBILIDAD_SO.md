@@ -1,9 +1,180 @@
 # Compatibilidad esperada y comprobaciones por entorno
 
+## Actualización Linux local — 10 de noviembre de 2026
+
+Núcleo ensayado: `b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6`. No se atribuye un commit remoto a este registro.
+La evidencia de esta primera ejecución es `output/bateria_local_8jy797o3`
+y su `entorno.json`, registrado el 10 de noviembre de 2026 a las
+19:11:17 UTC. Los datos de esta subsección corresponden al entorno
+original; la preparación posterior de otra copia se registra por separado.
+
+| Campo | Valor observado |
+|---|---|
+| Sistema | Linux Mint 21.3 Virginia |
+| Arquitectura | x86_64 |
+| Kernel | 5.15.0-203-generic |
+| Intérprete | CPython 3.10.12 |
+| Dependencias directas | mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 |
+| pip | 26.3 |
+| Entorno indicado en los comandos | `.venv-regresion-entropy-cli` |
+| Batería | 25 etapas, 362 métodos unittest, código 0 |
+| Inventario y manifiesto | 73/73; 49 archivos y conjunto conservados |
+
+El `entorno.json` de esta batería no registra versiones ni hashes de
+Java/Node. El inventario posterior de runtimes, documentado más abajo,
+aporta referencias separadas; no se deducen del nombre de las carpetas
+ni se incorporan retrospectivamente a ese JSON. Instalar solo
+`requirements.txt` no prepara todos los proveedores del modo redundante.
+
+La CLI utiliza generación redundante experimental por defecto y `current`
+explícito mediante `os.urandom()`. Python, Java y Node pueden tener rutas
+fijadas en módulos de configuración: `PATH` y `JAVA_HOME` no demuestran
+por sí solos qué ejecutable se utiliza. Node se configura en una carpeta
+aislada de usuario; esto no equivale a un sandbox.
+
+La suite del ejecutor tiene 33 métodos. Los 362 métodos ya la incluyen;
+no se suman otra vez los ensayos individuales. Los seis ensayos manuales
+de la integración original se conservan aparte. Esta primera batería no
+acredita una nueva prueba de ventana GNOME ni instalación desde cero.
+La preparación posterior de otra copia y su prueba visual se describen
+en la subsección correspondiente; no se comunica una ejecución Windows/macOS.
+
+El nuevo kernel identifica este ensayo, no reemplaza los kernels históricos
+ni certifica mantenimiento o seguridad. Windows y macOS permanecen fuera
+del alcance activo. Detalle: [Resultados de integración entropy CLI](test/RESULTADOS_ENTROPY_CLI_2026-11-10.md).
+
+### Inventario posterior de runtimes
+
+El diagnóstico posterior registró Python 3.10.12, OpenJDK 11.0.33,
+javac 11.0.33 y Node v24.22.2. Las cuatro consultas terminaron con
+código 0, la configuración completa pudo construirse y la clase Java
+estaba presente.
+
+Seis fuentes y configuraciones conservan los hashes del manifiesto
+de la batería. Los binarios y la clase se identifican en este registro
+posterior; no se incorporan retrospectivamente al manifiesto anterior.
+
+Detalle:
+[Inventario de runtimes Linux](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
+
+Este inventario no instaló runtimes ni recompiló la clase Java existente.
+La recompilación posterior pertenece al ensayo de otra copia descrito
+a continuación. El `entorno.json` de la batería original conserva su
+contenido y no se reescribe.
+
+### Preparación y comprobación de otra copia — 10 de noviembre de 2026
+
+Después de la batería y del inventario anteriores, se preparó el laboratorio
+`laboratorio_entropy_3VPhWzUX`, fuera del proyecto de referencia. Dentro del
+laboratorio, `proyecto/` contiene la copia ejecutada y `evidencia/` conserva
+los registros de preparación, al mismo nivel que `proyecto/`.
+
+El núcleo conserva SHA-256
+`b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6`.
+No se atribuye un commit remoto a esta ejecución local.
+
+#### Preparación y entorno de la copia
+
+- 64 archivos seleccionados copiados y verificados; código de preparación 0.
+- No se trasladaron el venv, el directorio build ni los reportes cifrados anteriores.
+- Venv nuevo `.venv-instalacion-limpia`, con ejecutable y prefijo dentro de la copia.
+- Instalación desde `requirements.txt` con código 0, `pip check` satisfactorio
+  e importaciones principales correctas.
+- `crcmod` y `ed25519-blake2b` se instalaron mediante `setup.py install`,
+  con resultado satisfactorio; no fue una instalación exclusivamente desde wheels.
+
+| Campo | Valor registrado en la copia |
+|---|---|
+| Fecha UTC de entorno.json | 2026-11-10T21:18:44.892700+00:00 |
+| Sistema y arquitectura | Linux Mint 21.3 Virginia, x86_64 |
+| Kernel | 5.15.0-203-generic |
+| Intérprete | CPython 3.10.12, GCC 11.4.0 |
+| Dependencias directas | mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 |
+| pip | 22.0.2 |
+| Entorno indicado en los comandos | `.venv-instalacion-limpia` |
+
+La batería original usó pip 26.3; la copia nueva usó pip 22.0.2.
+Se conserva la diferencia, sin actualizar ni igualar retrospectivamente los entornos.
+Las versiones son datos del ensayo, no recomendaciones universales.
+
+#### Java recompilado y comandos de proveedor
+
+Las consultas de terminal registraron OpenJDK 11.0.33, javac 11.0.33 y
+Node v24.22.2. Son datos separados: no aparecen como campos del `entorno.json`.
+
+Se compilaron las dos fuentes Java con `-encoding UTF-8 --release 11`
+y destino `build/entropy_java`, dentro de la copia. La compilación terminó
+con código 0. Los hashes se registraron después de compilar, antes de la batería:
+
+| Clase | Bytes comunicados | SHA-256 registrado |
+|---|---:|---|
+| JavaEntropyProbe.class | 3317 | 46f002e8228d7cd3865f9b405a1ad1ba94a4b84ddadddc83d0f480d8cc88bc0f |
+| JavaEntropyProvider.class | 3357 | ac5f2d5e227886c7b09aa262beada337f9cda2b581d64e8166276cbd60abe27e |
+
+La clase histórica `JavaEntropyProvider.class` tenía 2999 bytes y SHA-256
+`714288785a6afa16da5efba45594a3c7eabfb9e616fa00e3c305a4fa5410cddb`.
+No hay identidad binaria entre ambas. No se atribuye una causa concreta a
+la diferencia ni se declara compilación reproducible byte a byte.
+No se comunicó un segundo hash de clases después de todos los ensayos.
+
+Los comandos configurados seleccionaron el Python y los auxiliares de la
+copia, además de su classpath Java. Los ejecutables base de Java y Node
+fueron los existentes del entorno inventariado, no instalaciones nuevas.
+
+#### Batería automática y conservación del origen
+
+La suite individual del ejecutor terminó con 33 métodos, `OK` y código 0.
+La batería `proyecto/output/bateria_local_zelv2gy3` registró:
+
+- 25 etapas satisfactorias y 362 métodos unittest acumulados.
+- Cero fallos, errores, omisiones, fallos esperados, éxitos inesperados
+  o errores de registro; ninguna etapa incompleta.
+- Inventario del núcleo 73/73 y código final 0.
+- 49 nombres y hashes idénticos en los manifiestos anterior y posterior.
+
+Los 33 métodos individuales no se suman otra vez a 362. Las primeras tres
+etapas no se cuentan como métodos unittest. Las clases `.class` no forman
+parte del manifiesto de 49 archivos; sus hashes se registraron por separado.
+
+Antes de los casos manuales, la comprobación del origen terminó con código 0:
+71 archivos registrados sin cambios y ninguna ausencia. No acredita una
+comprobación posterior a los casos manuales ni conservación de todo el sistema.
+Los 64 archivos copiados, las 49 entradas del manifiesto y los 71 archivos
+comprobados del origen corresponden a conjuntos diferentes.
+
+#### Tres casos manuales nuevos
+
+| Caso | Resultado comunicado | Límite del registro |
+|---|---|---|
+| Redundante, 12 palabras, testnet | Cuatro proveedores aceptados y utilizados; generación y verificador con código 0 | No prueba independencia de fuentes ni imprevisibilidad |
+| Current explícito, 12 palabras, testnet | Solo python_os; los otros tres no intentados; reporte creado y verificador con mensaje OK | No se capturaron códigos separados de generación y verificación |
+| Interactivo, 24 palabras, testnet, passphrase BIP39 vacía | Cuatro proveedores utilizados; opción 1 del inspector satisfactoria, opción 2 finalizada e inspector con código 0 | No verifica independientemente todas las direcciones |
+
+El mantenedor confirmó visualmente que la ventana temporal del tercer caso
+se abrió, mostró el reporte y se cerró al pulsar Enter. No demuestra borrado seguro.
+No se declara repetición de la espera de timeout ni de todos los casos del menú.
+
+La verificación JSON comprobó autenticación, BIP39, seed con passphrase vacía
+y estructura. Los tres casos no sustituyen los seis manuales anteriores ni
+cambian el estado `manual_terminal_tests` del resumen automático.
+
+#### Alcance del cierre
+
+Se comprobó una copia nueva con paquetes Python instalados de nuevo y
+fuentes Java recompiladas sobre los runtimes existentes del mismo equipo.
+No constituye reinstalación de Python base, Java, Node o sistema operativo,
+recuperación sin red ni recuperación de un reporte antiguo trasladado a otro equipo.
+No se declara soporte nuevo Windows/macOS ni auditoría independiente.
+
+Detalle:
+[Resultados de preparación de otra copia](test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
+
 ## Referencia del análisis
 
 - Creación del documento: 10 de agosto de 2026.
-- Actualización documental a 5 de noviembre de 2026.
+- Base histórica actualizada a 5 de noviembre de 2026; se añaden los registros
+  locales de integración, inventario y preparación de otra copia del
+  10 de noviembre de 2026 sin reinterpretar los anteriores.
 - Archivo analizado: bip39_seed_report.py.
 - Repositorio: JonnyFJi/bip39-seed-report.
 - Commit de referencia:
@@ -57,7 +228,7 @@ observados.
 Este análisis no certifica todas las versiones de Python, sistemas
 operativos, arquitecturas, terminales o dependencias.
 
-## Alcance activo e identidad del parche UX
+## Alcance e identidad del parche UX histórico
 
 El desarrollo y la verificación activa de esta etapa se realizan en Linux.
 La referencia comprobada es Linux Mint 21.3 Virginia, x86_64, kernel
@@ -106,6 +277,9 @@ el cifrado, los permisos ni la escritura de archivos.
 | bip-utils | Seed y derivaciones | Versión instalada y resultados de referencia |
 | cryptography | AES-256-GCM | Importación y ensayos de cifrado/autenticación |
 | hashlib.scrypt | KDF del export | Disponibilidad y ejecución del perfil configurado |
+| Java | Proveedor java_secure_random del modo redundante | Ejecutable configurado, classpath y clase compilada desde las fuentes seleccionadas |
+| Node.js | Proveedor javascript_webcrypto del modo redundante | Ejecutable configurado y auxiliar WebCrypto de la revisión elegida |
+| Configuración de proveedores | Selección de comandos Python, Java y Node | Rutas efectivas, archivos requeridos y estados de adquisición; no basta con PATH |
 | Terminal | Lectura oculta y decisiones | TTY, ausencia de eco, cancelación y timeout |
 | Sistema de archivos | Temporales, publicación sin reemplazo y permisos | Enlaces duros, colisiones y comportamiento en el destino real |
 
@@ -137,6 +311,8 @@ universal ni una instalación reproducible con hashes.
 | Linux local, inspector, 04/11/2026 — automático | .venv-verificacion; detalles en entorno.json local | 32 métodos del inspector; nueve etapas; 70/70; 13 archivos protegidos | Satisfactorio para los casos registrados; núcleo b09fcc4f… |
 | Linux local, inspector, 04/11/2026 — manual | /usr/bin/python3; GNOME Terminal | Nueve casos del menú; cierre de ventana y timeout confirmados | Satisfactorio para los flujos descritos; no equivale al entorno del venv |
 | Linux local, endurecimiento, 05/11/2026 | Python 3.10.12; pip 22.0.2; venv; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3 | Inspector de 42 métodos; suite del ejecutor de 20; dos baterías de diez etapas; 70/70; manifiesto de 14 archivos | Satisfactorio para los casos comunicados; ver registro del 5 de noviembre |
+| Linux Mint 21.3 x86_64, 10/11/2026 — entropy CLI | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 26.3; kernel 5.15.0-203-generic | 25 etapas; 362 métodos; 73/73; 49 archivos conservados | Satisfactorio para los casos registrados; núcleo b29675e5…; seis ensayos manuales separados |
+| Linux Mint 21.3 x86_64, 10/11/2026 — otra copia | CPython 3.10.12; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 22.0.2; kernel 5.15.0-203-generic | Venv nuevo, instalación y Java recompilado; 25 etapas, 362 métodos, 73/73 y 49 entradas conservadas; tres casos manuales separados | Satisfactorio para los casos registrados; núcleo b29675e5…; runtimes base reutilizados |
 | Windows 10 Home x64, 10.0.19045, compilación registrada 19045 | Python 3.10.11; mnemonic 0.21; bip-utils 2.9.3; cryptography 44.0.3; pip 23.0.1 | Vectores BIP39, cifrado, entrada segura, contenedor, escritura y verificación manual de exports | Satisfactorio para los casos ejecutados; escritura: 10 aprobados y 5 omitidos; ver detalle Windows. Revisión actual diferida; fuera del alcance activo |
 | macOS | Sin combinación registrada | Sin ejecución comunicada | Compatibilidad por comprobar. Revisión actual diferida; fuera del alcance activo |
 | BSD u otros | Sin combinación registrada | Sin ejecución comunicada | No establecido |
@@ -187,8 +363,9 @@ Las baterías bateria_local_l3fhi573 y bateria_local_s6olai6g terminaron
 con diez etapas OK, inventario del núcleo 70/70, archivos protegidos
 sin cambios y código final 0.
 
-El manifiesto actual define 14 archivos. No incluye el propio ejecutor
-ni toda la documentación.
+El manifiesto de ese hito histórico define 14 archivos. No incluye el
+propio ejecutor ni toda la documentación; no describe el manifiesto de
+49 entradas de la integración posterior.
 
 ### Evidencia manual separada
 
@@ -635,8 +812,10 @@ utilizar una terminal elevada para estas instrucciones.
 
 ### os.urandom()
 
-El script solicita bytes mediante os.urandom(). La implementación
-concreta depende de Python y del sistema operativo.
+La primitiva conservada y `current` solicitan bytes mediante `os.urandom()`.
+La implementación concreta depende de Python y del sistema operativo.
+El flujo CLI predeterminado incorpora ahora la política redundante
+experimental y sus runtimes, según el registro local del 10 de noviembre.
 
 Este documento no atribuye una API interna únicamente a partir del
 nombre o versión del sistema. Tampoco certifica la salud del generador,
@@ -695,6 +874,15 @@ a esa condición Windows no ejecutada.
 - Memoria suficiente para la KDF.
 - Carpeta de destino accesible para crear temporales y el archivo final.
 - Terminal compatible cuando se solicitan secretos.
+- Para generación redundante: configuración y auxiliares de proveedores,
+  además de los runtimes y la clase Java en las rutas requeridas.
+- Para el modo `current`: distinguir sus requisitos de los del modo redundante;
+  Java y Node no se intentan para esa generación.
+
+Estos requisitos adicionales de adquisición no deben trasladarse sin distinción
+a la inspección de un reporte ya cifrado. La configuración completa puede
+fallar antes de adquirir aportaciones si falta la clase Java; no se promete
+respaldo automático para cualquier error de preparación.
 
 No se declara todavía un mínimo universal de Python. py_compile,
 importación y suites deben ejecutarse con el intérprete objetivo.
@@ -759,6 +947,14 @@ distintos en Unix y Windows; ambos necesitan pruebas reales por entorno.
 
 ### Linux
 
+Antes de ejecutar la batería del modo redundante en una copia nueva,
+comprobar los módulos de configuración, los ejecutables seleccionados y
+compilar las fuentes Java en el classpath de esa copia. Instalar solo
+`requirements.txt` no completa esa preparación. No sobrescribir clases
+ni entornos históricos para seguir este protocolo. Consultar la
+[guía Linux](docs/INSTALACION_LINUX.md) y el
+[inventario de runtimes](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
+
 Desde la raíz, con el intérprete del entorno preparado:
 
 ```bash
@@ -787,7 +983,12 @@ intérprete durante las comprobaciones.
 La invocación con PYTHONPATH está comprobada en el entorno Linux
 comunicado. No debe generalizarse como prueba realizada en macOS.
 
-### Windows PowerShell
+### Windows PowerShell: protocolo histórico y revisión actual diferida
+
+El protocolo siguiente conserva las comprobaciones históricas del núcleo;
+no acredita la integración redundante actual en Windows. Las rutas Java/Node
+de la configuración Linux no se consideran portables por defecto. Las
+suites históricas y las omisiones no se convierten en resultados del núcleo nuevo.
 
 Desde la raíz, con $PY definido como arriba, ejecutar por separado:
 
@@ -856,15 +1057,21 @@ Registrar:
 - Distribución y versión del sistema.
 - Arquitectura.
 - Python e implementación.
-- Versiones de mnemonic, bip-utils y cryptography.
+- Versiones de mnemonic, bip-utils, cryptography y pip.
+- Para generación redundante: versiones consultadas de Java/Node, comandos
+  de proveedor, auxiliares, classpath y compilación Java cuando corresponda.
+- Modo de entropy solicitado y ejecutado, proveedores usados y estados;
+  no registrar los bytes de entropy ni otros secretos.
+- Distinguir runtimes reutilizados, paquetes reinstalados y clases recompiladas.
 - Terminal utilizada.
 - Suites y flujos ejecutados.
 - Fallos y limitaciones observadas.
 
-Comando para registrar Python y paquetes, usando el intérprete probado:
+Ejemplo Bash para registrar Python y paquetes, con `PY` definido previamente
+como la ruta del intérprete probado:
 
 ```bash
-python -c 'import sys, platform; from importlib.metadata import version; print("Python:", sys.version); print("Implementación:", platform.python_implementation()); print("Arquitectura:", platform.machine()); print("Sistema:", platform.system(), platform.release()); print("Paquetes:", {n: version(n) for n in ("mnemonic", "bip-utils", "cryptography")})'
+"$PY" -c 'import sys, platform; from importlib.metadata import version; print("Python:", sys.version); print("Implementación:", platform.python_implementation()); print("Arquitectura:", platform.machine()); print("Sistema:", platform.system(), platform.release()); print("Paquetes:", {n: version(n) for n in ("mnemonic", "bip-utils", "cryptography", "pip")})'
 ```
 
 La versión del kernel no sustituye la distribución. En Linux, registrar
@@ -881,10 +1088,17 @@ Existen resultados satisfactorios en las combinaciones Linux comunicadas
 y en Windows 10 Home x64, 10.0.19045, con Python 3.10.11 y las dependencias
 descritas. No hay una matriz universal de soporte.
 
-El cierre activo corresponde a Linux y al hash 1f92a16c…: dos baterías
-satisfactorias con entorno identificado y evidencia manual separada.
-Windows/macOS no bloquean este hito y no se dan por aprobados para esa versión.
-El inventario 70/70 no elimina límites de cobertura o seguridad del host.
+El cierre local más reciente corresponde a otra copia Linux con núcleo
+b29675e5…, venv nuevo, dependencias instaladas de nuevo y Java recompilado:
+25 etapas, 362 métodos, inventario 73/73 y 49 entradas conservadas.
+Los tres casos manuales nuevos y la confirmación visual de la ventana
+se registran aparte. Se reutilizaron los runtimes base del mismo equipo;
+no se declara instalación completa desde cero ni recuperación offline.
+
+El registro UX de dos baterías con núcleo 1f92a16c… y 70/70 permanece
+como evidencia histórica de otra revisión. Windows/macOS no se aprueban
+para el núcleo actual. Ningún inventario elimina límites de cobertura
+o de seguridad del host.
 
 El ensayo Linux comunicado el 23 de octubre de 2026 incorpora
 la regresión del runner y última palabra: ocho métodos correctos,

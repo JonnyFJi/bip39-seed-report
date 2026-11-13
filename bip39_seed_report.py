@@ -721,6 +721,63 @@ def generate_entropy(words):
         raise ValueError("BIP39 solo admite 12, 15, 18, 21 o 24 palabras.")
     return os.urandom({12: 16, 15: 20, 18: 24, 21: 28, 24: 32}[words])
 
+def parse_entropy_timeout(value):
+    try:
+        timeout = float(value)
+
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError(
+            "El timeout debe ser numerico."
+        ) from None
+
+    if (
+        not math.isfinite(timeout)
+        or timeout <= 0
+    ):
+        raise argparse.ArgumentTypeError(
+            "El timeout debe ser positivo y finito."
+        )
+
+    return timeout
+
+
+def generate_automatic_entropy(args):
+    from entropy_cli_support import (
+        generate_for_report,
+    )
+
+    entropy, metadata = generate_for_report(
+        args.words,
+        mode=getattr(
+            args,
+            "entropy_mode",
+            "current",
+        ),
+        timeout_seconds=getattr(
+            args,
+            "entropy_timeout",
+            10.0,
+        ),
+        current_generator=generate_entropy,
+    )
+
+    args._entropy_generation_metadata = metadata
+
+    return entropy
+
+
+def entropy_generation_lines(data):
+    info = data.get("entropy_generation")
+
+    if not info:
+        return []
+
+    from entropy_cli_support import (
+        format_generation_metadata,
+    )
+
+    return format_generation_metadata(info)
+
 
 def entropy_to_mnemonic(entropy):
     return Mnemonic("english").to_mnemonic(entropy)
@@ -1445,6 +1502,8 @@ def analizar_indicadores_mnemonic(mnemonic):
     }
 
 def resolve_input(args, interactive=False):
+    args._entropy_generation_metadata = None
+
     if interactive:
         has_words = args.words is not None
         has_entropy_bin = bool(args.entropy_bin)
@@ -1608,7 +1667,7 @@ def resolve_input(args, interactive=False):
         recovered = mnemonic_to_entropy(mnemonic)
         return recovered["entropy"], mnemonic, recovered, "mnemonic_incomplete"
 
-    entropy = generate_entropy(args.words)
+    entropy = generate_automatic_entropy(args)
     mnemonic = entropy_to_mnemonic(entropy)
 
     recovered = {
@@ -1661,6 +1720,18 @@ def build_context(args, interactive=False):
         "gap_limit": GAP_LIMIT,
     }
 
+    metadata = getattr(
+        args,
+        "_entropy_generation_metadata",
+        None,
+    )
+
+    if (
+        input_mode == "words"
+        and metadata is not None
+    ):
+        context["entropy_generation"] = metadata
+
     indicadores = analizar_indicadores_mnemonic(mnemonic)
     context["indicadores_mnemonic"] = indicadores
 
@@ -1677,7 +1748,22 @@ def build_report_notices(data):
         "No se puede certificar que el usuario haya copiado correctamente la mnemonic o la passphrase.",
     ]
     if input_mode == "words":
-        input_notices.append("La generación utiliza os.urandom y depende del sistema operativo.")
+        info = data.get("entropy_generation")
+
+        if info:
+            from entropy_cli_support import (
+                generation_notices,
+            )
+
+            input_notices.extend(
+                generation_notices(info)
+            )
+
+        else:
+            input_notices.append(
+                "La generación utiliza os.urandom "
+                "y depende del sistema operativo."
+            )
     elif input_mode in {"entropy_hex", "entropy_bin", "mnemonic", "mnemonic_incomplete"}:
         input_notices.append("El origen y la imprevisibilidad del material importado no quedan certificados.")
     if input_mode == "mnemonic_incomplete":
@@ -1726,6 +1812,9 @@ def format_terminal_summary(data):
         "Mnemonic: oculta",
         f"Passphrase BIP39: {phrase_status}",
     ]
+    lines.extend(
+        entropy_generation_lines(data)
+    )
     if "passphrase_audit" in data:
         lines.append("Auditoría de passphrase: incluida en el reporte")
     lines.extend(["", "Vista de terminal: primera dirección de cada ruta, índice 0"])
@@ -1791,6 +1880,10 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
         f"Input mode      : {data['input_mode']}",
         f"Network         : {data['network']}",
     ]
+
+    lines.extend(
+        entropy_generation_lines(data)
+    )
 
     if not hide_sensitive or not terminal_mode:
         lines.extend([
@@ -2090,6 +2183,31 @@ def main():
     )
     parser.add_argument("-w", "--words", type=int, choices=[12, 15, 18, 21, 24], default=None,
                         help="Genera una mnemonic nueva con el número de palabras indicado.")
+    parser.add_argument(
+        "--entropy-mode",
+        choices=[
+            "redundant",
+            "current",
+        ],
+        default="redundant",
+        help=(
+            "Modo de generacion automatica "
+            "(preferido: redundant, experimental). "
+            "No modifica entropy ni mnemonics importadas."
+        ),
+    )
+
+    parser.add_argument(
+        "--entropy-timeout",
+        type=parse_entropy_timeout,
+        default=10.0,
+        metavar="SEGUNDOS",
+        help=(
+            "Tiempo de espera por proveedor del "
+            "modo redundante "
+            "(predeterminado: 10)."
+        ),
+    )
     parser.add_argument(
         "--entropy-bin",
         default="",
