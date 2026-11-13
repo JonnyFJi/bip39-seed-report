@@ -21,7 +21,7 @@ import unittest
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "bip39_seed_report.py"
-EXPECTED_SHA256 = "b09fcc4f292283b8d5e6f4470dc3858a079b209b1c3ccb579be27cdec51b5174"
+EXPECTED_SHA256 = "b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6"
 STAGES = [
     ("01_vectores", "bip39_seed_report.py", ["--run-tests", "--vectors-file", "test/vectors.json"]),
     ("02_cifrado", "test/test_cifrado_report.py", []),
@@ -34,6 +34,39 @@ STAGES = [
     ("09_inspector", "test/test_inspeccionar_reporte_cifrado.py", []),
     ("10_ejecutor", "test/test_ejecutar_bateria_local.py", []),
 ]
+
+
+ENTROPY_TEST_FILES = ('test/test_entropy_cli_integration.py', 'test/test_entropy_combiner.py', 'test/test_entropy_coordinator.py', 'test/test_entropy_generation.py', 'test/test_entropy_generation_bip39.py', 'test/test_entropy_integration.py', 'test/test_entropy_java_inspection.py', 'test/test_entropy_java_provider.py', 'test/test_entropy_node_inspection.py', 'test/test_entropy_node_selection.py', 'test/test_entropy_policy.py', 'test/test_entropy_process_runner.py', 'test/test_entropy_python_helpers.py', 'test/test_entropy_python_real.py', 'test/test_entropy_webcrypto_provider.py')
+
+STAGES.extend(
+    (f"{number:02d}_" + Path(relative).stem.removeprefix("test_"), relative, [])
+    for number, relative in enumerate(ENTROPY_TEST_FILES, start=11)
+)
+
+PROTECTED_FILES = (
+    "bip39_seed_report.py",
+    "bip39_seed_report.py.sha256",
+    "requirements.txt",
+    "test/vectors.json",
+    "inspeccionar_reporte_cifrado.py",
+    "test/ejecutar_bateria_local.py",
+    "test/test_ejecutar_bateria_local.py",
+    "test/README.md",
+    "entropy_cli_support.py",
+    "entropy_helpers/node_entropy_probe.cjs",
+    "entropy_helpers/webcrypto_provider.cjs",
+)
+
+SOURCE_SUFFIXES = frozenset({
+    ".py",
+    ".java",
+    ".js",
+    ".cjs",
+    ".mjs",
+})
+EXCLUDED_SOURCE_DIRS = frozenset({
+    "output", "backups", "node_modules", "__pycache__", "venv", "env",
+})
 
 
 NON_UNITTEST_STAGES = frozenset({"01_vectores", "02_cifrado", "03_entrada"})
@@ -183,22 +216,89 @@ def worker():
     return code
 
 
+
+class ConfigurationError(ValueError):
+    pass
+
+
+def validate_configuration(stages=None, non_unittest=None):
+    stages = STAGES if stages is None else stages
+    non_unittest = NON_UNITTEST_STAGES if non_unittest is None else non_unittest
+    labels, targets = set(), set()
+    if not stages:
+        raise ConfigurationError("La lista de etapas esta vacia.")
+    for item in stages:
+        if type(item) not in (tuple, list) or len(item) != 3:
+            raise ConfigurationError("Etapa no admitida.")
+        label, relative, arguments = item
+        if type(label) is not str or not label or label in labels:
+            raise ConfigurationError("Etiqueta vacia o duplicada.")
+        if type(relative) is not str:
+            raise ConfigurationError("Objetivo no admitido.")
+        path = Path(relative)
+        if (not relative or path.is_absolute() or ".." in path.parts
+                or path.as_posix() != relative or path.suffix != ".py"
+                or relative in targets):
+            raise ConfigurationError("Objetivo inseguro o duplicado.")
+        if type(arguments) is not list or any(type(arg) is not str for arg in arguments):
+            raise ConfigurationError("Argumentos no admitidos.")
+        labels.add(label)
+        targets.add(relative)
+    if not set(non_unittest).issubset(labels):
+        raise ConfigurationError("Etapa no unittest desconocida.")
+    if not set(ENTROPY_TEST_FILES).issubset(targets):
+        raise ConfigurationError("Faltan etapas de entropy registradas.")
+    if any(label in non_unittest for label, target, _ in stages
+           if target in ENTROPY_TEST_FILES):
+        raise ConfigurationError("Las etapas de entropy deben registrar unittest.")
+
+
+def collect_protected_files(root):
+    validate_configuration()
+    expected_tests = {Path(name).name for name in ENTROPY_TEST_FILES}
+    observed_tests = {path.name for path in (root / "test").glob("test_entropy_*.py")}
+    if observed_tests != expected_tests:
+        missing = sorted(expected_tests - observed_tests)
+        extra = sorted(observed_tests - expected_tests)
+        raise ConfigurationError(
+            "Inventario de suites entropy distinto. Faltan: "
+            + repr(missing) + "; no registradas: " + repr(extra)
+        )
+    names = set(PROTECTED_FILES)
+    names.update(relative for _, relative, _ in STAGES)
+    for current, directories, files in os.walk(root, followlinks=False):
+        selected = []
+        for name in sorted(directories):
+            if name.startswith(".") or name in EXCLUDED_SOURCE_DIRS:
+                continue
+            child = Path(current) / name
+            if child.is_symlink():
+                raise ConfigurationError("Directorio enlazado en el arbol de fuentes.")
+            selected.append(name)
+        directories[:] = selected
+        for name in sorted(files):
+            path = Path(current) / name
+            if path.suffix in SOURCE_SUFFIXES:
+                names.add(path.relative_to(root).as_posix())
+    paths = []
+    for name in sorted(names):
+        path = root / name
+        if path.is_symlink() or not path.is_file():
+            raise ConfigurationError("Falta archivo regular protegido: " + name)
+        paths.append(path)
+    return paths
+
+
 def main():
     if len(sys.argv) > 1:
         if sys.argv[1] == "--worker":
             return worker()
         print("Uso: python test/ejecutar_bateria_local.py (sin opciones)", file=sys.stderr)
         return 3
-    required = [ROOT / relative for _, relative, _ in STAGES]
-    required.extend([
-        ROOT / "requirements.txt",
-        ROOT / "bip39_seed_report.py.sha256",
-        ROOT / "test/vectors.json",
-        ROOT / "inspeccionar_reporte_cifrado.py",
-    ])
-    missing = [str(p.relative_to(ROOT)) for p in required if not p.is_file()]
-    if missing:
-        print("Preparación incompleta; faltan: " + ", ".join(missing), file=sys.stderr)
+    try:
+        required = collect_protected_files(ROOT)
+    except (ConfigurationError, OSError) as exc:
+        print("Preparacion incompleta: " + str(exc), file=sys.stderr)
         return 3
     if digest(SCRIPT) != EXPECTED_SHA256:
         print("El hash del script difiere de la versión para la que se preparó esta batería. Detener y comparar.", file=sys.stderr)
@@ -302,12 +402,22 @@ def main():
         writer.writeheader(); writer.writerows(functions)
     after = {name: (digest(ROOT / name) if (ROOT / name).is_file() else None) for name in manifest}
     (results_dir / "hashes_despues.json").write_text(json.dumps(after, indent=2), encoding="utf-8")
-    unchanged = after == manifest
+    try:
+        protected_file_set_unchanged = (
+            {str(path.relative_to(ROOT)) for path in collect_protected_files(ROOT)}
+            == set(manifest)
+        )
+    except (ConfigurationError, OSError):
+        protected_file_set_unchanged = False
+    unchanged = after == manifest and protected_file_set_unchanged
     missing_functions = [row["function"] for row in functions if not row["called"]]
     failed = any(row["exit_code"] for row in summary)
     incomplete = len(summary) != len(STAGES) or bool(missing_functions) or any(row["incomplete"] for row in summary)
     code = 1 if failed or not unchanged else (2 if incomplete else 0)
     result = {"stages": summary, "protected_files_unchanged": unchanged,
+              "protected_file_set_unchanged": protected_file_set_unchanged,
+              "protected_files_total": len(manifest),
+              "stages_planned": len(STAGES),
               "functions_total": len(functions), "functions_called": len(functions) - len(missing_functions),
               "functions_not_called": missing_functions, "exit_code": code,
               "manual_terminal_tests": "PENDIENTES; ver guía; no se autoaprueban",
