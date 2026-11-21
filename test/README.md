@@ -1,5 +1,214 @@
 # Pruebas de BIP39 Seed Report
 
+## Referencia local de pruebas — 19 de noviembre de 2026
+
+Esta sección distingue la revisión local de noviembre 19 de los
+resultados históricos conservados más abajo. No anuncia una release
+ni atribuye al repositorio remoto cambios todavía no publicados.
+
+### Corrida posterior con el pie de ayuda ampliado
+
+La batería `output/bateria_local_t2c17zkm` completó las 26 etapas
+y acumuló 412 métodos unittest, sin incidencias y con código `0`.
+Registró 80/80 funciones o métodos del núcleo alcanzados y 50 archivos
+protegidos, con contenido y conjunto conservados.
+
+El núcleo de esa corrida tiene SHA-256
+`b31741cc898b86394c2e103effe25db14bff4f54361f31928e19387688283fcd`.
+La suite UX registró 21 métodos; el inspector, 65; el ejecutor, 33;
+y legacy BIP32, 13. Son partes del acumulado de 412, no cantidades
+que deban sumarse otra vez. Ambas clases Java conservaron sus hashes
+en la comprobación adicional anterior y posterior.
+
+### Refuerzo posterior de errores del editor externo
+
+Después de esa batería se añadió
+`test_66_external_editor_failure_paths_and_cleanup` a la suite
+del inspector. El método contiene cinco subcasos:
+
+- Error al iniciar el abridor externo.
+- Interrupción mediante Ctrl+C durante la espera de cierre.
+- Fin de entrada durante esa espera.
+- Escritura parcial fallida del temporal.
+- Fallo de limpieza con aviso de la ruta pendiente.
+
+La prueba aislada y la suite completa de 66 métodos terminaron con
+`OK` y código `0`. Se conservó sin cambios el inspector, identificado
+por SHA-256
+`92d3066e3a00e8a17e55806d450769f0d780832555f87aa12ee0ffb601d6f4d4`.
+
+Los subcasos simulan errores y cancelaciones; no prueban un cierre
+forzado del sistema ni garantizan borrado seguro. El método nuevo
+cuenta una sola vez y no se incorpora retrospectivamente al resumen
+de 412 métodos. La batería completa posterior al refuerzo queda
+pendiente de su propia ejecución y registro.
+
+El resultado de 411 métodos descrito a continuación corresponde a
+la corrida anterior y se conserva sin cambios.
+
+### Resultado automático registrado
+
+La batería `output/bateria_local_lcqnkkq3` completó satisfactoriamente:
+
+- 26 etapas planificadas y completadas.
+- 411 métodos unittest acumulados.
+- Ningún fallo, error, omisión, fallo esperado ni éxito inesperado.
+- Ninguna etapa incompleta ni error de registro.
+- 80/80 funciones o métodos del núcleo alcanzados.
+- 50 archivos protegidos, con hashes y conjunto conservados.
+- Código final `0`.
+
+Las tres primeras etapas ejecutan comprobaciones que no se contabilizan
+como métodos unittest. No se suman vectores, comprobaciones y métodos
+como si fueran unidades homogéneas.
+
+SHA-256 del núcleo de esa corrida:
+
+```text
+bcae133d9d57c1e6923ef13e069d308e7f1773bb384f43d439796d8cc5d01787
+```
+
+Entre las suites ejecutadas figuran:
+
+| Suite | Métodos registrados |
+|---|---:|
+| UX de terminal | 20 |
+| Revisión integral | 39 |
+| Inspector | 65 |
+| Ejecutor | 33 |
+| Integración CLI de entropía | 17 |
+| Generación BIP39 con recorridos reales | 6 |
+| Legacy BIP32 | 13 |
+
+Estas filas son parte de los 411 métodos, no un total adicional.
+Las ejecuciones aisladas utilizadas para diagnosticar errores tampoco
+se añaden otra vez al acumulado de la batería.
+
+La configuración contiene diez etapas iniciales, quince etapas de
+entropía y una etapa legacy BIP32: 26 etapas en total.
+La etapa `26_legacy_bip32` ejecuta `test/test_legacy_bip32_report.py`.
+La lista efectiva se revisa en `test/ejecutar_bateria_local.py`.
+
+### Preparación y nueva ejecución
+
+Usar una copia de confianza, dependencias Python preparadas y un
+intérprete seleccionado expresamente. Instalar `requirements.txt`
+no instala Java ni Node ni compila las fuentes Java.
+
+Para los recorridos reales, revisar las rutas de los proveedores y
+preparar los auxiliares Java en `build/entropy_java`. Tener Java o
+Node en `PATH` no demuestra que sean los ejecutables configurados.
+
+Consultar la
+[preparación de runtimes Linux](../docs/INSTALACION_LINUX.md#preparación-adicional-de-runtimes-para-entropy)
+antes de lanzar la batería. No recompilar sobre laboratorios históricos
+ni modificar proveedores para eludir un fallo de preparación.
+
+Desde la raíz del proyecto, seleccionar el intérprete realmente
+preparado. El ejemplo siguiente presupone un entorno ya existente;
+no lo crea ni representa necesariamente el entorno de la corrida
+registrada:
+
+```bash
+PY="$PWD/.venv-verificacion/bin/python"
+```
+
+Ejecutar los comandos siguientes por separado y detenerse si alguno
+falla:
+
+```bash
+"$PY" --version
+"$PY" -m pip check
+sha256sum -c bip39_seed_report.py.sha256
+PYTHONPATH="$PWD" "$PY" -B test/test_ejecutar_bateria_local.py
+PYTHONPATH="$PWD" "$PY" -B test/ejecutar_bateria_local.py
+echo $?
+```
+
+El `echo $?` debe ejecutarse inmediatamente después de la batería.
+El ejecutor genera una carpeta de resultados nueva bajo `output/`;
+no reutilizar ni sobrescribir evidencias anteriores.
+
+Los códigos del ejecutor conservan su significado:
+
+- `0`: comprobaciones automáticas completas según sus controles.
+- `1`: fallo de prueba, proceso o registro, o conservación incumplida.
+- `2`: ejecución incompleta.
+- `3`: preparación incompleta.
+
+No cambiar checksums para aceptar una revisión desconocida.
+El núcleo, su checksum y las referencias fijadas en el ejecutor y
+su suite deben corresponder a una revisión revisada expresamente.
+
+### Alcance del inventario y conservación
+
+El `80/80` registra entradas a funciones o métodos del núcleo;
+no es el número de pruebas ni cobertura completa de ramas o líneas.
+No acredita todas las plataformas ni verificación criptográfica
+independiente de las direcciones.
+
+Los 50 archivos protegidos pertenecen al conjunto seleccionado en
+esa corrida. Para conocerlo, consultar `hashes_antes.json` y
+`hashes_despues.json`. No representan todos los archivos del equipo
+ni una verificación completa de la cadena de suministro.
+
+Las clases Java se comprobaron por separado antes y después de la
+corrida y conservaron sus hashes:
+
+| Clase local | SHA-256 |
+|---|---|
+| `JavaEntropyProbe.class` | `46f002e8228d7cd3865f9b405a1ad1ba94a4b84ddadddc83d0f480d8cc88bc0f` |
+| `JavaEntropyProvider.class` | `ac5f2d5e227886c7b09aa262beada337f9cda2b581d64e8166276cbd60abe27e` |
+
+Son identidades de los compilados locales ensayados, no hashes
+universales exigidos a otras compilaciones.
+
+Este documento se actualiza después de la corrida. Su nueva identidad
+no se incorpora retrospectivamente a los manifiestos originales.
+La conservación comprobada durante la batería no equivale a afirmar
+que el árbol nunca se modificó después.
+
+### Ensayos manuales y pendientes
+
+Los ensayos manuales se conservan por separado. El mantenedor confirmó
+la apertura del visor integrado con reportes ficticios TXT y JSON,
+el rechazo de una contraseña incorrecta, el retorno al menú al rechazar
+la confirmación y el funcionamiento de la búsqueda.
+
+También confirmó la apertura del JSON ficticio en Xed mediante la
+opción `5`, la cancelación por defecto y el fallo de autenticación
+sin apertura del documento. Tras cerrar el documento y confirmar
+en la terminal, el inspector informó que retiró su temporal; intentar
+abrir esa ruta desde los recientes de Xed produjo «archivo no encontrado».
+No se declara borrado seguro ni ausencia de copias internas del editor.
+
+Las pruebas simuladas de interfaz no sustituyen esos ensayos gráficos.
+No se afirma una repetición completa de todos los casos manuales
+históricos ni que se haya comprobado manualmente cada control visual.
+
+`manual_terminal_tests` permanece pendiente en el resumen automático
+por diseño. No se modifica el JSON para autoaprobar esos ensayos.
+
+Siguen pendientes los escenarios específicos de ausencia de Java o
+Node, la instalación completa de runtimes desde cero en otro entorno,
+la recuperación en otro equipo y la validación del parche en
+Windows o macOS. Las pruebas con todos los proveedores preparados
+no resuelven esos escenarios.
+
+## Lectura de los registros históricos
+
+Los apartados siguientes conservan sus revisiones, hashes y recuentos.
+Las menciones a «actual», «nueva», «núcleo esperado» o «resultado esperado»
+dentro de esos apartados pertenecen al hito que describen.
+
+Para preparar una ejecución de la revisión de noviembre 19, utilizar
+la sección superior y la guía Linux vigente. No aplicar al núcleo nuevo
+el hash histórico `b29675e5…`, ni usar 25 etapas o 42 métodos del inspector
+como expectativa de la revisión ampliada.
+
+Los comandos antiguos se conservan como documentación de sus revisiones,
+no como una selección automática del entorno actual.
+
 ## Resultado comprobado — integración entropy CLI, 10 de noviembre de 2026
 
 La batería local `bateria_local_8jy797o3` terminó satisfactoriamente
@@ -103,7 +312,12 @@ No se actualizan por ello los manifiestos históricos ni se presenta
 la conservación registrada durante una batería como una comprobación
 del árbol actual después de esas ediciones.
 
-## Batería integrada de entropy CLI — configuración e instrucciones
+## Configuración histórica de la batería entropy CLI — 10 de noviembre de 2026
+
+Nota histórica: las instrucciones, el hash y los recuentos de este
+apartado corresponden a la integración de noviembre 10. Para una
+ejecución de la revisión ampliada, utilizar la referencia de noviembre 19
+al principio de este documento.
 
 Esta sección describe la configuración de la integración ensayada y
 las instrucciones para una nueva ejecución. Los resultados originales

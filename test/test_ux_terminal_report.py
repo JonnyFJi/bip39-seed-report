@@ -23,7 +23,7 @@ def fictitious_context():
         "mnemonic_valid": True, "passphrase_used": False,
         "bip39_seed_hex": "SEED_PRIVADA_FICTICIA", "bip32_root_key": "ROOT_PRIVADA_FICTICIA",
         "bip32_master_key": "MASTER_PRIVADA_FICTICIA",
-        "bip32_chain_code": "CHAIN_CODE_PRIVADO_FICTICIO", "gap_limit": 5,
+        "bip32_chain_code": "CHAIN_CODE_PRIVADO_FICTICIO", "gap_limit": 10,
         "derivations": {},
         "indicadores_mnemonic": {
             "valid": True, "word_count": 12, "unique_words": 1,
@@ -33,16 +33,44 @@ def fictitious_context():
         },
     }
     for number, kind, key in [(44, "P2PKH", "xpub"), (49, "P2WPKH-P2SH", "ypub"),
-                              (84, "P2WPKH", "zpub"), (86, "P2TR", None)]:
+                              (84, "P2WPKH", "zpub"), (86, "P2TR", "xpub")]:
         item = {"path_template": f"m/{number}'/1'/0'/0/i", "address_type": kind,
                 "addresses": [{"index": i, "path": f"m/{number}'/1'/0'/0/{i}",
                                "address": f"DIRECCION_FICTICIA_{number}_{i}",
                                "private_key_wif": f"WIF_PRIVADO_FICTICIO_{number}_{i}",
                                "public_key_hex": f"PUBLICA_FICTICIA_{number}_{i}"}
-                              for i in range(5)]}
+                              for i in range(10)]}
+        item["change_path_template"] = f"m/{number}'/1'/0'/1/i"
+        item["change_addresses"] = [
+            {"index": i, "path": f"m/{number}'/1'/0'/1/{i}",
+             "address": f"CAMBIO_FICTICIO_{number}_{i}",
+             "private_key_wif": f"WIF_CAMBIO_FICTICIO_{number}_{i}",
+             "public_key_hex": f"PUBLICA_CAMBIO_FICTICIA_{number}_{i}"}
+            for i in range(10)]
         if key:
             item[key] = "EXTENDIDA_FICTICIA_" + str(number)
         data["derivations"]["BIP" + str(number)] = item
+    legacy = copy.deepcopy(data["derivations"]["BIP44"])
+    legacy["xpub"] = "EXTENDIDA_LEGACY_FICTICIA"
+    for chain, key, template_key in (
+        (0, "addresses", "path_template"),
+        (1, "change_addresses", "change_path_template"),
+    ):
+        legacy[template_key] = f"m/0'/{chain}/i"
+        for i, entry in enumerate(legacy[key]):
+            entry.update(path=f"m/0'/{chain}/{i}",
+                         address=f"LEGACY_DIRECCION_FICTICIA_{chain}_{i}",
+                         private_key_wif=f"LEGACY_WIF_FICTICIO_{chain}_{i}",
+                         public_key_hex=f"LEGACY_PUBLICA_FICTICIA_{chain}_{i}")
+    data["derivations"]["BIP32_LEGACY"] = legacy
+    data["bip32_extended_keys"] = {
+        "root": {"path": "m", "network": "testnet",
+                 "extended_private_key": "ROOT_XPRV_PRIVADA_FICTICIA",
+                 "extended_public_key": "ROOT_XPUB_FICTICIA"},
+        "legacy_account": {"path": "m/0'", "network": "testnet",
+                           "extended_private_key": "ACCOUNT_XPRV_PRIVADA_FICTICIA",
+                           "extended_public_key": "EXTENDIDA_LEGACY_FICTICIA"},
+    }
     data["report_notices"] = report.build_report_notices(data)
     return data
 
@@ -61,7 +89,7 @@ class TerminalUXTests(unittest.TestCase):
         for value in [self.data["mnemonic"], self.data["entropy_bin"], self.data["entropy_hex"],
                       self.data["bip39_seed_hex"], self.data["bip32_root_key"],
                       "WIF_PRIVADO_FICTICIO", "PUBLICA_FICTICIA", "PATRON_FICTICIO",
-                      "LIMITACION_FICTICIA", "[OCULTO", "GAP limit"]:
+                      "LIMITACION_FICTICIA", "[OCULTO", "GAP"]:
             self.assertNotIn(value, text)
         self.assertIn("BIP39: válido · 12 palabras", text)
 
@@ -85,7 +113,7 @@ class TerminalUXTests(unittest.TestCase):
             for address in item["addresses"][1:]:
                 self.assertNotIn(address["address"], text)
                 self.assertNotIn(address["private_key_wif"], text)
-        self.assertNotIn("GAP limit", text)
+        self.assertNotIn("GAP", text)
         self.assertNotIn("ADVERTENCIA, este script:", text)
 
     def test_04_txt_keeps_full_content_and_notices(self):
@@ -96,7 +124,7 @@ class TerminalUXTests(unittest.TestCase):
             for address in item["addresses"]:
                 self.assertIn(address["address"], text)
                 self.assertIn(address["private_key_wif"], text)
-        self.assertIn("GAP limit", text)
+        self.assertIn("GAP", text)
         self.assertIn("no realiza descubrimiento", text)
         self.assertIn("ADVERTENCIA, este script:", text)
 
@@ -115,7 +143,7 @@ class TerminalUXTests(unittest.TestCase):
                 self.assertEqual(set(notices), {"version", "general", "input", "privacy"})
                 self.assertEqual(notices["version"], 1)
                 self.assertTrue(all(isinstance(notices[k], list) for k in ("general", "input", "privacy")))
-                self.assertIn("GAP limit", " ".join(notices["general"]))
+                self.assertIn("GAP", " ".join(notices["general"]))
                 if mode != "words":
                     self.assertIn("importado", " ".join(notices["input"]))
 
@@ -147,9 +175,11 @@ class TerminalUXTests(unittest.TestCase):
             stack.enter_context(patch.object(report, "select_network", return_value={"coin_type": "1'", **{k: k for k in ("bip44", "bip49", "bip84", "bip86")}}))
             for n in (44, 49, 84, 86):
                 stack.enter_context(patch.object(report, f"derive_addresses_bip{n}", return_value=self.data["derivations"]["BIP" + str(n)]))
+            stack.enter_context(patch.object(report, "derive_addresses_bip32_legacy", return_value=self.data["derivations"]["BIP32_LEGACY"]))
+            stack.enter_context(patch.object(report, "build_bip32_extended_keys", return_value=self.data["bip32_extended_keys"]))
             stack.enter_context(patch.object(report, "analizar_indicadores_mnemonic", return_value=self.data["indicadores_mnemonic"]))
             result = report.build_context(args)
-        self.assertEqual(len(result), 19)
+        self.assertEqual(len(result), 20)
         self.assertEqual(result["bip32_root_key"], "00" * 32 + "11" * 32)
         self.assertEqual(result["derivations"], self.data["derivations"])
         self.assertIn("report_notices", result)
@@ -273,6 +303,111 @@ class TerminalUXTests(unittest.TestCase):
                     self.assertFalse(report.verify_against_bip39_official(verbose=False))
                 self.assertIn("ERROR", output.getvalue())
 
+
+    def test_19_change_is_private_report_only(self):
+        for kwargs in ({}, {"show_all": True}):
+            text = report.format_report(self.data, **kwargs)
+            self.assertNotIn("GAP", text)
+            for item in self.data["derivations"].values():
+                for address in item["change_addresses"]:
+                    self.assertNotIn(address["address"], text)
+                    self.assertNotIn(address["private_key_wif"], text)
+                    self.assertNotIn(address["public_key_hex"], text)
+        full = report.format_report(self.data, terminal_mode=False, hide_sensitive=False)
+        self.assertEqual(full.count("GAP — Direcciones derivadas por cadena: 10"), 5)
+        self.assertEqual(full.count("Cadena           : Recepción"), 5)
+        self.assertEqual(full.count("Cadena           : Cambio"), 5)
+        for item in self.data["derivations"].values():
+            self.assertIn(item["change_path_template"], full)
+            for address in item["change_addresses"]:
+                self.assertIn(address["address"], full)
+                self.assertIn(address["private_key_wif"], full)
+                self.assertIn(address["public_key_hex"], full)
+
+
+    def test_20_bip32_direct_terminal_txt_and_inspector_command(self):
+        seed = bytes(range(16))
+        data = report.build_bip32_direct_context(seed, "testnet")
+
+        for show_all in (False, True):
+            with self.subTest(show_all=show_all):
+                text = report.format_report(data, show_all=show_all)
+                self.assertIn("Seed BIP32: oculta", text)
+                self.assertNotIn(seed.hex(), text)
+                self.assertNotIn(data["bip32_root_key"], text)
+                for section in data["derivations"].values():
+                    self.assertIn(section["addresses"][0]["address"], text)
+                    self.assertNotIn(section["change_addresses"][0]["address"], text)
+
+        plain = report.format_report(data, terminal_mode=False, hide_sensitive=False)
+        self.assertIn(f"BIP32 seed hex   : {seed.hex()}", plain)
+        self.assertIn("CLAVES EXTENDIDAS BIP32 — REPORTE PRIVADO", plain)
+
+        footer = report.format_export_help("ficticio.txt", data, "txt", windows=False)
+        self.assertIn("--input-mode bip32_seed_hex", footer)
+        self.assertNotIn("--words", footer)
+        self.assertNotIn(seed.hex(), footer)
+
+    def test_21_footer_lists_five_options_and_preserves_command(self):
+        direct = {
+            "network": "testnet",
+            "input_mode": report.BIP32_DIRECT_MODE,
+        }
+        path = Path("output/carpeta con espacios/reporte_'003.json")
+        inspector = Path(report.__file__).resolve().parent / "inspeccionar_reporte_cifrado.py"
+
+        for data in (self.data, direct):
+            for fmt in ("json", "txt"):
+                with self.subTest(mode=data["input_mode"], format=fmt):
+                    before = copy.deepcopy(data)
+                    text = report.format_export_help(path, data, fmt, windows=False)
+                    command = self.commands(text)
+
+                    expected = [
+                        sys.executable,
+                        str(inspector),
+                        str(path.expanduser().resolve()),
+                        "--format",
+                        fmt,
+                    ]
+                    if data["input_mode"] != report.BIP32_DIRECT_MODE:
+                        expected.extend(["--words", str(len(data["mnemonic"].split()))])
+                    expected.extend([
+                        "--network",
+                        data["network"],
+                        "--input-mode",
+                        data["input_mode"],
+                    ])
+
+                    self.assertEqual(command, expected)
+                    self.assertEqual(data, before)
+                    self.assertEqual(
+                        text.count("Un único comando abre el menú de inspección:"),
+                        1,
+                    )
+                    self.assertIn(
+                        "[1] Verificar sin mostrar · [2] Ventana temporal · [3] Revelar aquí",
+                        text,
+                    )
+                    self.assertIn("[4] Visor gráfico de solo lectura", text)
+                    self.assertIn(
+                        "[5] Abrir en editor externo — ADVERTENCIA: crea una copia temporal sin cifrar",
+                        text,
+                    )
+                    self.assertIn("[Q] Salir", text)
+                    self.assertIn(
+                        "La contraseña se solicita al elegir una operación; no se incluye en el comando.",
+                        text,
+                    )
+                    self.assertIn(
+                        "Solo la opción 1 realiza las comprobaciones de coherencia del inspector.",
+                        text,
+                    )
+                    self.assertIn("Inspector disponible en Linux.", text)
+                    self.assertIn(
+                        "Opción 2: GNOME Terminal · Opción 4: Tk · Opción 5: xdg-open y aplicación de texto.",
+                        text,
+                    )
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

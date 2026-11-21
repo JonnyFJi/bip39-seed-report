@@ -20,13 +20,30 @@ PHRASE = " ".join(["abandon"] * 11 + ["about"])
 def fixture():
     data = {"network": "testnet", "input_mode": "words", "mnemonic": PHRASE,
             "entropy_hex": "00" * 16, "entropy_bits": 128, "passphrase_used": False,
-            "gap_limit": 5,
+            "gap_limit": 10,
             "bip39_seed_hex": hashlib.pbkdf2_hmac("sha512", PHRASE.encode(), b"mnemonic", 2048).hex(),
             "derivations": {}}
     for purpose in (44, 49, 84, 86):
-        data["derivations"]["BIP" + str(purpose)] = {"addresses": [
-            {"index": i, "path": f"m/{purpose}'/1'/0'/0/{i}", "address": f"DATO_FICTICIO_{purpose}_{i}"}
-            for i in range(5)]}
+        item = {}
+        for chain, key, template_key in (
+            (0, "addresses", "path_template"),
+            (1, "change_addresses", "change_path_template"),
+        ):
+            item[template_key] = f"m/{purpose}'/1'/0'/{chain}/i"
+            item[key] = [
+                {"index": i, "path": f"m/{purpose}'/1'/0'/{chain}/{i}",
+                 "address": (f"DATO_FICTICIO_{purpose}_{i}" if chain == 0
+                             else f"CAMBIO_FICTICIO_{purpose}_{i}")}
+                for i in range(10)]
+        data["derivations"]["BIP" + str(purpose)] = item
+    import bip39_seed_report as backend
+    seed = bytes.fromhex(data["bip39_seed_hex"])
+    data["bip32_extended_keys"] = backend.build_bip32_extended_keys(seed, data["network"])
+    master, chain = backend.bip32_master_key(seed)
+    data["bip32_master_key"] = master
+    data["bip32_chain_code"] = chain
+    data["bip32_root_key"] = master + chain
+    data["derivations"]["BIP32_LEGACY"] = backend.derive_addresses_bip32_legacy(seed, data["network"])
     return data
 
 
@@ -35,7 +52,7 @@ class InspectorTests(unittest.TestCase):
         self.data = fixture()
         self.options = argparse.Namespace(format="auto", words=None, network=None, input_mode=None)
         self.backend = types.SimpleNamespace(
-            MAX_ENCRYPTED_REPORT_BYTES=4096, GAP_LIMIT=5,
+            MAX_ENCRYPTED_REPORT_BYTES=4096, GAP_LIMIT=10,
             DEFAULT_DECISION_TIMEOUT_SECONDS=360,
             InputTimeoutError=TimeoutError,
             timed_input=Mock(side_effect=AssertionError(
@@ -213,7 +230,7 @@ class InspectorTests(unittest.TestCase):
                 with patch.object(v, "reveal_here") as reveal:
                     with contextlib.redirect_stdout(io.StringIO()):
                         self.assertEqual(v.menu(self.path, self.options), 0)
-        choose.assert_called_once_with("Opción [1/2/3/Q]: ", timeout_seconds=360)
+        choose.assert_called_once_with("Opción [1/2/3/4/5/Q]: ", timeout_seconds=360)
         launch.assert_called_once_with(self.path, self.options)
         reveal.assert_not_called()
         self.backend.read_hidden_secret.assert_not_called()
@@ -254,7 +271,7 @@ class InspectorTests(unittest.TestCase):
                     with patch.object(v, "reveal_here") as reveal:
                         with contextlib.redirect_stdout(capture):
                             self.assertEqual(v.menu(self.path, self.options), 1)
-        choose.assert_called_once_with("Opción [1/2/3/Q]: ", timeout_seconds=360)
+        choose.assert_called_once_with("Opción [1/2/3/4/5/Q]: ", timeout_seconds=360)
         read.assert_not_called()
         launch.assert_not_called()
         reveal.assert_not_called()
@@ -368,7 +385,7 @@ class InspectorTests(unittest.TestCase):
                     v.verify_plain(json.dumps(data), self.options)
 
     def test_38_addresses_require_array_of_objects(self):
-        for value in ({}, [None] * 5):
+        for value in ({}, [None] * 10):
             with self.subTest(value=value):
                 data = json.loads(json.dumps(self.data))
                 data["derivations"]["BIP44"]["addresses"] = value
@@ -406,6 +423,543 @@ class InspectorTests(unittest.TestCase):
                 with self.assertRaises(v.InspectionError):
                     v.reveal_here(self.path, self.options)
         self.assertNotIn(marker, capture.getvalue())
+
+    def test_43_previous_gap_limit_is_a_structure_mismatch(self):
+        data = json.loads(json.dumps(self.data))
+        data["gap_limit"] = 5
+        for item in data["derivations"].values():
+            item["addresses"] = item["addresses"][:5]
+        with self.assertRaises(v.InspectionError) as error:
+            v.verify_plain(json.dumps(data), self.options)
+        message = str(error.exception)
+        self.assertIn("gap_limit=5", message)
+        self.assertIn("esta versión espera 10", message)
+        self.assertIn("no indica una contraseña incorrecta", message)
+        self.assertNotIn("No se pudo autenticar", message)
+        self.assertNotIn(PHRASE, message)
+
+    def test_44_address_count_must_match_gap_limit(self):
+        for count in (0, 5, 9, 11):
+            with self.subTest(count=count):
+                data = json.loads(json.dumps(self.data))
+                data["derivations"]["BIP44"]["addresses"] = [
+                    {"index": i, "path": f"m/44'/1'/0'/0/{i}",
+                     "address": f"DATO_FICTICIO_44_{i}"}
+                    for i in range(count)]
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(json.dumps(data), self.options)
+
+    def test_45_menu_separates_old_structure_from_authentication_failure(self):
+        data = json.loads(json.dumps(self.data))
+        data["gap_limit"] = 5
+        self.backend.decrypt_report_content.return_value = json.dumps(data)
+        capture = io.StringIO()
+        with patch.object(self.backend, "timed_input", side_effect=["1", "q"]):
+            with contextlib.redirect_stdout(capture):
+                self.assertEqual(v.menu(self.path, self.options), 0)
+        text = capture.getvalue()
+        self.assertIn("Estructura de reporte no compatible", text)
+        self.assertNotIn("No se pudo autenticar", text)
+        self.assertNotIn("OK: reporte autenticado", text)
+        self.assertNotIn(PHRASE, text)
+
+    def test_46_fixture_uses_the_real_gap_limit(self):
+        import bip39_seed_report as real
+        self.assertEqual(real.GAP_LIMIT, 10)
+        self.assertEqual(self.data["gap_limit"], real.GAP_LIMIT)
+        for item in self.data["derivations"].values():
+            self.assertEqual(len(item["addresses"]), real.GAP_LIMIT)
+
+    def test_47_missing_change_fields_have_a_structure_message(self):
+        for key in ("change_addresses", "change_path_template"):
+            with self.subTest(key=key):
+                data = fixture()
+                del data["derivations"]["BIP44"][key]
+                with self.assertRaises(v.InspectionError) as error:
+                    v.verify_plain(json.dumps(data), self.options)
+                self.assertIn("faltan campos de cambio", str(error.exception))
+                self.assertIn("no indica una contraseña incorrecta", str(error.exception))
+
+    def test_48_change_requires_ten_objects(self):
+        for value in (None, {}, [], [None] * 10,
+                      fixture()["derivations"]["BIP44"]["change_addresses"][:9],
+                      fixture()["derivations"]["BIP44"]["change_addresses"] + [{}]):
+            with self.subTest(value=value):
+                data = fixture()
+                data["derivations"]["BIP44"]["change_addresses"] = value
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(json.dumps(data), self.options)
+
+    def test_49_change_paths_cannot_use_receiving_branch(self):
+        for position in (0, 9):
+            data = fixture()
+            data["derivations"]["BIP84"]["change_addresses"][position]["path"] = (
+                f"m/84'/1'/0'/0/{position}")
+            with self.assertRaises(v.InspectionError):
+                v.verify_plain(json.dumps(data), self.options)
+
+    def test_50_change_indexes_and_addresses_are_strict(self):
+        for key, value in (("index", False), ("index", 0.0), ("index", "0"),
+                           ("index", 1), ("address", " "), ("address", True)):
+            with self.subTest(key=key, value=value):
+                data = fixture()
+                data["derivations"]["BIP86"]["change_addresses"][0][key] = value
+                with self.assertRaises(v.InspectionError):
+                    v.verify_plain(json.dumps(data), self.options)
+
+    def test_51_both_path_templates_are_checked(self):
+        for key in ("path_template", "change_path_template"):
+            data = fixture()
+            data["derivations"]["BIP49"][key] = "m/49'/0'/0'/0/i"
+            with self.assertRaises(v.InspectionError):
+                v.verify_plain(json.dumps(data), self.options)
+
+    def test_52_menu_rejects_receiving_only_without_authentication_error(self):
+        data = fixture()
+        for item in data["derivations"].values():
+            del item["change_addresses"]
+            del item["change_path_template"]
+        self.backend.decrypt_report_content.return_value = json.dumps(data)
+        capture = io.StringIO()
+        with patch.object(self.backend, "timed_input", side_effect=["1", "q"]):
+            with patch.object(v, "reveal_here") as reveal:
+                with contextlib.redirect_stdout(capture):
+                    self.assertEqual(v.menu(self.path, self.options), 0)
+        reveal.assert_not_called()
+        self.assertIn("faltan campos de cambio", capture.getvalue())
+        self.assertNotIn("No se pudo autenticar", capture.getvalue())
+        self.assertNotIn(PHRASE, capture.getvalue())
+
+    def test_53_bip32_direct_encrypted_json_and_txt_roundtrip(self):
+        import bip39_seed_report as real
+
+        data = real.build_bip32_direct_context(bytes(range(16)), "testnet")
+        password = "clave-ficticia-de-laboratorio"
+
+        for fmt in ("json", "txt"):
+            with self.subTest(format=fmt):
+                options = argparse.Namespace(
+                    format=fmt, words=None, network="testnet",
+                    input_mode="bip32_seed_hex",
+                )
+                path = real.export_seed_report(
+                    data, Path(self.tmp.name) / f"directo.{fmt}", fmt, password,
+                )
+                with (
+                    patch.object(v, "report", real),
+                    patch.object(real, "read_hidden_secret", return_value=password),
+                ):
+                    plain = v.read_plain(path)
+                    scope = v.verify_plain(plain, options)
+                    if fmt == "json":
+                        self.assertIn("JSON BIP32 directo", scope)
+                        self.assertEqual(json.loads(plain), data)
+                    else:
+                        self.assertIn("TXT:", scope)
+                        self.assertIn("no se comprueban", scope)
+                        self.assertIn(
+                            f"BIP32 seed hex   : {data['bip32_seed_hex']}", plain,
+                        )
+                        options.input_mode = "bip32_seed_hex"
+                        wrong_mode = plain.replace(
+                            "Input mode      : bip32_seed_hex",
+                            "Input mode      : words",
+                            1,
+                        )
+                        self.assertNotEqual(wrong_mode, plain)
+                        with self.assertRaisesRegex(v.InspectionError, "modo de entrada TXT"):
+                            v.verify_plain(wrong_mode, options)
+
+    def test_54_bip32_direct_json_rejects_incoherent_content(self):
+        import bip39_seed_report as real
+
+        data = real.build_bip32_direct_context(bytes(range(16)), "testnet")
+        options = argparse.Namespace(
+            format="json", words=None, network="testnet",
+            input_mode="bip32_seed_hex",
+        )
+        variants = (
+            {**data, "mnemonic": PHRASE},
+            {**data, "bip32_seed_hex": "ff" * 16},
+        )
+
+        with patch.object(v, "report", real):
+            for candidate in variants:
+                with self.assertRaisesRegex(v.InspectionError, "comprobaciones internas"):
+                    v.verify_plain(json.dumps(candidate), options)
+            options.words = 12
+            with self.assertRaisesRegex(v.InspectionError, "--words no aplica"):
+                v.verify_plain(json.dumps(data), options)
+
+    def test_55_graphical_viewer_unavailable_does_not_read(self):
+        with patch.dict("sys.modules", {"tkinter": None}):
+            with patch.object(v, "read_plain") as read:
+                with self.assertRaisesRegex(v.InspectionError, "Tk no está disponible"):
+                    v.launch_graphical_viewer(Path("ficticio.json"), argparse.Namespace())
+        read.assert_not_called()
+
+    def _mock_graphical_modules(self):
+        class FakeTclError(Exception):
+            pass
+
+        root = Mock()
+        messagebox = types.SimpleNamespace(NO="no", askyesno=Mock())
+        tk = types.ModuleType("tkinter")
+        tk.Tk = Mock(return_value=root)
+        tk.TclError = FakeTclError
+        tk.messagebox = messagebox
+        tk.ttk = Mock()
+        return tk, root, messagebox.askyesno
+
+    def test_56_graphical_viewer_no_display_does_not_read(self):
+        tk, _root, ask = self._mock_graphical_modules()
+        tk.Tk.side_effect = tk.TclError("pantalla no disponible")
+        with patch.dict("sys.modules", {"tkinter": tk}):
+            with patch.object(v, "read_plain") as read:
+                with self.assertRaisesRegex(v.InspectionError, "visor gráfico"):
+                    v.launch_graphical_viewer(Path("ficticio.json"), argparse.Namespace())
+        ask.assert_not_called()
+        read.assert_not_called()
+
+    def test_57_graphical_viewer_declined_does_not_read(self):
+        tk, root, ask = self._mock_graphical_modules()
+        ask.return_value = False
+        with patch.dict("sys.modules", {"tkinter": tk}):
+            with patch.object(v, "read_plain") as read:
+                with patch.object(v, "show_graphical_text") as show:
+                    self.assertFalse(
+                        v.launch_graphical_viewer(
+                            Path("ficticio.json"), argparse.Namespace(),
+                        )
+                    )
+        read.assert_not_called()
+        show.assert_not_called()
+        root.destroy.assert_called_once_with()
+
+    def test_58_graphical_viewer_authentication_failure_does_not_show(self):
+        tk, root, ask = self._mock_graphical_modules()
+        ask.return_value = True
+        path = Path("ficticio.json")
+        options = argparse.Namespace(format="auto")
+        with patch.dict("sys.modules", {"tkinter": tk}):
+            with patch.object(
+                v, "read_plain", side_effect=v.InspectionError("No se pudo autenticar"),
+            ) as read, patch.object(v, "show_graphical_text") as show:
+                with self.assertRaisesRegex(v.InspectionError, "No se pudo autenticar"):
+                    v.launch_graphical_viewer(path, options)
+        read.assert_called_once_with(path)
+        show.assert_not_called()
+        root.destroy.assert_called_once_with()
+
+    def test_59_graphical_viewer_passes_text_without_printing_or_writing(self):
+        samples = (
+            ("json", '{"marker": "SOLO-VENTANA-FICTICIA"}'),
+            ("txt", "Offline BIP39 Seed Report\nSOLO-VENTANA-FICTICIA\n"),
+        )
+        for expected_format, plain in samples:
+            with self.subTest(expected_format=expected_format):
+                tk, root, ask = self._mock_graphical_modules()
+                ask.return_value = True
+                options = argparse.Namespace(format=expected_format)
+                output = io.StringIO()
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / "ficticio.cifrado"
+                    original = b"CONTENEDOR-FICTICIO"
+                    path.write_bytes(original)
+                    with patch.dict("sys.modules", {"tkinter": tk}):
+                        with patch.object(v, "read_plain", return_value=plain) as read:
+                            with patch.object(v, "show_graphical_text") as show:
+                                with contextlib.redirect_stdout(output):
+                                    self.assertTrue(v.launch_graphical_viewer(path, options))
+                    read.assert_called_once_with(path)
+                    show.assert_called_once_with(root, tk, tk.ttk, plain)
+                    self.assertEqual(path.read_bytes(), original)
+                    self.assertEqual(list(Path(directory).iterdir()), [path])
+                self.assertEqual(output.getvalue(), "")
+                root.destroy.assert_called_once_with()
+
+    def test_60_menu_option_four_uses_only_graphical_viewer(self):
+        path = Path("ficticio.json")
+        options = argparse.Namespace(format="auto")
+        for opened, choices in ((True, ["4"]), (False, ["4", "q"])):
+            with self.subTest(opened=opened):
+                backend = types.SimpleNamespace(
+                    DEFAULT_DECISION_TIMEOUT_SECONDS=30,
+                    timed_input=Mock(side_effect=choices),
+                )
+                output = io.StringIO()
+                with patch.object(v, "report", backend):
+                    with patch.object(v, "launch_graphical_viewer", return_value=opened) as viewer:
+                        with patch.object(v, "launch_window") as terminal_window:
+                            with patch.object(v, "reveal_here") as reveal:
+                                with contextlib.redirect_stdout(output):
+                                    self.assertEqual(v.menu(path, options), 0)
+                viewer.assert_called_once_with(path, options)
+                terminal_window.assert_not_called()
+                reveal.assert_not_called()
+                self.assertEqual(backend.timed_input.call_count, len(choices))
+                self.assertIn("[4] Visor gráfico de solo lectura", output.getvalue())
+
+
+    def test_61_external_editor_missing_does_not_prompt_or_read(self):
+        with patch.object(v.shutil, "which", return_value=None):
+            with patch.object(v, "report") as backend:
+                with patch.object(v, "read_plain") as read:
+                    with self.assertRaisesRegex(v.InspectionError, "xdg-open"):
+                        v.launch_external_editor(Path("ficticio.json"), self.options)
+        backend.timed_input.assert_not_called()
+        read.assert_not_called()
+
+    def test_62_external_editor_declined_or_timed_out_creates_no_copy(self):
+        class FakeTimeout(Exception):
+            pass
+
+        for timed_out in (False, True):
+            with self.subTest(timed_out=timed_out):
+                confirm = Mock(return_value="")
+                if timed_out:
+                    confirm.side_effect = FakeTimeout
+                backend = types.SimpleNamespace(
+                    DEFAULT_DECISION_TIMEOUT_SECONDS=360,
+                    InputTimeoutError=FakeTimeout,
+                    timed_input=confirm,
+                )
+                output = io.StringIO()
+                with patch.object(v.shutil, "which", return_value="/usr/bin/xdg-open"):
+                    with patch.object(v, "report", backend):
+                        with patch.object(v, "read_plain") as read:
+                            with patch.object(v.tempfile, "TemporaryDirectory") as temp:
+                                with contextlib.redirect_stdout(output):
+                                    self.assertFalse(
+                                        v.launch_external_editor(
+                                            Path("ficticio.json"), self.options,
+                                        )
+                                    )
+                read.assert_not_called()
+                temp.assert_not_called()
+                self.assertIn("ADVERTENCIA", output.getvalue())
+
+    def test_63_external_editor_bad_auth_or_format_creates_no_copy(self):
+        cases = (
+            (v.InspectionError("No se pudo autenticar"), None, "autenticar"),
+            (None, '{"marker": "FICTICIO"}', "formato interno"),
+        )
+        for error, plain, expected in cases:
+            with self.subTest(expected=expected):
+                backend = types.SimpleNamespace(
+                    DEFAULT_DECISION_TIMEOUT_SECONDS=360,
+                    timed_input=Mock(return_value="s"),
+                )
+                options = argparse.Namespace(format="txt")
+                with patch.object(v.shutil, "which", return_value="/usr/bin/xdg-open"):
+                    with patch.object(v, "report", backend):
+                        with patch.object(v, "read_plain", return_value=plain, side_effect=error):
+                            with patch.object(v.tempfile, "TemporaryDirectory") as temp:
+                                with patch.object(v.subprocess, "run") as run:
+                                    with contextlib.redirect_stdout(io.StringIO()):
+                                        with self.assertRaisesRegex(v.InspectionError, expected):
+                                            v.launch_external_editor(Path("ficticio.json"), options)
+                temp.assert_not_called()
+                run.assert_not_called()
+
+    def test_64_external_editor_permissions_and_cleanup(self):
+        plain = '{"marker": "SOLO-EDITOR-FICTICIO"}'
+        for status in (0, 1):
+            with self.subTest(status=status):
+                opened = []
+                original = b"CONTENEDOR-FICTICIO"
+                backend = types.SimpleNamespace(
+                    DEFAULT_DECISION_TIMEOUT_SECONDS=360,
+                    timed_input=Mock(return_value="s"),
+                )
+
+                def fake_open(argv, **kwargs):
+                    self.assertEqual(len(argv), 2)
+                    self.assertEqual(argv[0], "/usr/bin/xdg-open")
+                    self.assertEqual(kwargs["stdin"], subprocess.DEVNULL)
+                    copy = Path(argv[1])
+                    opened.append(copy)
+                    self.assertEqual(copy.name, "reporte.txt")
+                    self.assertEqual(copy.stat().st_mode & 0o777, 0o600)
+                    self.assertEqual(copy.parent.stat().st_mode & 0o077, 0)
+                    self.assertEqual(copy.read_bytes(), plain.encode("utf-8"))
+                    return types.SimpleNamespace(returncode=status)
+
+                def finish(_prompt):
+                    self.assertTrue(opened[0].is_file())
+                    return ""
+
+                output = io.StringIO()
+                with tempfile.TemporaryDirectory() as folder:
+                    path = Path(folder) / "original.json"
+                    path.write_bytes(original)
+                    options = argparse.Namespace(format="json")
+                    with (
+                        patch.object(v.shutil, "which", return_value="/usr/bin/xdg-open"),
+                        patch.object(v, "report", backend),
+                        patch.object(v, "read_plain", return_value=plain) as read,
+                        patch.object(v.subprocess, "run", side_effect=fake_open),
+                        patch("builtins.input", side_effect=finish) as done,
+                        contextlib.redirect_stdout(output),
+                    ):
+                        if status == 0:
+                            self.assertTrue(v.launch_external_editor(path, options))
+                        else:
+                            with self.assertRaisesRegex(v.InspectionError, "no confirmó"):
+                                v.launch_external_editor(path, options)
+                    read.assert_called_once_with(path)
+                    self.assertEqual(done.call_count, int(status == 0))
+                    self.assertEqual(path.read_bytes(), original)
+
+                self.assertEqual(len(opened), 1)
+                self.assertFalse(opened[0].parent.exists())
+                self.assertNotIn(plain, output.getvalue())
+
+    def test_65_menu_option_five_uses_only_external_editor(self):
+        path = Path("ficticio.json")
+        backend = types.SimpleNamespace(
+            DEFAULT_DECISION_TIMEOUT_SECONDS=360,
+            timed_input=Mock(return_value="5"),
+        )
+        output = io.StringIO()
+        with (
+            patch.object(v, "report", backend),
+            patch.object(v, "launch_external_editor", return_value=True) as editor,
+            patch.object(v, "launch_graphical_viewer") as graphical,
+            patch.object(v, "launch_window") as terminal_window,
+            patch.object(v, "reveal_here") as reveal,
+            contextlib.redirect_stdout(output),
+        ):
+            self.assertEqual(v.menu(path, self.options), 0)
+
+        editor.assert_called_once_with(path, self.options)
+        graphical.assert_not_called()
+        terminal_window.assert_not_called()
+        reveal.assert_not_called()
+        self.assertIn(
+            "[5] Abrir en editor externo — ADVERTENCIA: crea una copia temporal sin cifrar",
+            output.getvalue(),
+        )
+
+
+    def test_66_external_editor_failure_paths_and_cleanup(self):
+        real_temporary_directory = tempfile.TemporaryDirectory
+        real_fdopen = os.fdopen
+        plain = '{"marker": "SECRETO-FICTICIO-SOLO-PRUEBA"}'
+        options = argparse.Namespace(format="json")
+
+        class FailingWriter:
+            def __init__(self, handle):
+                self.handle = handle
+
+            def __enter__(self):
+                return self
+
+            def write(self, _text):
+                self.handle.write("FRAGMENTO-FICTICIO")
+                self.handle.flush()
+                raise OSError("fallo ficticio de escritura")
+
+            def __exit__(self, exc_type, exc, traceback):
+                self.handle.close()
+                return False
+
+        cases = (
+            ("launch", v.InspectionError),
+            ("interrupt", KeyboardInterrupt),
+            ("eof", EOFError),
+            ("write", OSError),
+            ("cleanup", v.InspectionError),
+        )
+
+        for scenario, expected_error in cases:
+            with self.subTest(scenario=scenario):
+                backend = types.SimpleNamespace(
+                    DEFAULT_DECISION_TIMEOUT_SECONDS=360,
+                    timed_input=Mock(return_value="s"),
+                )
+                allocated = []
+                output = io.StringIO()
+
+                with real_temporary_directory(prefix="bip39-editor-test-") as folder:
+                    original = Path(folder) / "original.cifrado"
+                    original_bytes = b"CONTENEDOR-FICTICIO-SIN-CAMBIOS"
+                    original.write_bytes(original_bytes)
+
+                    def allocate(**kwargs):
+                        directory = real_temporary_directory(dir=folder, **kwargs)
+                        allocated.append(directory)
+                        if scenario == "cleanup":
+                            return types.SimpleNamespace(
+                                name=directory.name,
+                                cleanup=Mock(
+                                    side_effect=OSError("fallo ficticio de limpieza"),
+                                ),
+                            )
+                        return directory
+
+                    def open_writer(fd, *args, **kwargs):
+                        handle = real_fdopen(fd, *args, **kwargs)
+                        if scenario == "write":
+                            return FailingWriter(handle)
+                        return handle
+
+                    def launch(_argv, **_kwargs):
+                        if scenario == "launch":
+                            raise OSError("fallo ficticio del abridor")
+                        return types.SimpleNamespace(returncode=0)
+
+                    def finish(_prompt):
+                        copy = Path(allocated[0].name) / "reporte.txt"
+                        self.assertTrue(copy.is_file())
+                        if scenario == "interrupt":
+                            raise KeyboardInterrupt
+                        if scenario == "eof":
+                            raise EOFError
+                        return ""
+
+                    try:
+                        with (
+                            patch.object(v.shutil, "which", return_value="/usr/bin/xdg-open"),
+                            patch.object(v, "report", backend),
+                            patch.object(v, "read_plain", return_value=plain),
+                            patch.object(v.tempfile, "TemporaryDirectory", side_effect=allocate),
+                            patch.object(v.os, "fdopen", side_effect=open_writer),
+                            patch.object(v.subprocess, "run", side_effect=launch) as run,
+                            patch("builtins.input", side_effect=finish) as done,
+                            contextlib.redirect_stdout(output),
+                        ):
+                            with self.assertRaises(expected_error) as caught:
+                                v.launch_external_editor(original, options)
+
+                        self.assertEqual(original.read_bytes(), original_bytes)
+                        self.assertEqual(len(allocated), 1)
+                        directory = Path(allocated[0].name)
+
+                        if scenario == "cleanup":
+                            self.assertTrue((directory / "reporte.txt").is_file())
+                            self.assertIn(
+                                "No se pudo retirar la copia temporal",
+                                str(caught.exception),
+                            )
+                            self.assertIn(
+                                str(directory / "reporte.txt"),
+                                str(caught.exception),
+                            )
+                        else:
+                            self.assertFalse(directory.exists())
+
+                        self.assertEqual(run.call_count, int(scenario != "write"))
+                        self.assertEqual(
+                            done.call_count,
+                            int(scenario in {"interrupt", "eof", "cleanup"}),
+                        )
+                        self.assertNotIn(plain, output.getvalue())
+                        self.assertNotIn(plain, str(caught.exception))
+                        self.assertNotIn("Copia temporal retirada.", output.getvalue())
+                    finally:
+                        for directory in allocated:
+                            directory.cleanup()
 
 
 if __name__ == "__main__":

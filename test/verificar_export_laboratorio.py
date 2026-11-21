@@ -9,6 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bip39_seed_report as r
 from mnemonic import Mnemonic
 
+EXPECTED_ADDRESSES_PER_FAMILY = 10
+
 
 def require(condition, message):
     if not condition:
@@ -20,8 +22,8 @@ def main():
     p.add_argument("file")
     p.add_argument("--format", choices=("json", "txt"), default="json")
     p.add_argument("--network", choices=("mainnet", "testnet"), default="testnet")
-    p.add_argument("--words", type=int, choices=(12, 15, 18, 21, 24), default=12)
-    p.add_argument("--input-mode", choices=("words", "entropy_hex", "entropy_bin", "mnemonic", "mnemonic_incomplete"))
+    p.add_argument("--words", type=int, choices=(12, 15, 18, 21, 24))
+    p.add_argument("--input-mode", choices=("words", "entropy_hex", "entropy_bin", "mnemonic", "mnemonic_incomplete", "bip32_seed_hex"))
     p.add_argument("--test-passphrase", default="", help="Solo passphrase ficticia para contrastar la seed")
     a = p.parse_args()
     with Path(a.file).open("rb") as f:
@@ -29,6 +31,24 @@ def main():
     require(len(raw) <= r.MAX_ENCRYPTED_REPORT_BYTES, "Archivo demasiado grande")
     password = r.read_hidden_secret("Contrasena del export de prueba: ")
     plain = r.decrypt_report_content(raw.decode("utf-8"), password)
+    if a.input_mode == "bip32_seed_hex":
+        import inspeccionar_reporte_cifrado as inspector
+
+        require(a.words is None, "--words no aplica a BIP32 directo")
+        require(not a.test_passphrase, "La passphrase BIP39 no aplica")
+        inspector.report = r
+        scope = inspector.verify_plain(
+            plain,
+            argparse.Namespace(
+                format=a.format,
+                network=a.network,
+                words=None,
+                input_mode=a.input_mode,
+            ),
+        )
+        print("OK: export autenticado; no se imprime el secreto.")
+        print(scope)
+        return
     if a.format == "txt":
         lines = plain.lstrip("\ufeff\r\n ").splitlines()
 
@@ -58,6 +78,8 @@ def main():
 
     d = json.loads(plain)
     m = Mnemonic("english")
+    if a.words is None:
+        a.words = 12
     require(d["network"] == a.network, "Red inesperada")
     require(len(d["mnemonic"].split()) == a.words, "Longitud de mnemonic inesperada")
     require(m.check(d["mnemonic"]), "Mnemonic invalida")
@@ -68,15 +90,34 @@ def main():
 
     if a.input_mode:
         require(d["input_mode"] == a.input_mode, "Modo de entrada inesperado")
-    require(set(d["derivations"]) == {"BIP44", "BIP49", "BIP84", "BIP86"}, "Familias inesperadas")
+    require(set(d["derivations"]) == {"BIP44", "BIP49", "BIP84", "BIP86", "BIP32_LEGACY"}, "Familias inesperadas")
+    require(type(d["gap_limit"]) is int and d["gap_limit"] == EXPECTED_ADDRESSES_PER_FAMILY, "gap_limit inesperado")
+    from inspeccionar_reporte_cifrado import verify_bip32_extended_keys
+    verify_bip32_extended_keys(d)
     coin = 0 if a.network == "mainnet" else 1
     for family, deriv in d["derivations"].items():
-        purpose = int(family[3:])
-        require(len(deriv["addresses"]) == 5, "Cantidad de direcciones inesperada")
-        for i, item in enumerate(deriv["addresses"]):
-            require(item["index"] == i, "Indice inesperado")
-            require(item["path"] == f"m/{purpose}'/{coin}'/0'/0/{i}", "Ruta inesperada")
-            require(bool(item["address"]), "Direccion vacia")
+        base_path = "m/0'" if family == "BIP32_LEGACY" else f"m/{int(family[3:])}'/{coin}'/0'"
+        require(type(deriv) is dict, "Familia de tipo inesperado")
+        for change_index, addresses_key, template_key in (
+            (0, "addresses", "path_template"),
+            (1, "change_addresses", "change_path_template"),
+        ):
+            require(
+                deriv[template_key] == f"{base_path}/{change_index}/i",
+                "Plantilla de ruta inesperada",
+            )
+            addresses = deriv[addresses_key]
+            require(type(addresses) is list, "Lista de direcciones inesperada")
+            require(len(addresses) == EXPECTED_ADDRESSES_PER_FAMILY,
+                    "Cantidad de direcciones inesperada")
+            for i, item in enumerate(addresses):
+                require(type(item) is dict, "Entrada de direccion inesperada")
+                require(type(item["index"]) is int and item["index"] == i,
+                        "Indice inesperado")
+                require(item["path"] == f"{base_path}/{change_index}/{i}",
+                        "Ruta inesperada")
+                require(type(item["address"]) is str and bool(item["address"].strip()),
+                        "Direccion vacia o de tipo inesperado")
     print("OK: export autenticado; BIP39, seed y estructura de derivaciones verificados sin imprimir secretos")
 
 

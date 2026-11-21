@@ -196,7 +196,7 @@ class BatteryConfigurationTests(unittest.TestCase):
 
     def test_21_stages_and_unittest_requirements(self):
         battery.validate_configuration()
-        self.assertEqual(len(battery.STAGES), 25)
+        self.assertEqual(len(battery.STAGES), 26)
         self.assertEqual(len(battery.ENTROPY_TEST_FILES), 15)
         self.assertEqual(
             set(battery.NON_UNITTEST_STAGES),
@@ -206,7 +206,7 @@ class BatteryConfigurationTests(unittest.TestCase):
         for target in battery.ENTROPY_TEST_FILES:
             self.assertEqual(targets.count(target), 1)
         self.assertEqual(battery.EXPECTED_SHA256,
-                         "b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6")
+                         "b31741cc898b86394c2e103effe25db14bff4f54361f31928e19387688283fcd")
 
     def test_22_duplicate_label_rejected(self):
         stages = list(battery.STAGES) + [("01_vectores", "test/other.py", [])]

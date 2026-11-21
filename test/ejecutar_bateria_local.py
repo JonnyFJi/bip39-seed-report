@@ -21,7 +21,8 @@ import unittest
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "bip39_seed_report.py"
-EXPECTED_SHA256 = "b29675e5d91f52fd6c109a777b820945c01c12ef88e6f9926f61cc6e204e20d6"
+EXPECTED_SHA256 = "b31741cc898b86394c2e103effe25db14bff4f54361f31928e19387688283fcd"
+
 STAGES = [
     ("01_vectores", "bip39_seed_report.py", ["--run-tests", "--vectors-file", "test/vectors.json"]),
     ("02_cifrado", "test/test_cifrado_report.py", []),
@@ -42,6 +43,8 @@ STAGES.extend(
     (f"{number:02d}_" + Path(relative).stem.removeprefix("test_"), relative, [])
     for number, relative in enumerate(ENTROPY_TEST_FILES, start=11)
 )
+
+STAGES.append(("26_legacy_bip32", "test/test_legacy_bip32_report.py", []))
 
 PROTECTED_FILES = (
     "bip39_seed_report.py",
