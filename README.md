@@ -12,15 +12,114 @@ custodiar fondos.
 
 ## Descripción del script
 
-El programa permite generar o importar una mnemonic BIP39 inglesa,
-obtener su seed y derivar material BIP32 y direcciones de ejemplo
-en rutas BIP44, BIP49, BIP84 y BIP86, para mainnet o testnet.
+BIP39 Seed Report es una herramienta local de línea de comandos para
+generar, importar, validar, derivar e inspeccionar material BIP39/BIP32.
+Su propósito es hacer observable el recorrido entre las entradas,
+las claves derivadas y las direcciones, y conservar el resultado en
+un reporte privado cifrado.
+
+Permite trabajar con una mnemonic BIP39 inglesa y su passphrase opcional,
+o importar directamente una seed BIP32 hexadecimal sin utilizar mnemonic
+ni passphrase BIP39. La entrada BIP32 directa no convierte una seed
+arbitraria en una mnemonic ni certifica el origen del material importado.
+
+Deriva direcciones para mainnet o testnet en las familias BIP44, BIP49,
+BIP84 y BIP86, y en una sección legacy BIP32 basada en `m/0'`.
+El reporte contiene diez direcciones de recepción y diez de cambio
+por sección: cien direcciones en total. Son derivaciones locales,
+no direcciones descubiertas mediante consultas de actividad.
 
 No consulta la red Bitcoin, no obtiene saldos ni UTXO y no construye,
-firma o transmite transacciones.
+firma o transmite transacciones. No es una wallet ni un servicio
+de recuperación de fondos.
 
-El reporte privado incluye material que puede controlar fondos.
-Debe tratarse como secreto, incluso cuando esté cifrado.
+El reporte privado incluye seeds, claves privadas y claves extendidas
+que pueden permitir controlar fondos. Debe tratarse como secreto,
+incluso cuando esté cifrado. La contraseña de exportación protege
+el archivo; no sustituye la protección del equipo ni la conservación
+responsable del material y de su contraseña.
+
+## A quién va dirigida
+
+- Personas que estudian BIP39, BIP32 y las rutas de derivación Bitcoin
+  y quieren observar sus relaciones mediante ejemplos reproducibles.
+- Docentes y estudiantes que preparan demostraciones con entradas
+  ficticias, longitudes BIP39 válidas y distintas familias de direcciones.
+- Desarrolladores y personas que realizan pruebas técnicas y necesitan
+  generar reportes, preparar casos controlados o contrastar resultados
+  con otra implementación.
+- Usuarios técnicos que quieren examinar derivaciones de material
+  conocido y entienden las diferencias entre mnemonic, seed, passphrase
+  BIP39, contraseña del reporte y claves extendidas.
+
+No está planteada como una solución de custodia lista para usar ni
+como sustituto de una hot wallet o una hardware wallet. Requiere
+preparar el entorno, revisar los requisitos del modo elegido y
+comprender qué información privada se genera o se importa.
+
+La decisión de uso corresponde al usuario. Las funciones disponibles,
+el cifrado y los resultados de las pruebas no constituyen una auditoría
+independiente ni una certificación de seguridad para custodiar fondos.
+
+## Cómo aprovechar la herramienta
+
+- Estudiar el recorrido BIP39: entropía, checksum, palabras, passphrase
+  opcional y seed; observar qué cambia al modificar una entrada
+  controlada y qué elementos no se pueden recuperar a partir de otros.
+- Examinar la derivación BIP32: comparar la raíz, la cuenta legacy
+  endurecida `m/0'` y sus claves extendidas, distinguiendo material
+  privado y público.
+- Comparar las familias BIP44, BIP49, BIP84 y BIP86, sus rutas de cuenta
+  y las cadenas de recepción y cambio, con índices del 0 al 9.
+- Trabajar con una seed BIP32 hexadecimal directa y distinguir ese
+  recorrido del que comienza con una mnemonic BIP39.
+- Preparar casos de prueba y contrastar direcciones, rutas o claves
+  con otra implementación usando exactamente las mismas entradas,
+  red, passphrase, cuenta, cadena e índice. Comparar dos llamadas
+  a la misma biblioteca no equivale a una verificación independiente.
+- Examinar candidatos de última palabra para una mnemonic incompleta
+  de 11 o 23 palabras. La validez del checksum no identifica por sí
+  sola la palabra original ni demuestra que un candidato corresponda
+  a una wallet concreta.
+- Conservar un reporte cifrado e inspeccionarlo después, distinguiendo
+  la verificación de coherencia de la simple visualización.
+- Ejecutar las suites para registrar el comportamiento de una revisión
+  en un entorno concreto. Los resultados pertenecen a esa revisión
+  y preparación; no certifican cualquier equipo o instalación.
+
+Para aprendizaje, demostraciones y pruebas, utiliza material ficticio.
+No compartas seeds, mnemonics, passphrases, contraseñas ni claves privadas
+para pedir ayuda. Un reporte de mainnet no demuestra que existan fondos;
+uno de testnet sigue pudiendo contener secretos que no deben reutilizarse
+para otros fines.
+
+## Límites de interpretación
+
+Una mnemonic con checksum válido no demuestra que su origen fuera
+aleatorio o imprevisible. Los indicadores de patrón tampoco estiman
+la entropía real ni certifican la seguridad de una entrada.
+
+La generación redundante registra el modo ejecutado y los estados
+de sus proveedores. Tener varias interfaces disponibles no demuestra
+que sus fuentes sean independientes. Los errores de preparación pueden
+detener el proceso antes de intentar una adquisición.
+
+GAP representa aquí la cantidad de direcciones derivadas por cadena.
+No es una búsqueda de direcciones utilizadas, un escaneo de saldos
+ni un mecanismo para localizar fondos o reconstruir automáticamente
+las rutas de una wallet desconocida.
+
+El inspector diferencia autenticación del archivo, comprobaciones de
+coherencia y lectura del contenido. Mostrar un reporte correctamente
+no verifica por sí mismo todas sus direcciones. Consultar el alcance
+de cada opción en la sección de inspección.
+
+La ejecución offline y el cifrado del reporte no protegen un equipo
+comprometido ni garantizan la eliminación de secretos de memoria,
+capturas, registros, archivos temporales o copias externas.
+Las claves públicas extendidas también pueden facilitar correlación
+entre direcciones; no deben tratarse como información sin implicaciones
+de privacidad.
 
 ## Funciones implementadas
 
@@ -28,28 +127,71 @@ Debe tratarse como secreto, incluso cuando esté cifrado.
   `current` explícito mediante `os.urandom()`, en longitudes BIP39 válidas.
 - Conversión a mnemonics inglesas de 12, 15, 18, 21 o 24 palabras.
 - Aceptación del resultado generado sin filtrar palabras repetidas.
-- Importación de entropy hexadecimal, entropy binaria o mnemonic existente.
+- Importación de entropía hexadecimal, entropía binaria o mnemonic existente.
 - Enumeración de candidatos para completar mnemonics de 11 o 23 palabras.
 - Validación de longitud, wordlist y checksum BIP39.
-- Conversión inversa de mnemonic a entropy.
+- Conversión inversa de mnemonic a entropía.
 - Derivación de seed con passphrase BIP39 y normalización Unicode NFKD.
-- Derivación de material BIP32 y direcciones BIP44, BIP49, BIP84 y BIP86.
+- Importación directa de una seed BIP32 hexadecimal de 16 a 64 bytes,
+  sin mnemonic ni passphrase BIP39.
+- Derivación de direcciones BIP44, BIP49, BIP84 y BIP86, más una sección
+  legacy BIP32 P2PKH basada en `m/0'`.
+- Diez direcciones por cadena de recepción y cambio, con índices del 0
+  al 9 y cien direcciones en total en el reporte privado.
+- Claves extendidas privadas y públicas de la raíz `m` y de la cuenta
+  legacy endurecida `m/0'` en el reporte privado, etiquetadas por red,
+  sin eliminar los campos hexadecimales existentes.
 - Selección de mainnet o testnet.
+- Resumen compacto de terminal con una dirección de recepción por sección,
+  sin claves privadas ni clave pública extendida raíz.
 - Indicadores descriptivos de patrón, sin score de seguridad.
 - Exportación cifrada mediante scrypt y AES-256-GCM.
-- Descifrado del formato histórico para compatibilidad.
+- Descifrado del formato histórico para compatibilidad; no implica
+  compatibilidad del inspector con todas las estructuras antiguas.
 - Entrada oculta centralizada con comprobación de TTY.
-- Confirmación doble de passphrase y cancelación controlada.
+- Confirmación doble de passphrase BIP39 y cancelación controlada.
 - Bloqueo predeterminado de secretos por argumentos CLI.
 - Comprobación local de la wordlist embebida y de la lista efectiva
   utilizada por mnemonic.
-- Inspector distribuido para revisar reportes cifrados mediante un menú.
-- Verificación sin imprimir contenido privado.
-- Revisión en ventana temporal de GNOME Terminal.
-- Revelación explícita en la terminal actual, previa confirmación.
-- Selección del inspector con plazo de 360 segundos.
-- Finalización del inspector después de completar la revisión en ventana
-  o la revelación en la terminal actual.
+- Inspector distribuido con cinco opciones y selección de menú
+  limitada a 360 segundos:
+  - `1`: verificar sin imprimir contenido privado.
+  - `2`: revisar en una ventana temporal de GNOME Terminal.
+  - `3`: revelar en la terminal actual, previa confirmación.
+  - `4`: leer en el visor gráfico integrado, con búsqueda y sin edición.
+  - `5`: abrir en la aplicación externa asociada a texto, tras advertir
+    que se crea una copia temporal sin cifrar.
+- Finalización del inspector después de completar una operación de
+  lectura; la verificación de la opción `1` vuelve al menú.
+- Requisitos y riesgos diferenciados para cada vía de inspección.
+  El inspector actual está limitado a Linux.
+
+Estas funciones describen la copia local en revisión. Los ensayos
+históricos conservan sus propios alcances y recuentos.
+
+La batería local del 19 de noviembre de 2026, registrada en
+`output/bateria_local_lcqnkkq3`, completó las 26 etapas con código `0`.
+Acumuló 411 métodos unittest, sin fallos, errores, omisiones ni fallos
+esperados. Las tres etapas iniciales realizan comprobaciones que no
+se contabilizan como métodos unittest.
+
+El ejecutor registró 80 de 80 funciones o métodos del núcleo alcanzados
+y conservó los 50 archivos protegidos, tanto en contenido como en el
+conjunto inventariado. Estos datos no equivalen a cobertura completa
+de ramas, validación de todas las plataformas ni verificación
+criptográfica independiente.
+
+El núcleo de esta corrida tiene SHA-256
+`bcae133d9d57c1e6923ef13e069d308e7f1773bb384f43d439796d8cc5d01787`.
+Las dos clases Java preparadas localmente conservaron sus hashes en
+una comprobación adicional anterior y posterior a la batería; esa
+comprobación se registra separadamente del inventario del ejecutor.
+
+Los ensayos manuales se conservan por separado. El campo automático
+`manual_terminal_tests` permanece pendiente y no se modifica para
+atribuirle comprobaciones manuales. Los escenarios de ausencia de
+Java o Node y la revisión final previa a publicación siguen pendientes.
+Esta corrida no anuncia una release ni una auditoría independiente.
 
 ## Entorno de trabajo de esta etapa
 
@@ -95,13 +237,16 @@ Flujo:
 
 1. Verifica localmente la wordlist.
 2. Solicita y confirma la contraseña del reporte cifrado.
-3. Permite elegir generación o importación del material de entrada.
-4. En generación interactiva, permite elegir 12 o 24 palabras.
-5. Solicita la red cuando no se proporcionó -n/--network.
-6. Solicita y confirma la passphrase BIP39; puede quedar vacía.
-7. Valida y deriva el material.
-8. Muestra un resumen compacto sin secretos privados ni GAP limit.
-9. Guarda el reporte privado cifrado, sin reducir el contenido.
+3. Permite elegir generación o importación del material de entrada,
+   incluida una seed BIP32 hexadecimal directa.
+4. En generación interactiva de mnemonic, permite elegir 12 o 24 palabras.
+5. Solicita la red cuando no se proporcionó `-n`/`--network`.
+6. En el recorrido BIP39, solicita y confirma la passphrase opcional,
+   que puede quedar vacía. La entrada BIP32 directa no utiliza
+   mnemonic ni passphrase BIP39.
+7. Valida la entrada y deriva las cinco secciones de recepción y cambio.
+8. Muestra un resumen compacto sin material privado ni el detalle GAP.
+9. Guarda el reporte privado cifrado con el contenido completo.
 10. Muestra la ruta final y un único comando para abrir el inspector.
 
 La ruta predeterminada es:
@@ -429,24 +574,34 @@ para aceptar o descartar una seed.
 
 ## Tipos de dirección soportados
 
-| Estándar | Ruta de derivación | Tipo de address | Descripción |
-|----------|-------------------|-----------------|-------------|
-| **BIP44** | m/44'/0'/0'/0/i | P2PKH | Legacy (direcciones que empiezan con 1) |
-| **BIP49** | m/49'/0'/0'/0/i | P2WPKH-P2SH | Nested SegWit (direcciones que empiezan con 3) |
-| **BIP84** | m/84'/0'/0'/0/i | P2WPKH | Native SegWit (direcciones que empiezan con bc1q) |
-| **BIP86** | m/86'/0'/0'/0/i | P2TR | Taproot (direcciones que empiezan con bc1p) |
+El reporte deriva las siguientes cinco secciones. En las cuatro
+familias BIP44, BIP49, BIP84 y BIP86, `c` representa el coin type:
+`0` para mainnet y `1` para testnet. El índice `i` recorre de 0 a 9.
 
-Cuenta 0, cadena externa (change 0), 5 direcciones por ruta
+| Sección | Recepción | Cambio | Tipo de dirección |
+|---|---|---|---|
+| BIP44 | `m/44'/c'/0'/0/i` | `m/44'/c'/0'/1/i` | P2PKH |
+| BIP49 | `m/49'/c'/0'/0/i` | `m/49'/c'/0'/1/i` | P2WPKH-P2SH |
+| BIP84 | `m/84'/c'/0'/0/i` | `m/84'/c'/0'/1/i` | P2WPKH |
+| BIP86 | `m/86'/c'/0'/0/i` | `m/86'/c'/0'/1/i` | P2TR |
+| BIP32 legacy | `m/0'/0/i` | `m/0'/1/i` | P2PKH |
 
-La tabla muestra ejemplos de mainnet. En testnet se utiliza coin_type=1'
-en lugar de 0' y las codificaciones correspondientes a esa red.
+Las cuatro familias BIP44 a BIP86 utilizan la cuenta endurecida `0'`.
+La sección legacy utiliza el nodo endurecido `m/0'`; no añade un
+coin type a esa ruta. La red seleccionada determina las codificaciones
+de direcciones y claves correspondientes.
 
-El programa deriva cuenta 0, cadena externa 0 y cinco direcciones por
-familia, con índices 0 a 4.
+Cada sección conserva diez direcciones de recepción y diez de cambio
+en el reporte privado: cien direcciones en total. La vista compacta
+de terminal muestra únicamente la primera dirección de recepción
+de cada sección.
 
-El rótulo GAP limit del reporte representa actualmente la cantidad
-de direcciones derivadas. No implica descubrimiento de actividad:
-el programa no consulta blockchain ni busca direcciones usadas.
+GAP — Direcciones derivadas por cadena: 10.
+
+El campo interno se conserva como `gap_limit`. En este proyecto expresa
+una cantidad fija de derivaciones locales, no un descubrimiento de
+actividad. El programa no consulta blockchain, saldos ni UTXO y no
+busca direcciones utilizadas.
 
 ## Dependencias
 
@@ -476,6 +631,33 @@ Instalar `requirements.txt` no instala Java ni Node.js ni compila las
 fuentes Java. Consultar
 [la preparación de runtimes en Linux](docs/INSTALACION_LINUX.md#preparación-adicional-de-runtimes-para-entropy)
 y el [inventario de runtimes](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
+
+Java y Node no son requisitos de todas las operaciones. Sus requisitos
+dependen del modo solicitado y de las pruebas que se ejecuten:
+
+| Operación | Preparación adicional |
+|---|---|
+| Generación con `--entropy-mode current` explícito | No adquiere aportaciones mediante Java ni Node. Requiere las dependencias Python del proyecto. |
+| Generación redundante con los cuatro proveedores configurados | Requiere los runtimes Python, Java y Node, los auxiliares correspondientes y la clase Java compilada en el classpath configurado. |
+| Batería que incluye recorridos con proveedores reales | Requiere preparar esos proveedores antes de ejecutarla. Aprobar las pruebas simuladas no acredita esa preparación. |
+| Inspector de reportes existentes | No necesita Java ni Node para descifrar. Sus requisitos adicionales dependen de la opción de lectura elegida; consultar la sección de inspección. |
+
+Para compilar las fuentes Java se necesita un JDK con `javac`; disponer
+solo del ejecutable `java` no basta. Para ejecutar una clase ya compilada
+se necesita un runtime Java compatible. La compilación debe realizarse
+con las instrucciones de la guía Linux y en la copia de trabajo elegida.
+
+ADVERTENCIA: con la configuración actual, si falta
+`build/entropy_java/JavaEntropyProvider.class`, la construcción de los
+comandos conjuntos puede detenerse con
+`Falta compilar JavaEntropyProvider.java.` antes de intentar adquirir
+aportaciones. Este mensaje también puede aparecer con Java instalado.
+No significa que se haya intentado y rechazado una aportación Java.
+
+No se garantiza una reducción o un respaldo automático ante cualquier
+error de preparación. Si se desea el modo `current`, solicitarlo
+expresamente; no cambiar de modo en silencio ni omitir pruebas para
+presentar como completa una batería que no pudo ejecutarse.
 
 Antes de generar en modo redundante o ejecutar su batería:
 
@@ -834,47 +1016,65 @@ pruebas con material de recuperación real.
 
 ## Salida del script
 
-La vista predeterminada es compacta: muestra entrada, red, estado BIP39,
-número de palabras, presencia de passphrase, rutas, claves públicas
-extendidas disponibles y la primera dirección de cada familia.
-No muestra entropy, seed, claves privadas, estadísticas detalladas ni
-GAP limit. Las direcciones y claves públicas extendidas son correlacionables.
+La vista predeterminada es compacta. Muestra el modo de entrada, la red,
+las rutas, las claves públicas extendidas de cuenta disponibles y
+la primera dirección de recepción de cada sección. No muestra claves
+privadas, seeds, entropía, la clave pública extendida raíz ni el detalle
+GAP. Las direcciones y claves públicas extendidas pueden facilitar
+correlación entre direcciones.
 
---show-all revela secretos y detalles de la vista de terminal, pero mantiene
-solo la primera dirección de cada familia, índice 0. No imprime todo el JSON
-ni muestra GAP limit. Utilizarlo solo con material ficticio.
+En el recorrido BIP39, también muestra el estado de validación,
+el número de palabras y si se utilizó passphrase. En BIP32 directo
+identifica la entrada como seed hexadecimal directa y no presenta
+una mnemonic o passphrase BIP39 como si se hubieran utilizado.
 
-Los reportes privados conservan el contenido anterior. El contexto JSON
-normal añade report_notices, con version, general, input y privacy.
-Ese versionado informativo no cambia la versión 1 del contenedor cifrado.
-El TXT mantiene su contenido y añade los avisos. GAP limit se explica en
-los reportes como cantidad de direcciones generadas, no descubrimiento
-de actividad: no se consulta blockchain, saldo ni UTXO.
+`--show-all` revela secretos y detalles de la vista BIP39 en la terminal,
+pero conserva una sola dirección de recepción por sección; no imprime
+todo el reporte privado. En BIP32 directo, la salida de terminal mantiene
+el resumen compacto incluso si se solicita `--show-all`. Utiliza
+exclusivamente material ficticio para probar la revelación en terminal.
 
-Las verificaciones de ambas wordlists, errores, contraseñas, cancelaciones
-y decisiones de seguridad siguen activas aunque se reduzcan mensajes
-de éxito. Si se solicita --audit-passphrase, el cálculo y los campos se
-conservan en el reporte; en compacto se indica su inclusión y los detalles
-se muestran con --show-all.
+El reporte privado conserva las diez direcciones de recepción y las
+diez de cambio de cada sección, las claves privadas correspondientes
+y las claves extendidas privadas y públicas de `m` y `m/0'`, con sus
+rutas y red identificadas. El contenido se exporta cifrado tanto
+si el formato interno es JSON como si es TXT.
+
+El contexto privado incluye `report_notices`, con `version`, `general`,
+`input` y `privacy`. Ese versionado informativo no cambia la versión
+del contenedor cifrado. Los avisos y el detalle GAP se conservan
+en el reporte; GAP expresa cantidad de direcciones derivadas por cadena,
+no descubrimiento de actividad.
+
+Las verificaciones de wordlist, errores, contraseñas y cancelaciones
+siguen activas aunque se reduzcan los mensajes de éxito. Si se solicita
+`--audit-passphrase` en un recorrido BIP39, los resultados se conservan
+en el reporte y el resumen indica su inclusión. La entrada BIP32 directa
+no admite opciones de passphrase BIP39.
 
 ### Pie de revisión
 
-Después de publicar el reporte cifrado, el programa muestra un único
-comando para abrir inspeccionar_reporte_cifrado.py.
+Después de guardar el reporte cifrado, el programa muestra un único
+comando para abrir `inspeccionar_reporte_cifrado.py`.
 
 El comando utiliza el intérprete que ejecutó el programa y las rutas
 resueltas del inspector y del archivo final, incluidos los sufijos
 secuenciales. No requiere ejecutar el inspector desde la raíz si se
 utiliza el comando completo mostrado.
 
-Incluye las expectativas de formato, número de palabras, red y modo
-de entrada correspondientes al reporte generado.
+Incluye las expectativas de formato, red y modo de entrada.
+En reportes BIP39 incluye además el número de palabras; en BIP32
+directo omite `--words`, porque no se utilizó una mnemonic.
 
 La contraseña de exportación se solicita al elegir una operación.
 No se incorpora al comando ni se sustituye por la passphrase BIP39.
 
 El pie no ejecuta automáticamente el inspector ni revela el reporte.
-La verificación y la revelación se eligen expresamente en su menú.
+El menú del inspector ofrece las opciones `1` a `5`, con requisitos
+y riesgos diferenciados en la sección de inspección. Las expectativas
+de red, modo y palabras se contrastan mediante la opción `1` según
+su alcance; abrir el contenido con otra opción no sustituye esa
+verificación.
 
 ## Seguridad operacional
 
@@ -893,121 +1093,218 @@ pero pueden facilitar correlación. Trátalas con cautela.
 
 ## Revisar un reporte cifrado
 
-Utilizar preferentemente el comando completo mostrado después de
-generar el reporte. La contraseña requerida es la de exportación,
-no la passphrase BIP39.
+Utiliza preferentemente el comando completo que se muestra después de
+generar el reporte. Cuando el inspector pida la contraseña, introduce
+la de exportación, no la passphrase BIP39. No la incluyas en el comando.
 
-También puede abrirse el inspector indicando el archivo final:
+También puedes abrir el inspector indicando el archivo final:
 
 ```bash
 "$PY" inspeccionar_reporte_cifrado.py "output/bip39_seed_report.json"
 ```
 
-Ajustar la ruta al archivo realmente creado, incluidos los sufijos
-secuenciales. La extensión exterior no sustituye la comprobación
-del formato interno.
+Usa el mismo intérprete del proyecto y ajusta la ruta al archivo que
+realmente se creó, incluidos los sufijos secuenciales. La extensión
+exterior no sustituye la comprobación del formato interno.
 
 ### Requisitos
 
-- Linux y una terminal interactiva en stdin y stdout.
-- El inspector junto a bip39_seed_report.py.
-- Las dependencias del proyecto disponibles en el intérprete elegido.
-- Para la opción 2: GNOME Terminal, gsettings y sesión gráfica disponible.
-- Un único perfil GNOME con nombre visible BIP39-revision.
-- Ese perfil debe tener exit-action configurado como close y
-  use-custom-command desactivado.
+- El inspector está limitado a Linux. Requiere una terminal interactiva
+  para la entrada y la salida, el archivo `inspeccionar_reporte_cifrado.py`
+  junto a `bip39_seed_report.py` y las dependencias del proyecto
+  disponibles en el intérprete elegido.
+- Opciones `1` y `3`: no requieren GNOME Terminal, Tk ni un editor externo.
+- Opción `2`: requiere una sesión gráfica, GNOME Terminal y `gsettings`.
+  Debe existir un único perfil con nombre visible `BIP39-revision`,
+  con `exit-action` en `close` y `use-custom-command` desactivado.
+- Opción `4`: requiere una sesión gráfica y `tkinter` disponible en el
+  mismo intérprete que ejecuta el inspector. Es un requisito opcional,
+  exclusivo del visor integrado.
+- Opción `5`: requiere una sesión gráfica, `xdg-open` y una aplicación
+  local asociada a archivos de texto `.txt`. No requiere Tk ni GNOME
+  Terminal. No instala ni selecciona un editor concreto.
 
-La primera versión del inspector está limitada a Linux. Las opciones
-1 y 3 no requieren abrir GNOME Terminal; la opción 2 sí.
+Para comprobar si el intérprete puede abrir el visor integrado, ejecuta
+lo siguiente desde una terminal de tu escritorio y cierra la ventana
+de demostración. El comando no abre ningún reporte:
+
+```bash
+"$PY" -m tkinter
+```
+
+Si falta `tkinter` y usas el Python de la distribución en Linux Mint 21.3
+o Ubuntu 22.04, el paquete del sistema es `python3-tk`:
+
+```bash
+sudo apt install python3-tk
+```
+
+Después de instalarlo, repite la prueba con el mismo intérprete. Si usas
+un Python de otra procedencia, comprueba cómo proporciona Tk esa
+instalación. Si Tk se importa pero la demostración no abre, comprueba
+que estás en una sesión gráfica local antes de repetir la instalación.
+
+Para la opción `5`, puedes consultar la asociación de texto del
+escritorio sin abrir un reporte, si `xdg-mime` está disponible:
+
+```bash
+command -v xdg-open
+xdg-mime query default text/plain
+```
+
+La aplicación depende de la asociación del escritorio: puede ser un
+editor u otra aplicación. En el ensayo en Linux Mint se abrió Xed;
+Xed no es un requisito del inspector. No uses esta opción si no confías
+en la aplicación asociada o en el equipo.
 
 ### Menú y finalización
 
 | Selección o situación | Comportamiento |
 |---|---|
-| 1: verificar correctamente | Muestra el resultado sin imprimir el contenido privado y vuelve al menú |
-| 2: ventana termina con código 0 | Termina el inspector principal |
-| 2: error o código distinto de 0 | Permite elegir otra operación, sin revelar automáticamente |
-| 3: confirmación afirmativa y revelación completada | Termina el inspector |
-| 3: confirmación rechazada | Vuelve al menú sin solicitar contraseña |
-| Error de autenticación | Muestra error y vuelve al menú |
-| Q | Termina con código 0 |
-| Ctrl+C o EOF | Cancelación controlada con código 1 |
-| Plazo de selección agotado | Termina con código 1 sin iniciar otra operación |
+| `1`: verificar sin mostrar contenido privado | Muestra el resultado de la comprobación y vuelve al menú. |
+| `2`: revisar en ventana temporal | Abre una ventana de GNOME Terminal. Si la revisión termina con código `0`, finaliza el inspector principal. Si la apertura o revisión no se completa, no revela el reporte automáticamente en la terminal original. |
+| `3`: revelar en esta terminal | Pide confirmación antes de solicitar la contraseña. Si la revelación se completa, finaliza el inspector; si se rechaza, vuelve al menú. |
+| `4`: visor gráfico de solo lectura | Pide confirmación en una ventana gráfica. Si aceptas, introduce la contraseña en la terminal. Al cerrar el visor después de una apertura correcta, finaliza el inspector. Si rechazas la confirmación, vuelve al menú sin pedir contraseña. |
+| `5`: abrir en editor externo — ADVERTENCIA: crea una copia temporal sin cifrar | Advierte del riesgo y pide escribir `s` para continuar. Si se rechaza la confirmación o vence su plazo, vuelve al menú sin descifrar. Tras la revisión, cierra el documento externo y pulsa Enter cuando lo indique la terminal para retirar el temporal y finalizar. |
+| Error de autenticación en el menú | Muestra el error y vuelve al menú sin revelar el reporte ni abrir una alternativa automática. |
+| `Q` | Termina con código `0`. |
+| Ctrl+C o fin de entrada (EOF) | Cancela la inspección con código `1`. |
+| Plazo de selección agotado | Termina con código `1` sin iniciar otra operación. |
 
-Cada solicitud de selección permite hasta 360 segundos para enviar
-una respuesta con Enter. Una opción inválida inicia otra solicitud.
+El menú ofrece hasta 360 segundos para seleccionar una opción y pulsar
+Enter. Una opción inválida inicia otra solicitud. La confirmación de
+la opción `5` tiene su propio plazo de 360 segundos. Estos plazos no
+son un límite global y no limitan la contraseña ni el tiempo de lectura.
 
-El plazo corresponde al menú: no es un timeout global y no limita
-la entrada de contraseña, la confirmación de revelación ni el tiempo
-de lectura del visor.
-
-En la ventana temporal, Enter termina la revisión. Con el perfil
-requerido, la ventana se cierra al finalizar.
-
-El código 0 del proceso de ventana no se presenta como una verificación
+En la ventana de GNOME Terminal de la opción `2`, pulsa Enter para
+terminar la revisión. Con el perfil requerido, la ventana se cierra
+al finalizar. Un código `0` de la ventana no equivale a una verificación
 independiente del reporte.
 
 ### Alcance de la opción 1
 
-En JSON comprueba BIP39, coherencia de entropy y estructura de las
-familias, cantidades, índices y rutas. Contrasta la seed cuando
-passphrase_used es false.
+En JSON, comprueba la estructura de las cinco secciones de derivación,
+incluidas las cantidades, los índices y las rutas de recepción y
+cambio. Comprueba también la coherencia de las claves extendidas BIP32
+con la seed declarada. El parser rechaza claves JSON duplicadas y
+constantes no estándar como `NaN` e infinitos.
 
-El parser del contenido JSON interno rechaza claves duplicadas y
-constantes no estándar como NaN e infinitos.
+- En un reporte BIP39, comprueba la frase, la entropía y su checksum.
+  Contrasta la seed BIP39 con la frase cuando `passphrase_used` es falso.
+  Si se usó una passphrase BIP39 no vacía, no la solicita ni contrasta
+  la seed con ella; indica esa limitación.
+- En un JSON de BIP32 directo, comprueba la estructura correspondiente
+  y la coherencia de las claves extendidas con la seed BIP32 declarada.
+  `--words` no aplica a esta entrada.
+- En TXT, comprueba la autenticación, la cabecera y la red. Si se pide
+  expresamente `--input-mode bip32_seed_hex`, también exige que la
+  etiqueta de modo del TXT coincida y rechaza `--words` para ese modo.
+  No reconstruye la seed ni verifica las derivaciones del TXT.
 
-La comprobación de estructura exige tipos concretos: enteros exactos
-para entropy_bits e índices, objetos para las familias, una lista de
-objetos para las direcciones y texto no vacío para cada dirección.
+Las expectativas de red, modo y número de palabras se aplican según
+el formato y el modo de entrada. Estos controles no constituyen una
+verificación criptográfica independiente de todas las direcciones o
+claves. Un error de estructura posterior al descifrado no significa
+que la contraseña sea incorrecta.
 
-Se admiten campos adicionales legítimos del reporte. Estos controles
-de estructura no constituyen verificación criptográfica independiente
-de todas las direcciones o claves.
-
-Si se utilizó una passphrase BIP39 no vacía, no la solicita ni contrasta
-la seed con ella. Declara esa limitación.
-
-En TXT el alcance es menor: autenticación, cabecera y red.
-
-No verifica independientemente todas las direcciones, claves privadas
-o claves públicas extendidas.
-
-Las expectativas de palabras y modo de entrada se comprueban en la
-verificación JSON. No deben atribuirse esas comprobaciones al visor
-ni a la revelación.
+Las opciones `2`, `3`, `4` y `5` son vías de lectura, no sustitutos de
+la opción `1`. El inspector autentica y descifra el reporte para
+mostrarlo y reconoce el formato interno, pero esas vías no ejecutan
+las comprobaciones de coherencia de la opción `1`. Para contrastar
+`--network`, `--input-mode` o `--words` cuando corresponda, selecciona `1`.
 
 ### Exposición del contenido
 
-Las opciones 2 y 3 autentican y descifran el archivo para mostrarlo;
-no ejecutan por sí mismas todas las comprobaciones de la opción 1.
+Las opciones `1` a `4` no crean deliberadamente un archivo descifrado.
+Esto no excluye capturas, registros externos, memoria de intercambio
+ni otras formas de persistencia introducidas por el sistema.
 
-La opción 2 separa la visualización en una ventana dedicada. La opción 3
-imprime el contenido en la terminal actual después de una confirmación.
+La opción `2` muestra el reporte en otra terminal y la opción `3`
+lo imprime en la terminal actual. El contenido puede quedar en el
+historial visible de desplazamiento de la terminal (*scrollback*).
+Cerrar la ventana no garantiza borrado seguro.
 
-El inspector no crea expresamente una copia descifrada en disco.
-Esto no descarta registros externos, capturas, swap ni persistencia
-introducida por el sistema o el emulador de terminal.
+Para leer sin que el inspector escriba una copia descifrada, usa
+la opción `4`. El visor integrado permite buscar y desplazarse por
+el reporte, no permite editarlo y no ofrece una función de guardado.
+No protege contra capturas de pantalla ni garantiza el borrado de
+memoria al cerrar.
 
-Cerrar el inspector o su ventana no garantiza borrado seguro.
-La opción 3 puede dejar el contenido en el scrollback.
+### Opción 5: editor externo y copia temporal sin cifrar
 
-### Revisión en editor: solo laboratorio
+Abrir directamente el archivo cifrado en un editor solo muestra el
+contenedor, no el reporte legible. La opción `5` descifra el reporte
+después de una confirmación explícita, escribe una copia temporal
+`reporte.txt` y la entrega a la aplicación asociada a archivos de
+texto. Usa esa extensión tanto para contenido JSON como TXT sin
+convertir el contenido. El original cifrado no se modifica.
 
-Abrir el archivo cifrado en un editor muestra el contenedor y su ciphertext,
-no el reporte privado. Para leer el contenido en un editor se necesita una
-copia descifrada explícita, reservada a datos ficticios, fuera del repositorio
-y de carpetas sincronizadas. No modificar el original cifrado.
+El temporal se crea en un directorio privado y con permisos de archivo
+`0600` en Linux. Aun así, la aplicación externa puede permitir copiar,
+editar o guardar el reporte y puede conservar copias mediante el
+guardado automático, las copias de respaldo o la restauración de
+sesiones. También puede conservar la ruta en su lista de archivos
+recientes. Usa esta vía solo con datos ficticios de laboratorio y en
+una sesión local de confianza. No publiques ninguna copia descifrada.
 
-Usar carpeta 0700 y archivo 0600 en Linux. Esos permisos no protegen un host
-comprometido ni evitan backups, autosaves, archivos recientes o capturas.
-Desactivar esas funciones en el editor cuando sea posible. Eliminar después
-no garantiza borrado seguro. Ninguna copia descifrada debe publicarse.
+Cuando termines, cierra el documento en la aplicación externa y pulsa
+Enter en la terminal cuando se te indique. El inspector intenta
+retirar su copia temporal; no elimina las copias que la aplicación
+pueda haber creado. Una terminación forzada puede dejar el temporal
+en el equipo. Si el inspector avisa que no pudo retirarlo, revisa la
+ruta local indicada. Que una entrada reciente ya no se pueda abrir
+no demuestra que se hayan eliminado otras copias ni que se haya
+producido un borrado seguro.
 
-inspeccionar_reporte_cifrado.py forma parte de la distribución.
+`inspeccionar_reporte_cifrado.py` forma parte de la distribución.
 Otros auxiliares locales no se consideran distribuidos salvo que
 estén versionados expresamente.
 
 ## Estado y trabajo pendiente
+
+### Estado local de la revisión de noviembre 19
+
+La corrida `output/bateria_local_lcqnkkq3` completó 26 etapas y
+411 métodos unittest, con código `0`, inventario del núcleo alcanzado
+80/80 y 50 archivos protegidos conservados. Identifica el núcleo
+`bcae133d9d57c1e6923ef13e069d308e7f1773bb384f43d439796d8cc5d01787`.
+Las ediciones documentales posteriores no se incorporan retrospectivamente
+a sus manifiestos.
+
+La revisión incorpora recepción y cambio, diez direcciones por cadena,
+la sección legacy BIP32, las claves extendidas privadas y públicas
+de raíz y cuenta legacy en el reporte privado y la entrada BIP32 directa.
+El inspector dispone de cinco opciones, incluido el visor integrado
+y la apertura externa con advertencia de copia temporal sin cifrar.
+
+Los ensayos manuales de lectura TXT/JSON y del editor Xed se registran
+separadamente. No modifican el campo `manual_terminal_tests` del resumen
+automático ni acreditan una repetición de todos los manuales históricos.
+
+Después de esa corrida se actualizó el pie de ayuda para anunciar
+las cinco opciones del inspector y advertir de la copia temporal
+sin cifrar de la opción `5`. La regresión posterior
+`output/bateria_local_t2c17zkm` completó 26 etapas y 412 métodos unittest,
+con código `0`, inventario 80/80 y 50 archivos protegidos conservados.
+Su núcleo tiene SHA-256
+`b31741cc898b86394c2e103effe25db14bff4f54361f31928e19387688283fcd`.
+
+Después se añadió una prueba con cinco subcasos de errores y cancelación
+del editor externo. La suite aislada del inspector pasó de 65 a
+66 métodos y terminó con `OK`, sin modificar el inspector ni el núcleo.
+Ese método adicional todavía debe incorporarse a una corrida completa
+posterior; no se añade retrospectivamente a los 412 métodos registrados.
+
+Antes de publicar quedan por completar la regresión posterior al refuerzo,
+la comprobación de identidades y la selección final de archivos.
+La distribución se preparará para subida mediante la página web de
+GitHub, sin incluir reportes, entornos, compilados ni registros privados.
+
+### Resultados históricos conservados
+
+La lista siguiente reúne hitos de revisiones anteriores. Sus recuentos,
+menús y referencias a plataformas pertenecen a los ensayos que describen;
+no sustituyen el estado local ni las instrucciones actuales.
 
 Implementado y probado en los ensayos registrados:
 
@@ -1069,8 +1366,13 @@ Implementado y probado en los ensayos registrados:
 - Lectura acotada de archivos cifrados en el inspector y en el verificador
   de laboratorio, con rechazo del exceso antes de solicitar contraseña.
 
-Pendiente:
+### Pendientes y límites no resueltos
 
+- Ensayar expresamente la ausencia de Java y de Node en los flujos
+  correspondientes. Preparar todos los proveedores y superar la batería
+  no acredita esos escenarios.
+- Completar el cierre del lote actual y registrar una nueva regresión
+  después de los cambios pendientes del núcleo o de archivos protegidos.
 - Completar y comprobar la instalación de runtimes Java/Node desde cero
   en otro entorno; conservar el inventario ya realizado y registrar
   versiones e identidades nuevas para cada instalación distinta.
