@@ -62,6 +62,10 @@ import math
 from mnemonic import Mnemonic
 from bip_utils import (
     Bip39SeedGenerator,
+    Bip32Slip10Secp256k1,
+    Bip32KeyNetVersions,
+    P2PKHAddrEncoder,
+    WifEncoder,
     Bip44,
     Bip44Coins,
     Bip44Changes,
@@ -657,7 +661,7 @@ VALID_WORD_COUNTS = {12, 15, 18, 21, 24}
 DEFAULT_VECTORS_FILE = str(
     pathlib.Path(__file__).resolve().parent / "test" / "vectors.json"
 )
-GAP_LIMIT = 5
+GAP_LIMIT = 10
 
 DEFAULT_OUTPUT_PATH = "output/bip39_seed_report.json"
 
@@ -825,6 +829,75 @@ def bip32_master_key(seed):
     return I[:32].hex(), I[32:].hex()
 
 
+def bip32_network_parameters(network):
+    if network == "mainnet":
+        return {
+            "versions": Bip32KeyNetVersions(bytes.fromhex("0488b21e"), bytes.fromhex("0488ade4")),
+            "p2pkh": b"\x00",
+            "wif": b"\x80",
+        }
+    if network == "testnet":
+        return {
+            "versions": Bip32KeyNetVersions(bytes.fromhex("043587cf"), bytes.fromhex("04358394")),
+            "p2pkh": b"\x6f",
+            "wif": b"\xef",
+        }
+    raise ValueError("La red debe ser mainnet o testnet.")
+
+
+def bip32_root_node(seed, network):
+    parameters = bip32_network_parameters(network)
+    return Bip32Slip10Secp256k1.FromSeed(seed, key_net_ver=parameters["versions"])
+
+
+def build_bip32_extended_keys(seed, network):
+    root = bip32_root_node(seed, network)
+    account = root.DerivePath("m/0'")
+    return {
+        name: {
+            "path": path,
+            "network": network,
+            "extended_private_key": node.PrivateKey().ToExtended(),
+            "extended_public_key": node.PublicKey().ToExtended(),
+        }
+        for name, path, node in (
+            ("root", "m", root),
+            ("legacy_account", "m/0'", account),
+        )
+    }
+
+
+def derive_addresses_bip32_legacy(seed, network, gap_limit=GAP_LIMIT):
+    if type(gap_limit) is not int or gap_limit <= 0:
+        raise ValueError("La cantidad de direcciones debe ser un entero positivo.")
+    parameters = bip32_network_parameters(network)
+    account = bip32_root_node(seed, network).DerivePath("m/0'")
+    chains = {}
+    for chain in (0, 1):
+        chain_node = account.DerivePath(str(chain))
+        addresses = []
+        for index in range(gap_limit):
+            node = chain_node.DerivePath(str(index))
+            addresses.append({
+                "index": index,
+                "path": f"m/0'/{chain}/{index}",
+                "address": P2PKHAddrEncoder.EncodeKey(
+                    node.PublicKey().RawCompressed().ToBytes(), net_ver=parameters["p2pkh"]),
+                "private_key_wif": WifEncoder.Encode(
+                    node.PrivateKey().Raw().ToBytes(), net_ver=parameters["wif"]),
+                "public_key_hex": node.PublicKey().RawCompressed().ToHex(),
+            })
+        chains[chain] = addresses
+    return {
+        "path_template": "m/0'/0/i",
+        "change_path_template": "m/0'/1/i",
+        "xpub": account.PublicKey().ToExtended(),
+        "addresses": chains[0],
+        "change_addresses": chains[1],
+        "address_type": "P2PKH",
+    }
+
+
 def select_network(network):
     if network == "mainnet":
         return {
@@ -848,21 +921,29 @@ def select_network(network):
 def derive_addresses_bip44(seed, coin, coin_type, gap_limit=GAP_LIMIT):
     root = Bip44.FromSeed(seed, coin)
     account = root.Purpose().Coin().Account(0)
-    change = account.Change(Bip44Changes.CHAIN_EXT)
-    addresses = []
-    for i in range(gap_limit):
-        addr = change.AddressIndex(i)
-        addresses.append({
-            "index": i,
-            "path": f"m/44'/{coin_type}/0'/0/{i}",
-            "address": addr.PublicKey().ToAddress(),
-            "private_key_wif": addr.PrivateKey().ToWif(),
-            "public_key_hex": addr.PublicKey().RawCompressed().ToHex(),
-        })
+    chains = {}
+    for change_index, change_type in (
+        (0, Bip44Changes.CHAIN_EXT),
+        (1, Bip44Changes.CHAIN_INT),
+    ):
+        change = account.Change(change_type)
+        addresses = []
+        for i in range(gap_limit):
+            addr = change.AddressIndex(i)
+            addresses.append({
+                "index": i,
+                "path": f"m/44'/{coin_type}/0'/{change_index}/{i}",
+                "address": addr.PublicKey().ToAddress(),
+                "private_key_wif": addr.PrivateKey().ToWif(),
+                "public_key_hex": addr.PublicKey().RawCompressed().ToHex(),
+            })
+        chains[change_index] = addresses
     return {
         "path_template": f"m/44'/{coin_type}/0'/0/i",
+        "change_path_template": f"m/44'/{coin_type}/0'/1/i",
         "xpub": account.PublicKey().ToExtended(),
-        "addresses": addresses,
+        "addresses": chains[0],
+        "change_addresses": chains[1],
         "address_type": "P2PKH",
     }
 
@@ -870,21 +951,29 @@ def derive_addresses_bip44(seed, coin, coin_type, gap_limit=GAP_LIMIT):
 def derive_addresses_bip49(seed, coin, coin_type, gap_limit=GAP_LIMIT):
     root = Bip49.FromSeed(seed, coin)
     account = root.Purpose().Coin().Account(0)
-    change = account.Change(Bip44Changes.CHAIN_EXT)
-    addresses = []
-    for i in range(gap_limit):
-        addr = change.AddressIndex(i)
-        addresses.append({
-            "index": i,
-            "path": f"m/49'/{coin_type}/0'/0/{i}",
-            "address": addr.PublicKey().ToAddress(),
-            "private_key_wif": addr.PrivateKey().ToWif(),
-            "public_key_hex": addr.PublicKey().RawCompressed().ToHex(),
-        })
+    chains = {}
+    for change_index, change_type in (
+        (0, Bip44Changes.CHAIN_EXT),
+        (1, Bip44Changes.CHAIN_INT),
+    ):
+        change = account.Change(change_type)
+        addresses = []
+        for i in range(gap_limit):
+            addr = change.AddressIndex(i)
+            addresses.append({
+                "index": i,
+                "path": f"m/49'/{coin_type}/0'/{change_index}/{i}",
+                "address": addr.PublicKey().ToAddress(),
+                "private_key_wif": addr.PrivateKey().ToWif(),
+                "public_key_hex": addr.PublicKey().RawCompressed().ToHex(),
+            })
+        chains[change_index] = addresses
     return {
         "path_template": f"m/49'/{coin_type}/0'/0/i",
+        "change_path_template": f"m/49'/{coin_type}/0'/1/i",
         "ypub": account.PublicKey().ToExtended(),
-        "addresses": addresses,
+        "addresses": chains[0],
+        "change_addresses": chains[1],
         "address_type": "P2WPKH-P2SH",
     }
 
@@ -892,21 +981,29 @@ def derive_addresses_bip49(seed, coin, coin_type, gap_limit=GAP_LIMIT):
 def derive_addresses_bip84(seed, coin, coin_type, gap_limit=GAP_LIMIT):
     root = Bip84.FromSeed(seed, coin)
     account = root.Purpose().Coin().Account(0)
-    change = account.Change(Bip44Changes.CHAIN_EXT)
-    addresses = []
-    for i in range(gap_limit):
-        addr = change.AddressIndex(i)
-        addresses.append({
-            "index": i,
-            "path": f"m/84'/{coin_type}/0'/0/{i}",
-            "address": addr.PublicKey().ToAddress(),
-            "private_key_wif": addr.PrivateKey().ToWif(),
-            "public_key_hex": addr.PublicKey().RawCompressed().ToHex(),
-        })
+    chains = {}
+    for change_index, change_type in (
+        (0, Bip44Changes.CHAIN_EXT),
+        (1, Bip44Changes.CHAIN_INT),
+    ):
+        change = account.Change(change_type)
+        addresses = []
+        for i in range(gap_limit):
+            addr = change.AddressIndex(i)
+            addresses.append({
+                "index": i,
+                "path": f"m/84'/{coin_type}/0'/{change_index}/{i}",
+                "address": addr.PublicKey().ToAddress(),
+                "private_key_wif": addr.PrivateKey().ToWif(),
+                "public_key_hex": addr.PublicKey().RawCompressed().ToHex(),
+            })
+        chains[change_index] = addresses
     return {
         "path_template": f"m/84'/{coin_type}/0'/0/i",
+        "change_path_template": f"m/84'/{coin_type}/0'/1/i",
         "zpub": account.PublicKey().ToExtended(),
-        "addresses": addresses,
+        "addresses": chains[0],
+        "change_addresses": chains[1],
         "address_type": "P2WPKH",
     }
 
@@ -914,20 +1011,29 @@ def derive_addresses_bip84(seed, coin, coin_type, gap_limit=GAP_LIMIT):
 def derive_addresses_bip86(seed, coin, coin_type, gap_limit=GAP_LIMIT):
     root = Bip86.FromSeed(seed, coin)
     account = root.Purpose().Coin().Account(0)
-    change = account.Change(Bip44Changes.CHAIN_EXT)
-    addresses = []
-    for i in range(gap_limit):
-        addr = change.AddressIndex(i)
-        addresses.append({
-            "index": i,
-            "path": f"m/86'/{coin_type}/0'/0/{i}",
-            "address": addr.PublicKey().ToAddress(),
-            "private_key_wif": addr.PrivateKey().ToWif(),
-            "public_key_hex": addr.PublicKey().RawCompressed().ToHex(),
-        })
+    chains = {}
+    for change_index, change_type in (
+        (0, Bip44Changes.CHAIN_EXT),
+        (1, Bip44Changes.CHAIN_INT),
+    ):
+        change = account.Change(change_type)
+        addresses = []
+        for i in range(gap_limit):
+            addr = change.AddressIndex(i)
+            addresses.append({
+                "index": i,
+                "path": f"m/86'/{coin_type}/0'/{change_index}/{i}",
+                "address": addr.PublicKey().ToAddress(),
+                "private_key_wif": addr.PrivateKey().ToWif(),
+                "public_key_hex": addr.PublicKey().RawCompressed().ToHex(),
+            })
+        chains[change_index] = addresses
     return {
         "path_template": f"m/86'/{coin_type}/0'/0/i",
-        "addresses": addresses,
+        "change_path_template": f"m/86'/{coin_type}/0'/1/i",
+        "xpub": account.PublicKey().ToExtended(),
+        "addresses": chains[0],
+        "change_addresses": chains[1],
         "address_type": "P2TR",
     }
 
@@ -1503,6 +1609,7 @@ def analizar_indicadores_mnemonic(mnemonic):
 
 def resolve_input(args, interactive=False):
     args._entropy_generation_metadata = None
+    direct_seed = None
 
     if interactive:
         has_words = args.words is not None
@@ -1522,10 +1629,11 @@ def resolve_input(args, interactive=False):
             print("  [3] Importar entropy binaria")
             print("  [4] Importar mnemonic existente")
             print("  [5] Completar última palabra: 11 → 12 o 23 → 24")
+            print("  [6] Importar seed BIP32 hexadecimal (sin mnemonic)")
             print()
 
             while True:
-                choice = input("Opción [1-5]: ").strip()
+                choice = input("Opción [1-6]: ").strip()
                 if choice == '1':
                     print("\nLongitud:")
                     print("  [1] 12 palabras")
@@ -1554,8 +1662,22 @@ def resolve_input(args, interactive=False):
                 elif choice == '5':
                     args.mnemonic_incomplete = get_secure_mnemonic()
                     break
+                elif choice == "6":
+                    supplied = getattr(args, "_sensitive_cli_options", ())
+                    if (
+                        args.passphrase
+                        or "passphrase" in supplied
+                        or getattr(args, "audit_passphrase", False)
+                    ):
+                        raise ValueError(
+                            "La entrada BIP32 directa no admite opciones de passphrase BIP39."
+                        )
+                    direct_seed = parse_bip32_seed_hex(
+                        read_hidden_secret("Seed BIP32 hexadecimal: ")
+                    )
+                    break
                 else:
-                    print("❌ Opción inválida. Ingresa un número entre 1 y 5.")
+                    print("❌ Opción inválida. Ingresa un número entre 1 y 6.")
 
         if args.network is None:
             print("\nRed:")
@@ -1573,6 +1695,9 @@ def resolve_input(args, interactive=False):
                     break
                 else:
                     print("Opción inválida. Ingresa 1 o 2.")
+
+        if direct_seed is not None:
+            return direct_seed, None, None, BIP32_DIRECT_MODE
 
         if not args.passphrase:
             args.passphrase = get_secure_passphrase()
@@ -1678,27 +1803,65 @@ def resolve_input(args, interactive=False):
     }
     return entropy, mnemonic, recovered, "words"
 
+def derive_report_sections(seed, network_name):
+    if network_name not in ("mainnet", "testnet"):
+        raise RuntimeError(
+            f"Error interno: red no resuelta antes de derivar: {network_name!r}"
+        )
+
+    network = select_network(network_name)
+
+    return {
+        "BIP44": derive_addresses_bip44(seed, network["bip44"], network["coin_type"], GAP_LIMIT),
+        "BIP49": derive_addresses_bip49(seed, network["bip49"], network["coin_type"], GAP_LIMIT),
+        "BIP84": derive_addresses_bip84(seed, network["bip84"], network["coin_type"], GAP_LIMIT),
+        "BIP86": derive_addresses_bip86(seed, network["bip86"], network["coin_type"], GAP_LIMIT),
+        "BIP32_LEGACY": derive_addresses_bip32_legacy(seed, network_name, GAP_LIMIT),
+    }
+
+BIP32_DIRECT_MODE = "bip32_seed_hex"
+
+
+def parse_bip32_seed_hex(value):
+    if not isinstance(value, str):
+        raise ValueError("La seed BIP32 debe ser texto hexadecimal.")
+
+    value = value.strip()
+    if (
+        not 32 <= len(value) <= 128
+        or len(value) % 2
+        or any(ch not in "0123456789abcdefABCDEF" for ch in value)
+    ):
+        raise ValueError("La seed BIP32 debe contener de 16 a 64 bytes en hexadecimal.")
+    return bytes.fromhex(value)
+
+def build_bip32_direct_context(seed, network):
+    master, chain = bip32_master_key(seed)
+    data = {
+        "coin_type_label": "Bitcoin",
+        "network": network,
+        "input_mode": BIP32_DIRECT_MODE,
+        "bip32_seed_hex": seed.hex(),
+        "bip32_root_key": master + chain,
+        "bip32_master_key": master,
+        "bip32_chain_code": chain,
+        "bip32_extended_keys": build_bip32_extended_keys(seed, network),
+        "derivations": derive_report_sections(seed, network),
+        "gap_limit": GAP_LIMIT,
+    }
+    data["report_notices"] = build_report_notices(data)
+    return data
 
 def build_context(args, interactive=False):
     entropy, mnemonic, recovered, input_mode = resolve_input(args, interactive)
+    if input_mode == BIP32_DIRECT_MODE:
+        return build_bip32_direct_context(entropy, args.network)
     seed = mnemonic_seed(mnemonic, args.passphrase)
 
     bip32_master, bip32_chain_code = bip32_master_key(seed)
     bip32_root_key = bip32_master + bip32_chain_code
 
-    if args.network not in ("mainnet", "testnet"):
-        raise RuntimeError(
-            f"Error interno: red no resuelta antes de derivar: {args.network!r}"
-        )
-
-    network = select_network(args.network)
-
-    derivations = {
-        "BIP44": derive_addresses_bip44(seed, network["bip44"], network["coin_type"], GAP_LIMIT),
-        "BIP49": derive_addresses_bip49(seed, network["bip49"], network["coin_type"], GAP_LIMIT),
-        "BIP84": derive_addresses_bip84(seed, network["bip84"], network["coin_type"], GAP_LIMIT),
-        "BIP86": derive_addresses_bip86(seed, network["bip86"], network["coin_type"], GAP_LIMIT),
-    }
+    derivations = derive_report_sections(seed, args.network)
 
     context = {
         "coin_type_label": "Bitcoin",
@@ -1716,6 +1879,7 @@ def build_context(args, interactive=False):
         "bip32_root_key": bip32_root_key,
         "bip32_master_key": bip32_master,
         "bip32_chain_code": bip32_chain_code,
+        "bip32_extended_keys": build_bip32_extended_keys(seed, args.network),
         "derivations": derivations,
         "gap_limit": GAP_LIMIT,
     }
@@ -1747,6 +1911,11 @@ def build_report_notices(data):
         "El formato y checksum BIP39 no certifican por sí solos la imprevisibilidad de una entrada.",
         "No se puede certificar que el usuario haya copiado correctamente la mnemonic o la passphrase.",
     ]
+    if input_mode == BIP32_DIRECT_MODE:
+        input_notices = [
+            "Entrada directa BIP32: no se utilizó mnemonic ni passphrase BIP39.",
+            "No se certifica el origen ni la imprevisibilidad de la seed importada.",
+        ]
     if input_mode == "words":
         info = data.get("entropy_generation")
 
@@ -1775,10 +1944,11 @@ def build_report_notices(data):
             "No consulta la red Bitcoin ni construye, firma o transmite transacciones.",
             "La ejecución offline no certifica la seguridad del entorno.",
             "El reporte contiene material privado y debe tratarse como secreto.",
+            "Las claves extendidas privadas de m y m/0' permiten derivar sus descendientes; no compartirlas.",
             "El cifrado no compensa una contraseña predecible; conservar la contraseña de exportación.",
             "El programa intenta limpiar el historial del proceso Python; no garantiza borrar el shell, scrollback, memoria o copias.",
             "Usar exclusivamente material ficticio en pruebas.",
-            "GAP limit representa la cantidad de direcciones derivadas por familia desde el índice 0; no realiza descubrimiento de actividad, consultas de saldos ni búsqueda de direcciones usadas.",
+            "GAP representa la cantidad de direcciones derivadas por cadena (recepción y cambio), desde el índice 0; no realiza descubrimiento de actividad, consultas de saldos ni búsqueda de direcciones usadas.",
             "La terminal muestra solo la primera dirección de cada familia; el reporte privado conserva todas las generadas.",
         ],
         "input": input_notices,
@@ -1797,6 +1967,28 @@ def format_terminal_summary(data):
         "mnemonic": "importación de mnemonic",
         "mnemonic_incomplete": "reconstrucción de mnemonic",
     }
+    if data["input_mode"] == BIP32_DIRECT_MODE:
+        lines = [
+            "=" * 60,
+            "RESUMEN",
+            "=" * 60,
+            "Entrada: seed BIP32 hexadecimal directa",
+            f"Red: {data['network']} · Moneda: {data['coin_type_label']}",
+            "Seed BIP32: oculta",
+            "",
+            "Vista de terminal: primera dirección de cada ruta, índice 0",
+        ]
+        for name, item in data["derivations"].items():
+            lines.extend([
+                "",
+                f"[{name} · {item['address_type']}]",
+                f"  Ruta:      {item['path_template']}",
+            ])
+            for key in ("xpub", "ypub", "zpub"):
+                if key in item:
+                    lines.append(f"  Extendida: {item[key]}")
+            lines.append(f"  Dirección: {item['addresses'][0]['address']}")
+        return "\n".join(lines)
     valid = bool(data["mnemonic_valid"] and data["checksum_valid"])
     valid = valid and data.get("indicadores_mnemonic", {}).get("valid", True)
     status = "válido" if valid else "NO válido"
@@ -1842,10 +2034,12 @@ def format_export_help(final_path, data, output_format, *, windows=None):
     command = [
         sys.executable, str(inspector), path,
         "--format", output_format,
-        "--words", str(len(data["mnemonic"].split())),
         "--network", data["network"],
         "--input-mode", data["input_mode"],
     ]
+    if data["input_mode"] != BIP32_DIRECT_MODE:
+        pos = command.index("--network")
+        command[pos:pos] = ["--words", str(len(data["mnemonic"].split()))]
     return "\n".join([
         "\n" + "-" * 60,
         "✓ Reporte cifrado guardado",
@@ -1859,12 +2053,21 @@ def format_export_help(final_path, data, output_format, *, windows=None):
         "Un único comando abre el menú de inspección:",
         _quote_terminal_command(command, windows),
         "",
-        "[1] Verificar sin mostrar · [2] Ventana temporal · [3] Revelar aquí · [Q] Salir",
+        "[1] Verificar sin mostrar · [2] Ventana temporal · [3] Revelar aquí",
+        "[4] Visor gráfico de solo lectura",
+        "[5] Abrir en editor externo — ADVERTENCIA: crea una copia temporal sin cifrar",
+        "[Q] Salir",
         "La contraseña se solicita al elegir una operación; no se incluye en el comando.",
-        "Inspector validable en Linux; ventana temporal requiere GNOME Terminal.",
+        "Solo la opción 1 realiza las comprobaciones de coherencia del inspector.",
+        "Inspector disponible en Linux.",
+        "Opción 2: GNOME Terminal · Opción 4: Tk · Opción 5: xdg-open y aplicación de texto.",
     ])
 
 def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False):
+
+    if terminal_mode and data["input_mode"] == BIP32_DIRECT_MODE:
+        return format_terminal_summary(data)
+
     if terminal_mode and hide_sensitive and not show_all:
         return format_terminal_summary(data)
 
@@ -1881,130 +2084,152 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
         f"Network         : {data['network']}",
     ]
 
-    lines.extend(
-        entropy_generation_lines(data)
-    )
-
-    if not hide_sensitive or not terminal_mode:
-        lines.extend([
-            f"Entropy bits    : {data['entropy_bits']}",
-            f"Entropy binary  : {data['entropy_bin']}",
-            f"Entropy hex     : {data['entropy_hex']}",
-            f"Checksum BIP39  : {data['entropy_checksum']}",
-            f"Checksum valid  : {data['checksum_valid']}",
-        ])
-    else:
-        lines.extend([
-            "Entropy bits    : [OCULTO - ver archivo desencriptado]",
-            "Entropy binary  : [OCULTO - ver archivo desencriptado]",
-            "Entropy hex     : [OCULTO - ver archivo desencriptado]",
-            "Checksum BIP39  : [OCULTO - ver archivo desencriptado]",
-            "Checksum valid  : [OCULTO - ver archivo desencriptado]",
-        ])
-
-    if "indicadores_mnemonic" in data:
-        ind = data["indicadores_mnemonic"]
-
+    if data["input_mode"] == BIP32_DIRECT_MODE:
         lines.extend([
             "----------------------------------------",
-            "VALIDACIÓN BIP39 E INDICADORES DE PATRÓN",
+            "ENTRADA DIRECTA BIP32",
             "----------------------------------------",
-        ])
-
-        if not ind["valid"]:
-            lines.append(
-                f"Validación BIP39: inválida ({ind['error']})"
-            )
-        else:
-            lines.extend([
-                "Validación BIP39: válida",
-                f"Palabras: {ind['word_count']}",
-                (
-                    f"Palabras únicas: "
-                    f"{ind['unique_words']}/{ind['word_count']}"
-                ),
-                f"Repeticiones totales: {ind['repeated_total']}",
-                (
-                    "Palabras con repeticiones: "
-                    f"{ind['repeated_word_count']}"
-                ),
-                (
-                    "Índices consecutivos observados: "
-                    f"{ind['consecutive_indexes']}"
-                ),
-                (
-                    "Repeticiones consecutivas: "
-                    f"{ind['consecutive_repetitions']}"
-                ),
-                "Indicadores:",
-            ])
-
-            for message in ind["indicators"]:
-                lines.append(f"- {message}")
-
-            lines.extend([
-                "Límite:",
-                ind["limitation"],
-            ])
-
-            if data.get("input_mode") == "mnemonic":
-                lines.extend([
-                    "Origen de entropy: desconocido.",
-                    (
-                        "La validación BIP39 confirma formato y checksum, "
-                        "pero no puede certificar que la mnemonic importada "
-                        "fuera generada con una fuente aleatoria segura."
-                    ),
-                ])
-
-    if "passphrase_audit" in data:
-        pa = data["passphrase_audit"]
-        lines.extend([
-            "----------------------------------------",
-            "AUDITORÍA DE PASSPHRASE",
-            "----------------------------------------",
-            f"Estado                 : {'presente' if pa['present'] else 'vacía'}",
-            f"Caracteres             : {pa['characters']}",
-            f"Bytes UTF-8            : {pa['utf8_bytes']}",
-            f"Caracteres distintos   : {pa['unique_characters']}",
-            f"Minúsculas             : {pa['has_lowercase']}",
-            f"Mayúsculas             : {pa['has_uppercase']}",
-            f"Dígitos                : {pa['has_digits']}",
-            f"Símbolos               : {pa['has_symbols']}",
-            f"Espacios               : {pa['has_spaces']}",
-            f"Clasificación          : {pa['classification']}",
-            f"Nota                   : {pa['security_note']}",
-        ])
-
-    lines.extend([
-        "----------------------------------------",
-        "Mnemonic",
-        "----------------------------------------",
-    ])
-
-    if not hide_sensitive or not terminal_mode:
-        lines.append(data["mnemonic"])
-    else:
-        word_count = len(data["mnemonic"].split())
-        lines.append(f"[{word_count} palabras - OCULTO - ver archivo desencriptado]")
-
-    lines.extend([
-        f"\nMnemonic valid   : {data['mnemonic_valid']}",
-        f"Passphrase used  : {data['passphrase_used']}",
-    ])
-
-    if not hide_sensitive or not terminal_mode:
-        lines.extend([
-            f"BIP39 seed hex   : {data['bip39_seed_hex']}",
+            "BIP39: no aplica",
+            f"BIP32 seed hex   : {data['bip32_seed_hex']}",
             f"BIP32 root key   : {data['bip32_root_key']}",
         ])
     else:
+        lines.extend(
+            entropy_generation_lines(data)
+        )
+
+        if not hide_sensitive or not terminal_mode:
+            lines.extend([
+                f"Entropy bits    : {data['entropy_bits']}",
+                f"Entropy binary  : {data['entropy_bin']}",
+                f"Entropy hex     : {data['entropy_hex']}",
+                f"Checksum BIP39  : {data['entropy_checksum']}",
+                f"Checksum valid  : {data['checksum_valid']}",
+            ])
+        else:
+            lines.extend([
+                "Entropy bits    : [OCULTO - ver archivo desencriptado]",
+                "Entropy binary  : [OCULTO - ver archivo desencriptado]",
+                "Entropy hex     : [OCULTO - ver archivo desencriptado]",
+                "Checksum BIP39  : [OCULTO - ver archivo desencriptado]",
+                "Checksum valid  : [OCULTO - ver archivo desencriptado]",
+            ])
+
+        if "indicadores_mnemonic" in data:
+            ind = data["indicadores_mnemonic"]
+
+            lines.extend([
+                "----------------------------------------",
+                "VALIDACIÓN BIP39 E INDICADORES DE PATRÓN",
+                "----------------------------------------",
+            ])
+
+            if not ind["valid"]:
+                lines.append(
+                    f"Validación BIP39: inválida ({ind['error']})"
+                )
+            else:
+                lines.extend([
+                    "Validación BIP39: válida",
+                    f"Palabras: {ind['word_count']}",
+                    (
+                        f"Palabras únicas: "
+                        f"{ind['unique_words']}/{ind['word_count']}"
+                    ),
+                    f"Repeticiones totales: {ind['repeated_total']}",
+                    (
+                        "Palabras con repeticiones: "
+                        f"{ind['repeated_word_count']}"
+                    ),
+                    (
+                        "Índices consecutivos observados: "
+                        f"{ind['consecutive_indexes']}"
+                    ),
+                    (
+                        "Repeticiones consecutivas: "
+                        f"{ind['consecutive_repetitions']}"
+                    ),
+                   "Indicadores:",
+                ])
+
+                for message in ind["indicators"]:
+                    lines.append(f"- {message}")
+
+                lines.extend([
+                    "Límite:",
+                    ind["limitation"],
+                ])
+
+                if data.get("input_mode") == "mnemonic":
+                    lines.extend([
+                        "Origen de entropy: desconocido.",
+                        (
+                            "La validación BIP39 confirma formato y checksum, "
+                            "pero no puede certificar que la mnemonic importada "
+                            "fuera generada con una fuente aleatoria segura."
+                        ),
+                    ])
+
+        if "passphrase_audit" in data:
+            pa = data["passphrase_audit"]
+            lines.extend([
+                "----------------------------------------",
+                "AUDITORÍA DE PASSPHRASE",
+                "----------------------------------------",
+                f"Estado                 : {'presente' if pa['present'] else 'vacía'}",
+                f"Caracteres             : {pa['characters']}",
+                f"Bytes UTF-8            : {pa['utf8_bytes']}",
+                f"Caracteres distintos   : {pa['unique_characters']}",
+                f"Minúsculas             : {pa['has_lowercase']}",
+                f"Mayúsculas             : {pa['has_uppercase']}",
+                f"Dígitos                : {pa['has_digits']}",
+                f"Símbolos               : {pa['has_symbols']}",
+                f"Espacios               : {pa['has_spaces']}",
+                f"Clasificación          : {pa['classification']}",
+                f"Nota                   : {pa['security_note']}",
+            ])
+
         lines.extend([
-            "BIP39 seed hex   : [OCULTO - ver archivo desencriptado]",
-            "BIP32 root key   : [OCULTO - ver archivo desencriptado]",
+            "----------------------------------------",
+            "Mnemonic",
+            "----------------------------------------",
         ])
 
+        if not hide_sensitive or not terminal_mode:
+            lines.append(data["mnemonic"])
+        else:
+            word_count = len(data["mnemonic"].split())
+            lines.append(f"[{word_count} palabras - OCULTO - ver archivo desencriptado]")
+
+        lines.extend([
+            f"\nMnemonic valid   : {data['mnemonic_valid']}",
+            f"Passphrase used  : {data['passphrase_used']}",
+        ])
+
+        if not hide_sensitive or not terminal_mode:
+            lines.extend([
+                f"BIP39 seed hex   : {data['bip39_seed_hex']}",
+                f"BIP32 root key   : {data['bip32_root_key']}",
+            ])
+        else:
+            lines.extend([
+                "BIP39 seed hex   : [OCULTO - ver archivo desencriptado]",
+                "BIP32 root key   : [OCULTO - ver archivo desencriptado]",
+            ])
+
     lines.append("----------------------------------------")
+
+    if not terminal_mode:
+        lines.extend(["", "CLAVES EXTENDIDAS BIP32 — REPORTE PRIVADO"])
+        for label, key in (("Raíz", "root"), ("Cuenta legacy endurecida", "legacy_account")):
+            node = data["bip32_extended_keys"][key]
+            lines.extend([
+                f"Nodo             : {label}",
+                f"Ruta del nodo    : {node['path']}",
+                f"Red del nodo     : {node['network']}",
+                f"Clave extendida privada : {node['extended_private_key']}",
+                f"Clave extendida pública : {node['extended_public_key']}",
+            ])
 
     gap = data.get("gap_limit", GAP_LIMIT)
 
@@ -2017,7 +2242,7 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
             f"Path template    : {item['path_template']}",
         ])
         if not terminal_mode:
-            lines.append(f"GAP limit       : {gap}")
+            lines.append(f"GAP — Direcciones derivadas por cadena: {gap}")
 
         if "xpub" in item:
             lines.append(f"Extended public key : {item['xpub']}")
@@ -2039,14 +2264,22 @@ def format_report(data, terminal_mode=True, hide_sensitive=True, show_all=False)
                 lines.append("Private key WIF   : [OCULTO - ver archivo desencriptado]")
                 lines.append("Public key hex    : [OCULTO - ver archivo desencriptado]")
         else:
-            for addr_info in item["addresses"]:
+            for label, addresses_key, template_key in (
+                ("Recepción", "addresses", "path_template"),
+                ("Cambio", "change_addresses", "change_path_template"),
+            ):
                 lines.extend([
-                    f"Index            : {addr_info['index']}",
-                    f"Path             : {addr_info['path']}",
-                    f"Address          : {addr_info['address']}",
-                    f"Private key WIF   : {addr_info['private_key_wif']}",
-                    f"Public key hex    : {addr_info['public_key_hex']}",
+                    f"Cadena           : {label}",
+                    f"Ruta de cadena   : {item[template_key]}",
                 ])
+                for addr_info in item[addresses_key]:
+                    lines.extend([
+                        f"Index            : {addr_info['index']}",
+                        f"Path             : {addr_info['path']}",
+                        f"Address          : {addr_info['address']}",
+                        f"Private key WIF   : {addr_info['private_key_wif']}",
+                        f"Public key hex    : {addr_info['public_key_hex']}",
+                    ])
 
         lines.append("----------------------------------------")
 
