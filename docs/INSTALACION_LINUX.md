@@ -1,5 +1,22 @@
 # Instalación y ejecución en Linux
 
+Nota de actualización documental — 19 de noviembre de 2026:
+esta guía conserva los registros y contextos históricos de noviembre 10
+y 11. Las ampliaciones posteriores sobre preparación de runtimes,
+BIP32 directo y opciones de inspección se distinguen de esos ensayos.
+Las fechas, versiones y resultados históricos no se actualizan
+retrospectivamente.
+
+La corrida posterior `output/bateria_local_t2c17zkm`, con el pie de ayuda
+ampliado, completó 26 etapas y 412 métodos unittest, inventario 80/80,
+50 archivos protegidos conservados y código `0`. Corresponde al núcleo
+`b31741cc898b86394c2e103effe25db14bff4f54361f31928e19387688283fcd`.
+Los resultados anteriores de esta guía conservan su propia identidad.
+
+Tras esa corrida, la suite aislada del inspector se amplió a 66 métodos
+y pasó satisfactoriamente. La incorporación de ese refuerzo a una
+batería completa se registrará por separado.
+
 ## Alcance, versión y seguridad
 
 Guía actualizada el 11 de noviembre de 2026 para distinguir la integración
@@ -246,6 +263,45 @@ La preparación debe hacerse en una copia de trabajo nueva. No ejecutar
 esta compilación sobre el proyecto de referencia o el laboratorio
 histórico si se desea conservar sus clases y registros originales.
 
+### Si faltan Java, el compilador, Node o la clase compilada
+
+Las instrucciones siguientes comprueban y preparan componentes de la
+configuración Linux ensayada; no instalan automáticamente los runtimes.
+
+- Si falta `java`, preparar un runtime Java compatible y de procedencia
+  comprobada para el equipo.
+- Si falta `javac`, preparar un JDK compatible para compilar las fuentes.
+  Tener `java` instalado no demuestra que exista un compilador.
+- Si falta Node en la ruta configurada, preparar un runtime Node adecuado
+  y revisar su procedencia, arquitectura y mantenimiento. Un `node`
+  distinto disponible en `PATH` no sustituye esa ruta.
+- Si falta `JavaEntropyProvider.class`, seguir el paso de compilación
+  aunque las consultas de versión de Java y `javac` funcionen.
+- Si ya existe `build/entropy_java`, revisar su contenido antes de
+  recompilar. No borrarlo automáticamente ni sobrescribir compilados
+  históricos para superar una comprobación.
+
+El mensaje `Falta compilar JavaEntropyProvider.java.` indica que no
+se encontró el archivo de clase exigido por la configuración. Puede
+deberse a una compilación pendiente o a una copia o ruta de salida
+incorrecta; por sí solo no demuestra que Java esté desinstalado.
+
+Antes de iniciar la batería completa, realizar los pasos 1 a 4 de esta
+preparación. El paso 3 compila las fuentes; el paso 4 construye los
+comandos y comprueba los ejecutables seleccionados sin generar un
+reporte. Esa comprobación previa no sustituye las pruebas funcionales.
+
+La configuración conjunta prepara los comandos Java antes de que
+algunas pruebas deshabiliten proveedores para simular modos reducidos
+o de respaldo. Por ello, una clase ausente puede detener también una
+prueba cuyo resultado final solo utilizaría el proveedor del sistema
+operativo.
+
+No convertir este error en una omisión de pruebas ni dar por validado
+un respaldo automático. Los ensayos de ausencia de Java o Node deben
+registrarse por separado. El modo `current` explícito sigue siendo una
+elección distinta, no una reparación de la preparación redundante.
+
 ### 1. Comprobar fuentes y auxiliares de la revisión
 
 Desde la raíz de la copia nueva, con PY definido:
@@ -444,7 +500,11 @@ La suite distribuida espera 24 casos BIP39. No es una auditoría de todas las de
 PYTHONPATH="$PWD" "$PY" test/test_inspeccionar_reporte_cifrado.py
 ```
 
-Para la referencia actual se esperan 42 métodos y `OK`.
+En la copia local comprobada el 19 de noviembre de 2026, la suite del
+inspector ejecutó 65 métodos y terminó con `OK`. Los 42 métodos de
+la revisión anterior se conservan como referencia histórica, no
+como expectativa de la suite ampliada. Si se utiliza otra revisión,
+consultar sus fuentes y registrar el recuento realmente ejecutado.
 
 ```bash
 PYTHONPATH="$PWD" "$PY" test/test_ejecutar_bateria_local.py
@@ -458,11 +518,26 @@ La revisión histórica del 5 de noviembre tenía 20; no mezclar expectativas.
 echo $?
 ```
 
-La integración local corregida completó 25 etapas, 362 métodos unittest,
-73/73 y 49 archivos conservados, con código 0. Los 49 dependen del árbol
-ensayado, no son un valor obligatorio para cualquier copia.
-El hito histórico del 5 de noviembre tenía diez etapas y 70/70.
-Un equipo o revisión distintos deben registrar su propio resultado:
+La corrida local del 19 de noviembre de 2026, registrada en
+`output/bateria_local_lcqnkkq3`, completó 26 etapas y acumuló
+411 métodos unittest, con código `0`. El ejecutor registró 80/80
+funciones o métodos del núcleo alcanzados y 50 archivos protegidos,
+sin cambios de contenido ni del conjunto inventariado.
+
+El núcleo de esa corrida tiene SHA-256
+`bcae133d9d57c1e6923ef13e069d308e7f1773bb384f43d439796d8cc5d01787`.
+Las clases Java se comprobaron por separado antes y después de
+la batería y conservaron sus hashes. Estos controles no constituyen
+cobertura completa de ramas ni verificación criptográfica independiente.
+
+Como referencia histórica, la integración del 10 de noviembre completó
+25 etapas, 362 métodos unittest, 73/73 y 49 archivos conservados.
+El hito del 5 de noviembre tenía diez etapas y 70/70. Esos resultados
+conservan su revisión y no se atribuyen al código posterior.
+
+El número de archivos protegidos depende del árbol seleccionado;
+no es un valor universal. Un equipo o revisión distintos deben
+registrar su propio resultado:
 
 - 0: automático completo según los controles del ejecutor.
 - 1: fallo de proceso/registro/prueba o archivos protegidos modificados.
@@ -547,25 +622,116 @@ IFS= read -r REPORTE
 Ajustar expectativas si se hizo otro ensayo. El ejemplo no crea el archivo
 antes de verificarlo. Una ruta inexistente produce FileNotFoundError, no un error de cifrado.
 
-## 6. Inspector y ventana temporal
+## 6. Inspector y opciones de lectura
 
-El comando del pie es el preferido. Alternativamente, con `REPORTE` definido:
+El inspector actual está limitado a Linux y requiere una terminal
+interactiva. El comando completo del pie de exportación es el preferido.
+Alternativamente, con `REPORTE` apuntando al archivo cifrado existente:
 
 ```bash
 "$PY" inspeccionar_reporte_cifrado.py "$REPORTE"
 ```
 
-- 1: verificar sin imprimir contenido privado; vuelve al menú.
-- 2: revisar en ventana GNOME; al finalizar correctamente termina el inspector.
-- 3: revelar en esta terminal tras confirmación; al completar termina.
-- Q: salir con código 0.
-- Selección sin respuesta en 360 segundos: finaliza con código 1.
-- Ctrl+C o EOF: cancelación controlada con código 1.
+El menú conserva las siguientes opciones:
 
-Los errores o la revelación rechazada permiten volver al menú. Nunca hay
-revelación automática alternativa. El plazo solo limita selección: no contraseña,
-confirmación ni tiempo de lectura del visor. La opción 3 deja contenido visible
-en la terminal; terminar el proceso no borra el scrollback.
+- `1`: verificar sin imprimir contenido privado. Muestra el alcance
+  de la comprobación realizada y vuelve al menú.
+- `2`: revisar en una ventana de GNOME Terminal. Al finalizar
+  correctamente la revisión, termina el inspector principal.
+- `3`: revelar en la terminal actual después de una confirmación.
+  Si se completa la revelación, termina el inspector.
+- `4`: abrir el visor gráfico integrado de solo lectura, con búsqueda.
+  Requiere una sesión gráfica y `tkinter` en el intérprete elegido.
+  Pide confirmación antes de solicitar la contraseña en la terminal.
+- `5`: abrir en la aplicación externa asociada a texto.
+  ADVERTENCIA: crea una copia temporal sin cifrar. Requiere una sesión
+  gráfica, `xdg-open` y una aplicación asociada a archivos `.txt`;
+  no requiere Tk ni GNOME Terminal.
+- `Q`: salir con código `0`.
+
+El menú ofrece 360 segundos para seleccionar y pulsar Enter.
+La confirmación de la opción `5` tiene su propio plazo de 360 segundos
+y requiere escribir `s` para continuar; Enter por sí solo cancela
+sin solicitar contraseña. Estos plazos no limitan la contraseña
+ni el tiempo de lectura. Ctrl+C o EOF cancelan con código `1`.
+
+Rechazar la confirmación de una operación devuelve el control al menú
+sin solicitar contraseña. Los errores de autenticación en el menú no
+activan una revelación alternativa. Al completar correctamente la
+lectura en las opciones `2`, `3`, `4` o `5`, termina la inspección.
+
+Las opciones de lectura autentican, descifran y reconocen el formato,
+pero no sustituyen las comprobaciones de coherencia de la opción `1`.
+Las expectativas de red, modo y palabras se contrastan mediante `1`
+según su alcance. La entrada BIP32 directa no utiliza `--words`.
+
+### Preparar el visor integrado para la opción 4
+
+Desde una terminal de tu escritorio, con el mismo `PY` del inspector:
+
+```bash
+"$PY" -m tkinter
+```
+
+Cierra la demostración antes de abrir un reporte. Si falta `tkinter`
+y se utiliza el Python de la distribución en Linux Mint 21.3 o
+Ubuntu 22.04, puede prepararse mediante el paquete del sistema:
+
+```bash
+sudo apt install python3-tk
+```
+
+Esta instalación es una operación de preparación del equipo; no ejecutes
+el inspector como root. Para un Python de otra procedencia, comprobar
+cómo proporciona Tk esa instalación. No es necesario instalar Tk
+para utilizar las demás opciones del inspector.
+
+El visor no permite editar el reporte ni ofrece una función de guardado.
+No crea deliberadamente un archivo descifrado, pero no protege contra
+capturas de pantalla ni garantiza el borrado de memoria al cerrar.
+
+### Preparar y usar la opción 5 con advertencia
+
+Consultar el abridor y, si está disponible `xdg-mime`, la asociación
+de archivos de texto:
+
+```bash
+command -v xdg-open
+xdg-mime query default text/plain
+```
+
+La aplicación depende de la configuración del escritorio; no se impone
+un editor concreto. En el ensayo local se abrió Xed. No continúes
+si no confías en la aplicación asociada o en el equipo.
+
+Después de aceptar la advertencia y autenticar el reporte, el inspector
+escribe `reporte.txt` en un directorio temporal privado, con permisos
+de archivo `0600`, y entrega su ruta a la aplicación externa. Utiliza
+esa extensión tanto para contenido JSON como TXT, sin convertirlo.
+El original cifrado no se modifica.
+
+Cierra el documento externo y pulsa Enter en la terminal cuando se
+indique para retirar la copia temporal. El retorno del abridor no
+garantiza que el documento esté cerrado; puede regresar antes o
+permanecer activo mientras la aplicación sigue abierta.
+
+La aplicación puede permitir copiar, editar o guardar, y puede conservar
+copias mediante respaldos, guardado automático o restauración de sesión.
+El inspector intenta retirar su temporal, no esas copias externas.
+Una terminación forzada puede dejar el temporal en el equipo.
+Si se informa un fallo de limpieza, revisar la ruta local indicada.
+
+Usa esta vía con datos ficticios de laboratorio. Que el editor muestre
+«archivo no encontrado» al abrir una entrada reciente confirma únicamente
+que esa ruta ya no está disponible, no un borrado seguro ni la ausencia
+de otras copias.
+
+La opción `3` y la ventana de la opción `2` también pueden dejar
+contenido en el scrollback. Cerrar el proceso o la ventana no garantiza
+borrado seguro.
+
+Para el alcance completo y los riesgos de cada vía, consultar
+[Revisar un reporte cifrado](../README.md#revisar-un-reporte-cifrado).
 
 ### Preparar GNOME Terminal para la opción 2
 
