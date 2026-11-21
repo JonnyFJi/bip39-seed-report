@@ -2,6 +2,58 @@
 
 ## Unreleased
 
+### BIP32, inspector y cierre Linux — publicación del 21 de noviembre de 2026
+
+Integración en la rama principal mediante los pull requests #30, #31
+y #32. Revisión de cierre de la publicación:
+`f7cfb7578773399d212c28004d550a16874c2219`.
+No constituye una release formal.
+
+#### Funcionalidad y pruebas
+
+- Incorporación de recepción y cambio, con diez direcciones por cadena
+  en las cinco secciones de derivación del reporte privado.
+- Incorporación de la sección legacy BIP32 basada en `m/0'`.
+- Claves extendidas privadas y públicas de raíz y cuenta legacy
+  en el reporte privado.
+- Entrada directa de seed BIP32 hexadecimal, sin mnemonic
+  ni passphrase BIP39.
+- Ampliación del inspector a cinco opciones, incluido el visor
+  integrado y la apertura externa con advertencia de copia temporal
+  sin cifrar.
+- Refuerzo de las pruebas de errores y limpieza del editor externo.
+- Batería ampliada a 26 etapas, incluida la suite legacy BIP32.
+
+#### Evidencia local anterior a la publicación
+
+La corrida Linux `output/bateria_local_i4b0m0bz` registró 413 métodos
+unittest, inventario del núcleo 80/80, 50 archivos protegidos conservados
+y código final `0`. La suite del inspector registró 66 métodos.
+
+SHA-256 del núcleo ensayado:
+
+`b31741cc898b86394c2e103effe25db14bff4f54361f31928e19387688283fcd`
+
+Los manuales y la conservación adicional de las clases Java se
+registran separadamente. La publicación no acredita por sí sola
+una repetición de la batería sobre una descarga de GitHub.
+
+Detalle:
+[Cierre local del 19 de noviembre de 2026](docs/CIERRE_LOCAL_2026-11-19.md).
+
+Se conservan las corridas históricas de 411 y 412 métodos.
+No se acredita soporte nuevo para Windows ni macOS; los resultados
+Windows 10 siguen perteneciendo a su revisión histórica.
+
+### Enlaces y precisión documental — 21 de noviembre de 2026
+
+- Distinción entre las 26 etapas de la configuración publicada
+  y las 25 etapas de la integración histórica de noviembre 10.
+- Enlaces al cierre de 413 métodos desde el README, la guía Linux
+  y el README de pruebas.
+- Sin cambios de código, pruebas, proveedores o checksums.
+- Sin modificación retrospectiva de evidencias o manifiestos.
+
 ### Revisión documental local — 11 de noviembre de 2026
 
 - Actualización de los análisis de compatibilidad y entropy para incorporar

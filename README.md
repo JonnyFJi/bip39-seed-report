@@ -478,7 +478,20 @@ Para ejecutar la batería secuencial y registrar entorno, hashes e inventario:
 "$PY" test/ejecutar_bateria_local.py
 ```
 
-La batería integrada planifica 25 etapas. El ensayo local
+La configuración publicada de la batería integrada planifica 26 etapas:
+diez iniciales, quince de entropía y una de legacy BIP32.
+
+El cierre local posterior al refuerzo registró 413 métodos unittest,
+inventario del núcleo 80/80 y 50 archivos protegidos conservados,
+con código final `0`. Ese resultado pertenece a la corrida
+`output/bateria_local_i4b0m0bz`; no acredita automáticamente una
+ejecución nueva de una descarga de GitHub.
+
+Detalle:
+[Cierre local del 19 de noviembre de 2026](docs/CIERRE_LOCAL_2026-11-19.md).
+
+Como referencia histórica, la batería de la integración del 10 de
+noviembre planificaba 25 etapas. El ensayo local
 `bateria_local_8jy797o3` registró 362 métodos unittest, incluidos
 42 del inspector y 33 del ejecutor, sin fallos ni omisiones y con código 0.
 Las tres primeras etapas utilizan otros procedimientos y no se cuentan
