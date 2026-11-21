@@ -2,6 +2,17 @@
 
 ## Referencia local de pruebas — 19 de noviembre de 2026
 
+Nota posterior de enlace documental — 21 de noviembre de 2026:
+la batería completa posterior al refuerzo ya se ejecutó y su resultado
+se conserva en el
+[cierre local del 19 de noviembre de 2026](../docs/CIERRE_LOCAL_2026-11-19.md):
+26 etapas, 413 métodos unittest, inventario 80/80, 50 archivos
+protegidos conservados y código final `0`.
+
+Los párrafos siguientes que describen esa ejecución como pendiente
+conservan el estado previo al cierre. No se modifican los resultados
+ni los manifiestos de las corridas de 411 o 412 métodos.
+
 Esta sección distingue la revisión local de noviembre 19 de los
 resultados históricos conservados más abajo. No anuncia una release
 ni atribuye al repositorio remoto cambios todavía no publicados.
