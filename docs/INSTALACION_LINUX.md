@@ -17,6 +17,17 @@ Tras esa corrida, la suite aislada del inspector se amplió a 66 métodos
 y pasó satisfactoriamente. La incorporación de ese refuerzo a una
 batería completa se registrará por separado.
 
+Nota posterior de enlace documental — 21 de noviembre de 2026:
+esa ejecución posterior se completó y quedó registrada por separado
+en el
+[cierre local del 19 de noviembre de 2026](CIERRE_LOCAL_2026-11-19.md).
+La corrida `output/bateria_local_i4b0m0bz` registró 26 etapas,
+413 métodos unittest, inventario 80/80, 50 archivos protegidos
+conservados y código final `0`.
+
+Esta nota conecta los registros; no sustituye los resultados históricos
+ni modifica retrospectivamente sus manifiestos.
+
 ## Alcance, versión y seguridad
 
 Guía actualizada el 11 de noviembre de 2026 para distinguir la integración
