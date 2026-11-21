@@ -97,15 +97,20 @@ class RegressionIntegral(unittest.TestCase):
             config = r.select_network(network)
             for purpose in (44, 49, 84, 86):
                 item = getattr(r, f"derive_addresses_bip{purpose}")(
-                    seed, config[f"bip{purpose}"], coin_type, 5)
-                self.assertEqual(len(item["addresses"]), 5)
-                self.assertEqual(item["path_template"], f"m/{purpose}'/{coin_type}/0'/0/i")
-                for index, address in enumerate(item["addresses"]):
-                    self.assertEqual(address["index"], index)
-                    self.assertEqual(address["path"], f"m/{purpose}'/{coin_type}/0'/0/{index}")
-                    self.assertTrue(address["address"])
-                    self.assertTrue(address["private_key_wif"])
-                    self.assertEqual(len(bytes.fromhex(address["public_key_hex"])), 33)
+                    seed, config[f"bip{purpose}"], coin_type, 10)
+                for chain, key, template in (
+                    (0, "addresses", "path_template"),
+                    (1, "change_addresses", "change_path_template"),
+                ):
+                    with self.subTest(network=network, purpose=purpose, chain=chain):
+                        self.assertEqual(len(item[key]), 10)
+                        self.assertEqual(item[template], f"m/{purpose}'/{coin_type}/0'/{chain}/i")
+                        for index, address in enumerate(item[key]):
+                            self.assertEqual(address["index"], index)
+                            self.assertEqual(address["path"], f"m/{purpose}'/{coin_type}/0'/{chain}/{index}")
+                            self.assertTrue(address["address"])
+                            self.assertTrue(address["private_key_wif"])
+                            self.assertEqual(len(bytes.fromhex(address["public_key_hex"])), 33)
         with self.assertRaises(ValueError):
             r.select_network("red-ficticia")
 
@@ -158,7 +163,7 @@ class RegressionIntegral(unittest.TestCase):
         self.assertTrue(data["passphrase_used"])
         self.assertIn("report_notices", data)
         self.assertIn("passphrase_audit", data)
-        self.assertEqual(set(data["derivations"]), {"BIP44", "BIP49", "BIP84", "BIP86"})
+        self.assertEqual(set(data["derivations"]), {"BIP44", "BIP49", "BIP84", "BIP86", "BIP32_LEGACY"})
 
     def test_11_pattern_and_passphrase_indicators(self):
         ind = r.analizar_indicadores_mnemonic(PUBLIC_MNEMONIC)
@@ -381,6 +386,235 @@ class RegressionIntegral(unittest.TestCase):
         self.assertNotIn("OK (0 casos)", self.output.getvalue())
 
 
+    def test_29_ten_addresses_preserve_the_first_five(self):
+        seed = r.mnemonic_seed(PUBLIC_MNEMONIC, "TREZOR")
+        self.assertEqual(r.GAP_LIMIT, 10)
+        for network, coin_type in [("mainnet", "0'"), ("testnet", "1'")]:
+            config = r.select_network(network)
+            for purpose in (44, 49, 84, 86):
+                derive = getattr(r, f"derive_addresses_bip{purpose}")
+                five = derive(seed, config[f"bip{purpose}"], coin_type, 5)
+                ten = derive(seed, config[f"bip{purpose}"], coin_type)
+                with self.subTest(network=network, purpose=purpose):
+                    for key in ("addresses", "change_addresses"):
+                        self.assertEqual(len(five[key]), 5)
+                        self.assertEqual(len(ten[key]), 10)
+                        self.assertEqual(ten[key][:5], five[key])
+                    excluded = {"addresses", "change_addresses"}
+                    self.assertEqual(
+                        {k: x for k, x in ten.items() if k not in excluded},
+                        {k: x for k, x in five.items() if k not in excluded})
+
+    def test_30_real_context_has_one_hundred_addresses(self):
+        for network in ("mainnet", "testnet"):
+            with self.subTest(network=network):
+                data = r.build_context(arguments(mnemonic=PUBLIC_MNEMONIC, network=network))
+                self.assertEqual(data["gap_limit"], 10)
+                total = 0
+                for item in data["derivations"].values():
+                    for key in ("addresses", "change_addresses"):
+                        addresses = item[key]
+                        self.assertEqual([a["index"] for a in addresses], list(range(10)))
+                        self.assertEqual(len({a["address"] for a in addresses}), 10)
+                        total += len(addresses)
+                    self.assertTrue(
+                        {a["address"] for a in item["addresses"]}.isdisjoint(
+                            a["address"] for a in item["change_addresses"]))
+                self.assertEqual(total, 100)
+                compact = r.format_report(data)
+                for item in data["derivations"].values():
+                    self.assertIn(item["addresses"][0]["address"], compact)
+                    for address in item["addresses"][1:] + item["change_addresses"]:
+                        self.assertNotIn(address["address"], compact)
+
+    def test_31_derivations_match_explicit_external_and_internal_nodes(self):
+        seed = r.mnemonic_seed(PUBLIC_MNEMONIC, "TREZOR")
+        for network in ("mainnet", "testnet"):
+            config = r.select_network(network)
+            for purpose in (44, 49, 84, 86):
+                cls = getattr(r, f"Bip{purpose}")
+                account = cls.FromSeed(seed, config[f"bip{purpose}"]).Purpose().Coin().Account(0)
+                item = getattr(r, f"derive_addresses_bip{purpose}")(
+                    seed, config[f"bip{purpose}"], config["coin_type"])
+                for key, change in (("addresses", r.Bip44Changes.CHAIN_EXT),
+                                    ("change_addresses", r.Bip44Changes.CHAIN_INT)):
+                    for index in range(10):
+                        node = account.Change(change).AddressIndex(index)
+                        with self.subTest(network=network, purpose=purpose, key=key, index=index):
+                            address = item[key][index]
+                            self.assertEqual(address["address"], node.PublicKey().ToAddress())
+                            self.assertEqual(address["private_key_wif"], node.PrivateKey().ToWif())
+                            self.assertEqual(address["public_key_hex"], node.PublicKey().RawCompressed().ToHex())
+
+    def test_32_encrypted_json_and_txt_preserve_both_chains(self):
+        import inspeccionar_reporte_cifrado as inspector
+        data = r.build_context(arguments(mnemonic=PUBLIC_MNEMONIC))
+        options = argparse.Namespace(format="auto", network="testnet", words=12, input_mode="mnemonic")
+        with tempfile.TemporaryDirectory(prefix="bip39-both-chains-") as directory:
+            for fmt in ("json", "txt"):
+                path = r.export_seed_report(data, Path(directory) / ("ficticio." + fmt), fmt,
+                                            "clave-ficticia-larga")
+                plain = r.decrypt_report_content(path.read_text(encoding="utf-8"),
+                                                 "clave-ficticia-larga")
+                with patch.object(inspector, "report", r):
+                    inspector.verify_plain(plain, options)
+                if fmt == "json":
+                    self.assertEqual(json.loads(plain), data)
+                else:
+                    self.assertIn("GAP — Direcciones derivadas por cadena: 10", plain)
+                    for item in data["derivations"].values():
+                        for address in item["addresses"] + item["change_addresses"]:
+                            self.assertIn(address["address"], plain)
+                            self.assertIn(address["private_key_wif"], plain)
+
+    def test_33_laboratory_verifier_requires_change(self):
+        import runpy
+        data = r.build_context(arguments(mnemonic=PUBLIC_MNEMONIC))
+        script = Path(r.__file__).resolve().parent / "test" / "verificar_export_laboratorio.py"
+        with tempfile.TemporaryDirectory(prefix="bip39-lab-verifier-") as directory:
+            path = Path(directory) / "cifrado-ficticio.json"
+            path.write_text("CIFRADO_FICTICIO", encoding="utf-8")
+            variants = [(data, True)]
+            missing = json.loads(json.dumps(data))
+            del missing["derivations"]["BIP44"]["change_addresses"]
+            variants.append((missing, False))
+            short = json.loads(json.dumps(data))
+            short["derivations"]["BIP86"]["change_addresses"].pop()
+            variants.append((short, False))
+            for value, accepted in variants:
+                with self.subTest(accepted=accepted):
+                    argv = [str(script), str(path), "--network", "testnet", "--words", "12"]
+                    with patch.object(sys, "argv", argv), \
+                         patch.object(r, "read_hidden_secret", return_value="FICTICIA"), \
+                         patch.object(r, "decrypt_report_content", return_value=json.dumps(value)), \
+                         contextlib.redirect_stderr(io.StringIO()):
+                        if accepted:
+                            runpy.run_path(str(script), run_name="__main__")
+                        else:
+                            with self.assertRaises(SystemExit) as error:
+                                runpy.run_path(str(script), run_name="__main__")
+                            self.assertEqual(error.exception.code, 1)
+
+
+    def test_34_bip86_account_xpub_derives_both_chains(self):
+        seed = r.mnemonic_seed(PUBLIC_MNEMONIC, "TREZOR")
+        for network, prefix in (("mainnet", "xpub"), ("testnet", "tpub")):
+            config = r.select_network(network)
+            coin = config["bip86"]
+            item = r.derive_addresses_bip86(seed, coin, config["coin_type"])
+            account = r.Bip86.FromSeed(seed, coin).Purpose().Coin().Account(0)
+            self.assertEqual(item["xpub"], account.PublicKey().ToExtended())
+            self.assertTrue(item["xpub"].startswith(prefix))
+            public = r.Bip86.FromExtendedKey(item["xpub"], coin)
+            for key, chain in (("addresses", r.Bip44Changes.CHAIN_EXT),
+                               ("change_addresses", r.Bip44Changes.CHAIN_INT)):
+                for index, entry in enumerate(item[key]):
+                    with self.subTest(network=network, key=key, index=index):
+                        node = public.Change(chain).AddressIndex(index)
+                        self.assertEqual(node.PublicKey().ToAddress(), entry["address"])
+                        self.assertEqual(node.PublicKey().RawCompressed().ToHex(), entry["public_key_hex"])
+
+    def test_35_bip86_xpub_is_reported_without_private_extended_keys(self):
+        data = r.build_context(arguments(mnemonic=PUBLIC_MNEMONIC))
+        xpub = data["derivations"]["BIP86"]["xpub"]
+        compact = r.format_report(data)
+        self.assertIn(xpub, compact)
+        keys = data["bip32_extended_keys"]
+        for value in (keys["root"]["extended_public_key"],
+                      keys["root"]["extended_private_key"],
+                      keys["legacy_account"]["extended_private_key"]):
+            self.assertNotIn(value, compact)
+        for item in data["derivations"].values():
+            for address in item["addresses"][1:] + item["change_addresses"]:
+                self.assertNotIn(address["address"], compact)
+        for fmt in ("json", "txt"):
+            with patch.object(r, "_encrypt_report_content", return_value="CIFRADO_FICTICIO") as encrypt:
+                with patch.object(r, "_write_report_payload", return_value=Path("ficticio." + fmt)):
+                    r.export_seed_report(data, "ficticio." + fmt, fmt, "clave-ficticia-larga")
+            plain = encrypt.call_args.args[0]
+            if fmt == "json":
+                self.assertEqual(json.loads(plain)["derivations"]["BIP86"]["xpub"], xpub)
+            else:
+                self.assertIn(xpub, plain)
+
+
+    def test_36_bip32_direct_hex_boundaries(self):
+        for size in (16, 64):
+            with self.subTest(size=size):
+                raw = bytes(range(size))
+                self.assertEqual(r.parse_bip32_seed_hex(raw.hex().upper()), raw)
+
+        for value in ("", "ab" * 15, "ab" * 65, "a" * 33,
+                      "gg" * 16, "0x" + "ab" * 16, "ab " + "ab" * 15):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    r.parse_bip32_seed_hex(value)
+
+    def test_37_bip32_direct_menu_derives_both_networks(self):
+        seed = bytes(range(16))
+        for network in ("mainnet", "testnet"):
+            with self.subTest(network=network):
+                with (
+                    patch("builtins.input", return_value="6"),
+                    patch.object(r, "read_hidden_secret", return_value=seed.hex()) as read,
+                    patch.object(r, "get_secure_passphrase") as ask_passphrase,
+                    patch.object(r, "mnemonic_seed") as derive_bip39,
+                ):
+                    data = r.build_context(arguments(network=network), interactive=True)
+
+                read.assert_called_once()
+                ask_passphrase.assert_not_called()
+                derive_bip39.assert_not_called()
+                self.assertEqual(data["input_mode"], "bip32_seed_hex")
+                self.assertEqual(data["bip32_seed_hex"], seed.hex())
+                self.assertEqual(data["network"], network)
+                self.assertTrue({
+                    "mnemonic", "bip39_seed_hex", "passphrase_used", "entropy_hex",
+                }.isdisjoint(data))
+                self.assertEqual(
+                    set(data["derivations"]),
+                    {"BIP44", "BIP49", "BIP84", "BIP86", "BIP32_LEGACY"},
+                )
+                for section in data["derivations"].values():
+                    for key in ("addresses", "change_addresses"):
+                        self.assertEqual(
+                            [entry["index"] for entry in section[key]],
+                            list(range(10)),
+                        )
+
+    def test_38_bip32_direct_rejects_bip39_passphrase_options(self):
+        for changes in (
+            {"passphrase": "ficticia"},
+            {"passphrase": "", "_sensitive_cli_options": {"passphrase"}},
+            {"audit_passphrase": True},
+        ):
+            with self.subTest(changes=changes):
+                with (
+                    patch("builtins.input", return_value="6"),
+                    patch.object(r, "read_hidden_secret") as read,
+                ):
+                    with self.assertRaisesRegex(ValueError, "passphrase BIP39"):
+                        r.resolve_input(arguments(**changes), interactive=True)
+                read.assert_not_called()
+
+    def test_39_bip32_direct_invalid_or_cancelled_never_exports(self):
+        for value, error in (("no-es-hex", None), (None, KeyboardInterrupt),
+                             (None, EOFError)):
+            with self.subTest(error=error):
+                argv = ["bip39_seed_report.py", "-i", "-n", "testnet"]
+                with (
+                    patch.object(sys, "argv", argv),
+                    patch.object(r, "get_secure_input", return_value="clave-ficticia"),
+                    patch("builtins.input", return_value="6"),
+                    patch.object(r, "read_hidden_secret", return_value=value,
+                                 side_effect=error) as read,
+                    patch.object(r, "export_seed_report") as export,
+                ):
+                    with self.assertRaises(SystemExit) as stopped:
+                        r.main()
+                self.assertEqual(stopped.exception.code, 1)
+                read.assert_called_once()
+                export.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

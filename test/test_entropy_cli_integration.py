@@ -140,36 +140,7 @@ class EntropyCliIntegrationTests(unittest.TestCase):
         return created[0]
 
     def build(self, args):
-        item = {
-            "path_template": "test",
-            "address_type": "test",
-            "addresses": [
-                {
-                    "index": 0,
-                    "path": "test",
-                    "address": "test-address",
-                    "private_key_wif": "test-private",
-                    "public_key_hex": "test-public",
-                }
-            ],
-        }
-
-        with contextlib.ExitStack() as stack:
-            for name in (
-                "derive_addresses_bip44",
-                "derive_addresses_bip49",
-                "derive_addresses_bip84",
-                "derive_addresses_bip86",
-            ):
-                stack.enter_context(
-                    patch.object(
-                        report,
-                        name,
-                        return_value=item,
-                    )
-                )
-
-            return report.build_context(args)
+        return report.build_context(args)
 
     def test_legacy_generator_still_calls_os_directly(self):
         with patch.object(
@@ -567,8 +538,8 @@ class EntropyCliIntegrationTests(unittest.TestCase):
         )
 
         self.assertEqual(
-            len(data["derivations"]),
-            4,
+            set(data["derivations"]),
+            {"BIP44", "BIP49", "BIP84", "BIP86", "BIP32_LEGACY"},
         )
 
     def test_imported_context_has_no_automatic_metadata(self):
