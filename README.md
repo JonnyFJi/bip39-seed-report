@@ -215,6 +215,12 @@ ni certificados de seguridad del host. Las consultas posteriores de Java
 no se incorporan retrospectivamente a los campos del entorno.json original.
 Detalle: [Inventario de runtimes Linux](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
 
+La observación del 23 de noviembre de 2026 registró por separado
+OpenJDK y javac 11.0.33.1, y Node v24.22.2. Consultar la sección
+«Observación posterior — 23 de noviembre de 2026» del
+[inventario de runtimes](docs/RUNTIMES_ENTROPY_LINUX_2026-11-10.md).
+Esta observación no modifica los entornos ni los manifiestos históricos.
+
 Windows y macOS quedan fuera del alcance activo y no bloquean este hito.
 Su revisión queda diferida a quien ejecute el programa en esos sistemas.
 Los resultados Windows históricos se conservan con su versión y sus
