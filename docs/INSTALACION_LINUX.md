@@ -753,8 +753,16 @@ command -v gnome-terminal
 command -v gsettings
 ```
 
-En las preferencias de GNOME Terminal, crear un único perfil con nombre visible
-`BIP39-revision`. En sus opciones de comando:
+Antes de crear un perfil, consultar todos los perfiles existentes
+mediante el procedimiento de la subsección
+«Consultar los perfiles sin modificar preferencias», incluida más abajo.
+
+Si no existe ninguno con el nombre visible `BIP39-revision`, crear
+uno en las preferencias de GNOME Terminal. Si ya existe exactamente
+uno, revisar sus propiedades sin crear otro. Si hay varios perfiles
+con ese nombre, resolver la duplicidad antes de usar la opción 2.
+
+En las opciones de comando del perfil `BIP39-revision`:
 
 1. Al finalizar el comando, seleccionar cerrar/salir de la terminal
    (`exit-action` debe ser `close`, no `hold` ni `restart`).
