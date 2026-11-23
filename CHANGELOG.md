@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Runtimes y perfiles GNOME — 23 de noviembre de 2026
+
+- Registro separado de las versiones de runtimes observadas
+  el 23 de noviembre, sin sustituir inventarios históricos.
+- Consultas de solo lectura para comprobar los perfiles
+  de GNOME Terminal antes de preparar la opción 2 del inspector.
+- Enlace desde el README al inventario actualizado.
+- Cambio exclusivamente documental, sin nueva ejecución de
+  la batería ni cambios de código, dependencias o proveedores.
+
+La actualización de los tres documentos se publicó mediante
+la solicitud #36. La revisión posterior de la solicitud #37
+no encontró archivos modificados adicionales.
+
+La revisión posterior identificó mejoras de trazabilidad y de orden
+de las instrucciones. Este ajuste añade la entrada al registro de
+cambios y aclara que deben consultarse los perfiles existentes
+antes de crear uno nuevo.
+
+No constituye una release formal ni una instalación completa
+de runtimes desde cero acreditada por este laboratorio.
+
+
 ### BIP32, inspector y cierre Linux — publicación del 21 de noviembre de 2026
 
 Integración en la rama principal mediante los pull requests #30, #31
