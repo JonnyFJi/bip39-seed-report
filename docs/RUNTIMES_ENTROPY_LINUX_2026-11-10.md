@@ -159,6 +159,36 @@ en otro equipo, independencia de fuentes ni soporte nuevo Windows/macOS.
 Detalle:
 [Resultados de preparación de otra copia](../test/RESULTADOS_COPIA_ENTROPY_2026-11-10.md).
 
+## Observación posterior — 23 de noviembre de 2026
+
+Se consultaron los ejecutables seleccionados por la configuración
+de una copia de laboratorio utilizada para las pruebas manuales.
+Esta observación no sustituye las tablas ni los hashes históricos.
+
+| Componente | Versión observada | Selección consultada |
+|---|---|---|
+| Python | 3.10.12 | Intérprete del venv del laboratorio |
+| Java | OpenJDK 11.0.33.1 | `/usr/lib/jvm/java-11-openjdk-amd64/bin/java` |
+| Compilador disponible | javac 11.0.33.1 | `/usr/lib/jvm/java-11-openjdk-amd64/bin/javac` |
+| Node | v24.22.2 | `$HOME/.local/opt/bip39-node/node-v24.22.2-linux-x64/bin/node` |
+
+El runtime Java declaró el build
+`11.0.33.1+1-post-1ubuntu1-22.04.1-Ubuntu`.
+Las rutas resueltas de Java, javac y Node coincidieron con las
+rutas consultadas.
+
+El entorno Python declaró mnemonic 0.21, bip-utils 2.9.3,
+cryptography 44.0.3 y pip 22.0.2.
+
+La consulta de javac identifica el compilador actualmente disponible;
+no demuestra qué compilador produjo clases anteriores. Las versiones
+observadas no acreditan procedencia, mantenimiento ni una instalación
+completa de runtimes desde cero.
+
+No se asignan a esta observación los hashes del inventario histórico.
+No se modifican los archivos entorno.json, los manifiestos ni los
+resultados de baterías anteriores.
+
 ## Condiciones para otra preparación y pendientes de instalación completa
 
 1. Elegir una revisión de confianza que incluya los módulos, fuentes y auxiliares de esta integración; el ZIP histórico de noviembre 5 no equivale a la integración local nueva.

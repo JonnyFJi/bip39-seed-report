@@ -767,6 +767,42 @@ no inventar sus valores para eludir una sesión gráfica ausente.
 La revisión permanece abierta hasta Enter; cerrarla no garantiza borrado seguro.
 Las opciones 1 y 3 no requieren GNOME Terminal.
 
+### Consultar los perfiles sin modificar preferencias
+
+Antes de crear un perfil, listar los existentes:
+
+```bash
+gsettings get org.gnome.Terminal.ProfilesList list
+```
+
+Para cada UUID devuelto, consultar sus propiedades. Sustituir el valor
+de ejemplo por un UUID real de esa lista, sin copiar los corchetes
+ni las comillas de la salida:
+
+```bash
+UUID_PERFIL="SUSTITUIR_POR_UUID_REAL"
+ESQUEMA="org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:${UUID_PERFIL}/"
+
+gsettings get "$ESQUEMA" visible-name
+gsettings get "$ESQUEMA" exit-action
+gsettings get "$ESQUEMA" use-custom-command
+```
+
+Debe existir exactamente un perfil cuyo nombre visible sea
+`BIP39-revision`, con `exit-action` igual a `close` y
+`use-custom-command` igual a `false`. Revisar todos los UUID antes
+de concluir que el nombre es único.
+
+Estas consultas no cambian preferencias ni abren reportes. Si un
+comando falla, detenerse y revisar el esquema y la sesión de escritorio.
+Si falta el perfil o hay nombres duplicados, revisar las preferencias
+antes de usar la opción 2; no crear perfiles repetidos ni cambiar
+automáticamente un perfil ajeno.
+
+Los UUID son propios de cada escritorio y no deben copiarse desde
+el inventario de otro equipo. Esta consulta comprueba configuración;
+no sustituye una prueba funcional de apertura y cierre de la ventana.
+
 ## 7. Diagnóstico y conservación
 
 - Fallo de instalación nativa: registrar Python/arquitectura y el error; no reducir
