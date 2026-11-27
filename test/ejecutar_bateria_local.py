@@ -21,7 +21,7 @@ import unittest
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "bip39_seed_report.py"
-EXPECTED_SHA256 = "b31741cc898b86394c2e103effe25db14bff4f54361f31928e19387688283fcd"
+EXPECTED_SHA256 = "32de984e3a7d88749c2d6f12b3ad7956a4555a5f22b0381e006c78518634d2e2"
 
 STAGES = [
     ("01_vectores", "bip39_seed_report.py", ["--run-tests", "--vectors-file", "test/vectors.json"]),

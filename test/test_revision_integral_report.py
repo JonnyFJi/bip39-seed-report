@@ -192,20 +192,44 @@ class RegressionIntegral(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     r.read_hidden_secret("Dato: ")
 
-    def test_14_unix_timed_reader_simulated(self):
-        selector = Mock()
-        selector.select.return_value = [(None, None)]
-        with patch.object(selectors, "DefaultSelector", return_value=selector):
-            with patch.object(r.sys, "stdin", io.StringIO("opcion\n")):
-                self.assertEqual(r._read_line_with_timeout_unix("", 1), "opcion")
-            selector.select.return_value = []
-            with self.assertRaises(r.InputTimeoutError):
-                r._read_line_with_timeout_unix("", 1)
-            selector.select.return_value = [(None, None)]
-            with patch.object(r.sys, "stdin", io.StringIO("")):
-                with self.assertRaises(EOFError):
-                    r._read_line_with_timeout_unix("", 1)
-        self.assertTrue(selector.close.called)
+    def test_14_unix_timed_reader_with_real_pipe(self):
+        import os
+
+        def read_with(payload, timeout, close_writer):
+            read_fd, write_fd = os.pipe()
+            stream = os.fdopen(read_fd, "r", encoding="utf-8")
+            try:
+                if payload:
+                    os.write(write_fd, payload)
+                if close_writer:
+                    os.close(write_fd)
+                    write_fd = None
+                with patch.object(r.sys, "stdin", stream):
+                    return r._read_line_with_timeout_unix("", timeout)
+            finally:
+                stream.close()
+                if write_fd is not None:
+                    os.close(write_fd)
+
+        self.assertEqual(read_with(b"opcion\n", 1, False), "opcion")
+        self.assertEqual(read_with(b"parcial", 1, True), "parcial")
+        with self.assertRaises(r.InputTimeoutError):
+            read_with(b"", 0.2, False)
+        with self.assertRaises(EOFError):
+            read_with(b"", 1, True)
+        with self.assertRaises(ValueError):
+            read_with(b"x" * (r.MAX_TIMED_LINE_BYTES + 1) + b"\n", 1, False)
+
+        read_fd, write_fd = os.pipe()
+        stream = os.fdopen(read_fd, "r", encoding="utf-8")
+        try:
+            os.write(write_fd, b"uno\ndos\n")
+            with patch.object(r.sys, "stdin", stream):
+                self.assertEqual(r._read_line_with_timeout_unix("", 1), "uno")
+                self.assertEqual(r._read_line_with_timeout_unix("", 1), "dos")
+        finally:
+            stream.close()
+            os.close(write_fd)
 
     def test_15_windows_reader_simulated_not_windows_certification(self):
         fake = types.ModuleType("msvcrt")
