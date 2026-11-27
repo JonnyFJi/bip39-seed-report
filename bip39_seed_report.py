@@ -101,6 +101,7 @@ from typing import Callable, Collection, TypeVar
 
 
 DEFAULT_DECISION_TIMEOUT_SECONDS = 360
+MAX_TIMED_LINE_BYTES = 4096
 T = TypeVar("T")
 
 
@@ -142,22 +143,37 @@ def _read_line_with_timeout_unix(prompt: str, timeout_seconds: int) -> str:
     sys.stdout.write(prompt)
     sys.stdout.flush()
 
-    selector = selectors.DefaultSelector()
-    try:
-        selector.register(sys.stdin, selectors.EVENT_READ)
-        events = selector.select(timeout_seconds)
-    finally:
-        selector.close()
+    deadline = time.monotonic() + timeout_seconds
+    descriptor = sys.stdin.fileno()
+    data = bytearray()
 
-    if not events:
-        raise InputTimeoutError(
-            f"Tiempo agotado: no hubo respuesta en {timeout_seconds} segundos."
-        )
+    with selectors.DefaultSelector() as selector:
+        selector.register(descriptor, selectors.EVENT_READ)
 
-    line = sys.stdin.readline()
-    if line == "":
-        raise EOFError("Entrada estándar finalizada.")
-    return line.rstrip("\n")
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not selector.select(remaining):
+                raise InputTimeoutError(
+                    f"Tiempo agotado: no hubo respuesta en {timeout_seconds} segundos."
+                )
+
+            try:
+                chunk = os.read(descriptor, 1)
+            except BlockingIOError:
+                continue
+
+            if not chunk:
+                if data:
+                    break
+                raise EOFError("Entrada estándar finalizada.")
+            if chunk == b"\n":
+                break
+
+            data.extend(chunk)
+            if len(data) > MAX_TIMED_LINE_BYTES:
+                raise ValueError("La respuesta supera el límite admitido.")
+
+    return data.decode(sys.stdin.encoding or "utf-8", sys.stdin.errors or "strict")
 
 
 def _read_line_with_timeout_windows(prompt: str, timeout_seconds: int) -> str:
