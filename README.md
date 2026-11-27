@@ -431,6 +431,7 @@ PYTHONPATH="$PWD" "$PY" test/test_ux_terminal_report.py
 PYTHONPATH="$PWD" "$PY" test/test_revision_integral_report.py
 PYTHONPATH="$PWD" "$PY" test/test_inspeccionar_reporte_cifrado.py
 PYTHONPATH="$PWD" "$PY" test/test_ejecutar_bateria_local.py
+PYTHONPATH="$PWD" "$PY" test/test_preparar_runtimes_entropy.py
 ```
 
 Ejecuta esos comandos desde la raíz y compruébalos en una descarga limpia.
@@ -672,6 +673,20 @@ comandos conjuntos puede detenerse con
 `Falta compilar JavaEntropyProvider.java.` antes de intentar adquirir
 aportaciones. Este mensaje también puede aparecer con Java instalado.
 No significa que se haya intentado y rechazado una aportación Java.
+
+Para comprobar esta preparación sin modificar nada, ejecutar desde la raíz
+del proyecto, con `PY` definido:
+
+```bash
+"$PY" preparar_runtimes_entropy.py
+```
+
+La comprobación informa `LISTO` con código `0`, o `PREPARACIÓN INCOMPLETA`
+con código `3` y qué falta. Si solo faltan las clases Java y `javac` funciona,
+el asistente opcional `"$PY" preparar_runtimes_entropy.py --compilar` ejecuta
+el comando de la guía Linux sin sobrescribir compilados existentes. No instala
+Java, `javac` ni Node, y no sustituye las suites ni los ensayos funcionales.
+La carpeta `build/` no se publica en el repositorio.
 
 No se garantiza una reducción o un respaldo automático ante cualquier
 error de preparación. Si se desea el modo `current`, solicitarlo

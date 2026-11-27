@@ -274,6 +274,49 @@ La preparación debe hacerse en una copia de trabajo nueva. No ejecutar
 esta compilación sobre el proyecto de referencia o el laboratorio
 histórico si se desea conservar sus clases y registros originales.
 
+### Comprobar la preparación con `preparar_runtimes_entropy.py`
+
+El modo predeterminado de `bip39_seed_report.py` (generación redundante) y la
+batería integrada necesitan los proveedores Python, Java y JavaScript.
+Instalar `requirements.txt` no instala Java ni Node ni compila las fuentes
+Java. Antes del primer uso en una copia nueva, desde la raíz del proyecto y con
+`PY` definido:
+
+```bash
+"$PY" preparar_runtimes_entropy.py
+```
+
+Esta orden es de solo lectura: no compila, no instala, no usa la red ni `sudo`.
+Comprueba las fuentes y auxiliares, `java`, `javac`, Node, las clases Java
+compiladas y la construcción de los comandos efectivos. Termina con código `0`
+y el texto `LISTO` si todo está en orden, o con código `3` y
+`PREPARACIÓN INCOMPLETA` si algo falta; en ese caso indica qué falta y cómo
+continuar.
+
+Si al ejecutar el programa o una suite aparece
+`Falta compilar JavaEntropyProvider.java.`, no se encontró
+`build/entropy_java/JavaEntropyProvider.class`. Por sí solo no demuestra que
+Java esté desinstalado. Hay dos caminos:
+
+1. Manual: seguir el paso 3 de la sección «Preparación adicional de runtimes
+   para entropy» de esta guía.
+2. Asistente opcional, solo si `javac` está disponible:
+
+```bash
+"$PY" preparar_runtimes_entropy.py --compilar
+```
+
+El asistente ejecuta el mismo comando de la guía (`-encoding UTF-8
+--release 11`) en una carpeta temporal y publica `build/entropy_java` solo si
+la compilación termina con código `0` y existen las dos clases. No sobrescribe
+ni borra compilados existentes: si `build/entropy_java` ya existe e incompleto,
+se detiene y pide revisarlo. Muestra los hashes locales de las clases; no se
+exige igualar los históricos ni se declara compilación reproducible.
+
+Esta comprobación no sustituye las suites ni los ensayos funcionales, y no
+instala Java, `javac` ni Node. La carpeta `build/` está excluida de Git por
+diseño: las clases compiladas no se publican en el repositorio.
+
 ### Si faltan Java, el compilador, Node o la clase compilada
 
 Las instrucciones siguientes comprueban y preparan componentes de la
